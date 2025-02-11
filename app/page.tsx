@@ -19,7 +19,8 @@ export default function Home() {
   ]
   return (
     <main className="h-dvh w-dvw bg-gradient-to-b from-white to-neutral-500">
-      <Canvas shadows flat dpr={[1, 1.5]} camera={{ position: [0, activeCard ? 6 : 2, 8], fov: 30, near: 1, far: 20 }}>
+      <h1 className="m-6 mx-7 absolute text-3xl font-cursive">CMR</h1>
+      <Canvas className="fixed z-20" shadows flat dpr={[1, 1.5]} camera={{ position: [0, activeCard ? 6 : 2, 8], fov: 30, near: 1, far: 20 }}>
         <Experience cardArr={cardArr} />
       </Canvas>
     </main>

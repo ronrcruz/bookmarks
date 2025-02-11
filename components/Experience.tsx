@@ -11,7 +11,7 @@ export default function Experience({ cardArr }: { cardArr: CardType[] }) {
 
   return (
     <>
-      <OrbitControls enableRotate={false} />
+      <OrbitControls enableRotate={false} enableZoom={false} enablePan={false} />
 
       <ambientLight intensity={3} />
       <directionalLight castShadow intensity={2} position={[10, 6, 6]} shadow-mapSize={[1028, 1028]}>

@@ -30,7 +30,7 @@ interface CardProps {
 
 const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) => {
   const [hover, setHover] = useState(false)
-  const ref = useRef<THREE.Mesh>(null)
+  const meshRef = useRef<any>(null)
   const [initialPos, setInitialPos] = useState<THREE.Vector3 | null>(null)
 
   const roundedRectShape = createRoundedRectShape(1.0, 1.5, 0.1)
@@ -41,14 +41,14 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) 
   const click = (e: { stopPropagation: () => any }) => (e.stopPropagation(), !active ? setActive(id) : setActive(null), setHover(false))
 
   useEffect(() => {
-    if (ref.current) {
-      setInitialPos(ref.current.position.clone())
+    if (meshRef.current) {
+      setInitialPos(meshRef.current.position.clone())
     }
   }, [])
 
 
   useFrame((state, delta) => {
-    if (ref.current && initialPos) {
+    if (meshRef.current && initialPos) {
       let targetPosition: [number, number, number];
       let smoothTime: number;
       let targetRotation: [number, number, number];
@@ -59,9 +59,9 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) 
         targetRotation = [Math.PI / 2, Math.PI, 0]
       } else if (hover) {
         targetPosition = [
-          ref.current.position.x,
+          meshRef.current.position.x,
           0.5,
-          ref.current.position.z
+          meshRef.current.position.z
         ];
         smoothTime = 0.1;
         targetRotation = [0, 0.7, 0]
@@ -76,14 +76,14 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) 
       }
 
       easing.damp3(
-        ref.current.position,
+        meshRef.current.position,
         targetPosition,
         smoothTime,
         delta
       );
 
       easing.damp3(
-        ref.current.rotation,
+        meshRef.current.rotation,
         targetRotation,
         active ? 0.5 : 0.175,
         delta
@@ -102,7 +102,7 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) 
     <mesh
       onPointerOver={pointerOver}
       onPointerOut={pointerOut}
-      ref={ref}
+      ref={meshRef}
       geometry={geometry}
       receiveShadow
       castShadow
