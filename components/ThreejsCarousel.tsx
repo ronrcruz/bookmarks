@@ -41,6 +41,8 @@ const Card: React.FC<CardProps> = ({ index, active, totalCards, setActive, color
   const mesh = useRef<THREE.Mesh>(null)
   const angle = (index - active) * (Math.PI * 2) / totalCards
   const radius = 3
+  const prevActiveRef = useRef(active)
+  const rotationProgressRef = useRef(0)
 
   const roundedRectShape = useMemo(() => createRoundedRectShape(cardWidth, cardHeight, 0.1), [cardWidth, cardHeight])
   const geometry = useMemo(() => new THREE.ExtrudeGeometry(roundedRectShape, { depth: cardThickness, bevelEnabled: false }), [roundedRectShape, cardThickness])
@@ -51,11 +53,25 @@ const Card: React.FC<CardProps> = ({ index, active, totalCards, setActive, color
       const targetZ = Math.cos(angle) * radius
       mesh.current.position.x = THREE.MathUtils.lerp(mesh.current.position.x, targetX, 0.1)
       mesh.current.position.z = THREE.MathUtils.lerp(mesh.current.position.z, targetZ, 0.1)
-      mesh.current.rotation.y = Math.atan2(mesh.current.position.x, mesh.current.position.z) + Math.PI
+
+      const baseRotation = Math.atan2(mesh.current.position.x, mesh.current.position.z) + Math.PI
+
+      if (prevActiveRef.current !== active && index === active) {
+        rotationProgressRef.current = 0
+      }
+
+      if (index === active && rotationProgressRef.current < 1) {
+        rotationProgressRef.current = Math.min(rotationProgressRef.current + delta * 2, 1)
+        mesh.current.rotation.y = baseRotation + Math.PI * 2 * rotationProgressRef.current
+      } else {
+        mesh.current.rotation.y = baseRotation
+      }
+
+      prevActiveRef.current = active
 
       const distanceFromActive = Math.abs(index - active)
       const maxDistance = totalCards / 2
-      const targetOpacity = 1 - (distanceFromActive / maxDistance) * 0.5;
+      const targetOpacity = 1 - (distanceFromActive / maxDistance) * 0.1;
       (mesh.current.material as THREE.MeshStandardMaterial).opacity = THREE.MathUtils.lerp(
         (mesh.current.material as THREE.MeshStandardMaterial).opacity,
         targetOpacity,
@@ -182,15 +198,15 @@ const Scene: React.FC<SceneProps> = ({ active, setActive, totalCards }) => {
     <>
       <perspectiveCamera ref={cameraRef} fov={75} aspect={size.width / size.height} near={0.1} far={1000} />
       <ambientLight intensity={ambientLightIntensity} />
-      <spotLight
+      {/* <spotLight
         ref={spotlightRef}
         position={spotlightPosition}
         angle={0.3}
         penumbra={1}
         intensity={spotlightIntensity}
         castShadow
-      />
-      <Sparkles count={200} scale={10} size={1} speed={0.5} />
+      /> */}
+      {/* <Sparkles count={200} scale={10} size={1} speed={0.5} /> */}
       {Array.from({ length: totalCards }).map((_, index) => (
         <Card
           key={index}
