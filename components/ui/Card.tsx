@@ -1,6 +1,6 @@
 "use client"
 
-import { useFrame } from "@react-three/fiber"
+import { useFrame, useThree } from "@react-three/fiber"
 import { useRef, useMemo, useState, Dispatch, SetStateAction, useEffect } from "react"
 import * as THREE from 'three'
 import { easing } from "maath"
@@ -31,24 +31,33 @@ interface CardProps {
 const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) => {
   const [hover, setHover] = useState(false)
   const meshRef = useRef<any>(null)
-  const [initialPos, setInitialPos] = useState<THREE.Vector3 | null>(null)
-
   const roundedRectShape = createRoundedRectShape(1.0, 1.5, 0.1)
   const geometry = new THREE.ExtrudeGeometry(roundedRectShape, { depth: 0.02, bevelEnabled: false })
+  const initialPos = useMemo(() => new THREE.Vector3(cardPos * 0.4, 0, 0), [cardPos])
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
 
-  const pointerOver = (e: { stopPropagation: () => any }) => (e.stopPropagation(), !active && setHover(true))
+  const pointerOver = (e: { stopPropagation: () => any }) => {
+    e.stopPropagation()
+    if (!active) setHover(true)
+  }
   const pointerOut = () => !active && setHover(false)
   const click = (e: { stopPropagation: () => any }) => (e.stopPropagation(), !active ? setActive(id) : setActive(null), setHover(false))
 
-  useEffect(() => {
-    if (meshRef.current) {
-      setInitialPos(meshRef.current.position.clone())
+  const pointerMove = (e: MouseEvent) => {
+    if (active === id) {
+      const x = (e.clientX / window.innerWidth) * 2 - 1
+      const y = -(e.clientY / window.innerHeight) * 2 + 1
+      setMousePos({ x, y })
     }
-  }, [])
+  }
 
+  useEffect(() => {
+    window.addEventListener('mousemove', pointerMove as any)
+    return () => window.removeEventListener('mousemove', pointerMove as any)
+  }, [active, id])
 
   useFrame((state, delta) => {
-    if (meshRef.current && initialPos) {
+    if (meshRef.current) {
       let targetPosition: [number, number, number];
       let smoothTime: number;
       let targetRotation: [number, number, number];
@@ -56,7 +65,9 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) 
       if (active === id) {
         targetPosition = [0, 16, 0];
         smoothTime = 0.4;
-        targetRotation = [Math.PI / 2, Math.PI, 0]
+        const rotationX = mousePos.y * 0.5
+        const rotationY = mousePos.x * 0.5
+        targetRotation = [Math.PI / 2 - rotationX, Math.PI - rotationY, 0]
       } else if (hover) {
         targetPosition = [
           meshRef.current.position.x,
@@ -75,6 +86,7 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) 
         targetRotation = [0, 0.7, 0]
       }
 
+      // CARD POSITION ANIMATION
       easing.damp3(
         meshRef.current.position,
         targetPosition,
@@ -82,6 +94,7 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) 
         delta
       );
 
+      // CARD ROTATION ANIMATION
       easing.damp3(
         meshRef.current.rotation,
         targetRotation,
@@ -89,6 +102,7 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) 
         delta
       )
 
+      // CAMERA POSITION ANIMATION
       easing.damp3(
         state.camera.position,
         [state.camera.position.x, active ? 20 : 2, active ? 0 : 8],

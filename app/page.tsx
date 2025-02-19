@@ -4,9 +4,11 @@ import { useState } from "react"
 import Experience from "@/components/Experience"
 import { Canvas } from "@react-three/fiber"
 import { CardType } from "./definitions"
+import ActiveUi from "@/components/ui/ActiveUi"
 
 export default function Home() {
-  const [activeCard, setActiveCard] = useState<null | number>(null)
+  const [active, setActive] = useState<number | null>(null)
+
   const cardArr: CardType[] = [
     { id: 1, color: "#141414" },
     { id: 2, color: "#242424" },
@@ -18,10 +20,10 @@ export default function Home() {
     { id: 8, color: "#848484" }
   ]
   return (
-    <main className="h-dvh w-dvw bg-gradient-to-b from-white to-neutral-500">
-      <h1 className="m-6 mx-7 absolute text-3xl font-cursive">CMR</h1>
-      <Canvas className="fixed z-20" shadows flat dpr={[1, 1.5]} camera={{ position: [0, activeCard ? 6 : 2, 8], fov: 30, near: 1, far: 20 }}>
-        <Experience cardArr={cardArr} />
+    <main className="h-dvh w-dvw bg-gradient-to-b from-white to-neutral-500 relative">
+      <ActiveUi active={active} setActive={setActive} cardArr={cardArr} />
+      <Canvas className="fixed z-20" shadows flat dpr={[1, 1.5]} camera={{ position: [0, 2, 8], fov: 30, near: 1, far: 20 }}>
+        <Experience cardArr={cardArr} active={active} setActive={setActive} />
       </Canvas>
     </main>
   )

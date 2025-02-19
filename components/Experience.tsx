@@ -1,13 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { Dispatch, SetStateAction, useState } from "react"
 import Card from "./ui/Card"
 import { AccumulativeShadows, Environment, MeshReflectorMaterial, OrbitControls, RandomizedLight, ContactShadows } from "@react-three/drei"
 import { CardType } from "@/app/definitions"
 
-export default function Experience({ cardArr }: { cardArr: CardType[] }) {
-  const [active, setActive] = useState<number | null>(null)
+interface ExperienceProps {
+  cardArr: CardType[];
+  active: number | null;
+  setActive: Dispatch<SetStateAction<number | null>>;
+}
 
+export default function Experience({ cardArr, active, setActive }: ExperienceProps) {
 
   return (
     <>
