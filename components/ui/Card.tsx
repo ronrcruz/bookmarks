@@ -1,9 +1,11 @@
 "use client"
 
-import { useFrame, useThree } from "@react-three/fiber"
+import { useFrame } from "@react-three/fiber"
 import { useRef, useMemo, useState, Dispatch, SetStateAction, useEffect } from "react"
 import * as THREE from 'three'
 import { easing } from "maath"
+import GoldFoil from "./GoldFoil"
+import { useTexture, Decal } from "@react-three/drei"
 
 const createRoundedRectShape = (width: number, height: number, radius: number): THREE.Shape => {
   const shape = new THREE.Shape()
@@ -31,10 +33,16 @@ interface CardProps {
 const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) => {
   const [hover, setHover] = useState(false)
   const meshRef = useRef<any>(null)
-  const roundedRectShape = createRoundedRectShape(1.0, 1.5, 0.1)
+  const roundedRectShape = createRoundedRectShape(1.0, 1.75, 0.1)
   const geometry = new THREE.ExtrudeGeometry(roundedRectShape, { depth: 0.02, bevelEnabled: false })
   const initialPos = useMemo(() => new THREE.Vector3(cardPos * 0.4, 0, 0), [cardPos])
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+
+  const bookmark = useTexture("/bookmark.png")
+  bookmark.minFilter = THREE.LinearFilter; // Default, smooths when zoomed out
+  bookmark.magFilter = THREE.LinearFilter; // Default, smooths when zoomed in
+  bookmark.anisotropy = 16;
+  bookmark.generateMipmaps = true;
 
   const pointerOver = (e: { stopPropagation: () => any }) => {
     e.stopPropagation()
@@ -61,13 +69,15 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) 
       let targetPosition: [number, number, number];
       let smoothTime: number;
       let targetRotation: [number, number, number];
+      let intensity: number
 
       if (active === id) {
         targetPosition = [0, 16, 0];
         smoothTime = 0.4;
-        const rotationX = mousePos.y * 0.5
-        const rotationY = mousePos.x * 0.5
-        targetRotation = [Math.PI / 2 - rotationX, Math.PI - rotationY, 0]
+        intensity = 0.25
+        const rotationX = mousePos.y * intensity
+        const rotationY = mousePos.x * intensity
+        targetRotation = [Math.PI / 2 - rotationX, Math.PI - rotationY, Math.PI]
       } else if (hover) {
         targetPosition = [
           meshRef.current.position.x,
@@ -105,7 +115,7 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) 
       // CAMERA POSITION ANIMATION
       easing.damp3(
         state.camera.position,
-        [state.camera.position.x, active ? 20 : 2, active ? 0 : 8],
+        [state.camera.position.x, active ? 20.5 : 2, active ? 0 : 8],
         2.0,
         delta
       );
@@ -120,16 +130,30 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) 
       geometry={geometry}
       receiveShadow
       castShadow
-      position={[cardPos * 0.4, 0, 0]}
+      position={initialPos}
       rotation={[0, 0.7, 0]}
       onClick={click}
     >
-      <meshStandardMaterial
+      <meshPhysicalMaterial
         color={color}
-        transparent
         opacity={1}
         side={THREE.DoubleSide}
+        roughness={0.9}
+        metalness={0.2}
       />
+      <Decal receiveShadow={active ? false : true} position={[0, 0, 0]} scale={[1, 1.75, 0.1]} >
+        <meshPhysicalMaterial
+          polygonOffset
+          polygonOffsetFactor={-1}
+          map={bookmark}
+          map-anisotropy={1}
+          roughness={0.9}
+          metalness={0.2}
+          // map-flipY={false}
+          map-flipX={false}
+        />
+      </Decal>
+      {/* <GoldFoil /> */}
     </mesh>
   )
 }
