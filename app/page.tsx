@@ -13,42 +13,42 @@ export default function Home() {
     {
       id: 1,
       // color: "#141414"
-      color: "#a6d2ef"
+      color: "#91b4cc"
     },
     {
       id: 2,
       // color: "#242424"
-      color: "#a6d2ef"
+      color: "#91b4cc"
     },
     {
       id: 3,
       // color: "#343434"
-      color: "#a6d2ef"
+      color: "#91b4cc"
     },
     {
       id: 4,
       // color: "#444444"
-      color: "#a6d2ef"
+      color: "#91b4cc"
     },
     {
       id: 5,
       // color: "#545454"
-      color: "#a6d2ef"
+      color: "#91b4cc"
     },
     {
       id: 6,
       // color: "#646464"
-      color: "#a6d2ef"
+      color: "#91b4cc"
     },
     {
       id: 7,
       // color: "#747474"
-      color: "#a6d2ef"
+      color: "#91b4cc"
     },
     {
       id: 8,
       // color: "#848484"
-      color: "#a6d2ef"
+      color: "#91b4cc"
     }
   ]
   return (
