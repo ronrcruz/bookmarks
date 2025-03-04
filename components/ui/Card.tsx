@@ -672,9 +672,7 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) 
   });
 
   return (
-    <group ref={groupRef} position={initialPos}
-      rotation={[0, 0.7, 0]}
-    >
+    <group ref={groupRef} position={initialPos} rotation={[0, 0.7, 0]}>
       {/* Base Card (no displacement) */}
       <mesh
         onPointerOver={pointerOver}
@@ -702,6 +700,7 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) 
             map-flipX={false}
           />
         </Decal>
+        {/* <GoldFoil /> */}
       </mesh>
 
       {/* Front Plane with Displacement */}
@@ -713,7 +712,7 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) 
           map={foil}
           normalMap={normalMap}
           normalScale={new THREE.Vector2(0.1, 0.1)}
-          sheen={2}
+          sheen={1}
           sheenColor={"#ffcc00"}
         />
       </mesh>
