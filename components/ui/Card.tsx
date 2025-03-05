@@ -570,9 +570,10 @@ interface CardProps {
   totalCards: number;
   active: number | null;
   setActive: Dispatch<SetStateAction<number | null>>;
+  isLoaded: boolean;
 }
 
-const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) => {
+const Card = ({ id, cardPos, color, totalCards, active, setActive, isLoaded }: CardProps) => {
   const [hover, setHover] = useState(false);
   const groupRef = useRef<any>(null); // Ref for the group
   const meshRef = useRef<any>(null);
@@ -601,6 +602,7 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) 
     "/NormalMap4.png",
     "/EnvMap.png",
   ]);
+
 
   bookmark.minFilter = THREE.LinearFilter;
   bookmark.magFilter = THREE.LinearFilter;
@@ -667,7 +669,11 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive }: CardProps) 
       easing.damp3(groupRef.current.rotation, targetRotation, active ? 0.5 : 0.175, delta);
 
       // CAMERA POSITION ANIMATION
-      easing.damp3(state.camera.position, [state.camera.position.x, active ? 20.5 : 2, active ? 0 : 8], 2.0, delta);
+      if (!isLoaded) {
+        easing.damp3(state.camera.position, [state.camera.position.x, 30, 0], 2.0, delta);
+      } else {
+        easing.damp3(state.camera.position, [state.camera.position.x, active ? 20.5 : 2, active ? 0 : 8], 2.0, delta);
+      }
     }
   });
 

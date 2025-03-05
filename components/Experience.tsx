@@ -12,9 +12,10 @@ interface ExperienceProps {
   cardArr: CardType[];
   active: number | null;
   setActive: Dispatch<SetStateAction<number | null>>;
+  isLoaded: boolean
 }
 
-export default function Experience({ cardArr, active, setActive }: ExperienceProps) {
+export default function Experience({ cardArr, active, setActive, isLoaded }: ExperienceProps) {
   // const { scene } = useThree(); // Access the Three.js scene
   // const currentColor = useRef(new THREE.Color("#cccccc")); // Default background color
 
@@ -120,6 +121,7 @@ export default function Experience({ cardArr, active, setActive }: ExperiencePro
           totalCards={cardArr.length}
           active={active}
           setActive={setActive}
+          isLoaded={isLoaded}
         />
       )}
 
