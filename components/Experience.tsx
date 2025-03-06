@@ -48,7 +48,7 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
     }
 
     const targetBottomColor = active !== null
-      ? cardArr.find((card) => card.id === active)?.color || "#cccccc"
+      ? cardArr.find((card) => card.id === active)?.cardColor || "#cccccc"
       : "#cccccc";
 
     easing.dampC(currentBottomColor.current, targetBottomColor, 0.5, delta);
@@ -80,16 +80,17 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
 
       <Environment
         environmentIntensity={1}
-        preset={active ? "city" : "city"}
+        preset={"city"}
         environmentRotation={active ? [Math.PI, -Math.PI / 2, 0] : [0, 0, 0]}
       />
 
       {cardArr.map((card, i) =>
         <Card
+          card={card}
           key={card.id}
           id={card.id}
           cardPos={i - (cardArr.length - 1) / 2}
-          color={card.color}
+          color={card.cardColor}
           totalCards={cardArr.length}
           active={active}
           setActive={setActive}

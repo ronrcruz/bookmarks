@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { easing } from "maath";
 import { useTexture, Decal, Float } from "@react-three/drei";
 import { RGBELoader } from "three/examples/jsm/Addons.js";
+import { CardType } from "@/app/definitions";
 
 const createRoundedRectShape = (width: number, height: number, radius: number): THREE.Shape => {
   const shape = new THREE.Shape();
@@ -22,6 +23,7 @@ const createRoundedRectShape = (width: number, height: number, radius: number): 
 };
 
 interface CardProps {
+  card: CardType;
   id: number;
   cardPos: number;
   color: string;
@@ -31,7 +33,7 @@ interface CardProps {
   isLoaded: boolean;
 }
 
-const Card = ({ id, cardPos, color, totalCards, active, setActive, isLoaded }: CardProps) => {
+const Card = ({ card, id, cardPos, color, totalCards, active, setActive, isLoaded }: CardProps) => {
   const [hover, setHover] = useState(false);
   const groupRef = useRef<any>(null);
   const meshRef = useRef<any>(null);
@@ -52,23 +54,20 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive, isLoaded }: C
   }, []);
   const initialPos = useMemo(() => new THREE.Vector3(cardPos * 0.4, 0, 0), [cardPos]);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [bookmark, foil, displacementMap, normalMap] = useTexture([
+  const [bookmark, foil, normalMap] = useTexture([
     "/bookmark.png",
     "/bookmark-foil.png",
-    "/DisplacementMap.png",
     "/NormalMap4.png",
   ]);
   const envMap = useLoader(RGBELoader, "/EnvMap.hdr");
+  // const [bookmark, foil, normalMap] = useTexture([card.illustration, card.foil, card.normalMap]);
+  // const envMap = useLoader(RGBELoader, card.envMap);
 
   bookmark.minFilter = THREE.LinearFilter;
   bookmark.magFilter = THREE.LinearFilter;
   bookmark.anisotropy = 16;
   bookmark.generateMipmaps = true;
   bookmark.offset.set(0.02, 0);
-
-  displacementMap.offset.set(0, 0);
-  displacementMap.repeat.set(1.0, 1.75);
-  displacementMap.wrapS = displacementMap.wrapT = THREE.RepeatWrapping;
 
   envMap.mapping = THREE.EquirectangularReflectionMapping;
 
@@ -177,8 +176,8 @@ const Card = ({ id, cardPos, color, totalCards, active, setActive, isLoaded }: C
           normalMap={normalMap}
           normalScale={new THREE.Vector2(0.1, 0.1)}
           sheen={1}
-          sheenColor={"#ffcc00"}
-          envMap={envMap} // Add the environment map
+          // sheenColor={"#ffcc00"}
+          envMap={envMap}
           envMapIntensity={0.8}
           reflectivity={0.8}
         />

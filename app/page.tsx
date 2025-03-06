@@ -14,63 +14,93 @@ export default function Home() {
   const cardArr: CardType[] = [
     {
       id: 1,
-      // color: "#141414"
-      // color: "#91b4cc"
-      color: "#aecae3"
+      cardColor: "#aecae3",
+      illustration: "",
+      foil: "",
+      normalMap: "",
+      envMap: "",
+      sheenColor: "",
     },
     {
       id: 2,
-      // color: "#242424"
-      // color: "#91b4cc"
-      color: "#aecae3"
+      cardColor: "#aecae3",
+      illustration: "",
+      foil: "",
+      normalMap: "",
+      envMap: "",
+      sheenColor: "",
     },
     {
       id: 3,
-      // color: "#343434"
-      // color: "#91b4cc"
-      color: "#aecae3"
+      cardColor: "#aecae3",
+      illustration: "",
+      foil: "",
+      normalMap: "",
+      envMap: "",
+      sheenColor: "",
     },
     {
       id: 4,
-      // color: "#444444"
-      // color: "#91b4cc"
-      color: "#aecae3"
+      cardColor: "#aecae3",
+      illustration: "/bookmark.png",
+      foil: "/bookmark-foil.png",
+      normalMap: "/NormalMap4.png",
+      envMap: "/EnvMap.hdr",
+      sheenColor: "",
     },
     {
       id: 5,
-      // color: "#545454"
-      // color: "#91b4cc"
-      color: "#aecae3"
+      cardColor: "#aecae3",
+      illustration: "",
+      foil: "",
+      normalMap: "",
+      envMap: "",
+      sheenColor: "",
     },
     {
       id: 6,
-      // color: "#646464"
-      // color: "#91b4cc"
-      color: "#aecae3"
+      cardColor: "#aecae3",
+      illustration: "",
+      foil: "",
+      normalMap: "",
+      envMap: "",
+      sheenColor: "",
     },
     {
       id: 7,
-      // color: "#747474"
-      // color: "#91b4cc"
-      color: "#aecae3"
+      cardColor: "#aecae3",
+      illustration: "",
+      foil: "",
+      normalMap: "",
+      envMap: "",
+      sheenColor: "",
     },
     {
       id: 8,
-      // color: "#848484"
-      // color: "#91b4cc"
-      color: "#aecae3"
+      cardColor: "#aecae3",
+      illustration: "",
+      foil: "",
+      normalMap: "",
+      envMap: "",
+      sheenColor: "",
     },
     {
       id: 9,
-      // color: "#848484"
-      // color: "#91b4cc"
-      color: "#aecae3"
+      cardColor: "#aecae3",
+      illustration: "",
+      foil: "",
+      normalMap: "",
+      envMap: "",
+      sheenColor: "",
     },
     {
       id: 10,
-      // color: "#848484"
-      // color: "#91b4cc"
-      color: "#aecae3"
+      cardColor: "#aecae3",
+      illustration: "",
+      foil: "",
+      normalMap: "",
+      envMap: "",
+      sheenColor: "",
     }
   ]
 
