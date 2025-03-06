@@ -26,8 +26,8 @@ export default function LoadingScreen({ onLoaded }: { onLoaded: () => void }) {
 
   return (
     <div className={`fixed inset-0 flex items-center justify-center bg-white z-50 flex-row gap-[17px] ${progress !== 100 ? "opacity-100" : "delay-700 opacity-0"} transition-opacity duration-1000`}>
-      {[...Array(8)].map((_, index) => {
-        const divOpacity = index < Math.floor((progress / 100) * 8) ? 1 : 0.1;
+      {[...Array(10)].map((_, index) => {
+        const divOpacity = index < Math.floor((progress / 100) * 10) ? 1 : 0.1;
 
         return (
           <div
