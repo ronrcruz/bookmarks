@@ -27,13 +27,12 @@ interface CardProps {
   id: number;
   cardPos: number;
   color: string;
-  totalCards: number;
   active: number | null;
   setActive: Dispatch<SetStateAction<number | null>>;
   isLoaded: boolean;
 }
 
-const Card = ({ card, id, cardPos, color, totalCards, active, setActive, isLoaded }: CardProps) => {
+const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardProps) => {
   const [hover, setHover] = useState(false);
   const groupRef = useRef<any>(null);
   const meshRef = useRef<any>(null);

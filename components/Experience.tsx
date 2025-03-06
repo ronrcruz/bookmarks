@@ -91,7 +91,6 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
           id={card.id}
           cardPos={i - (cardArr.length - 1) / 2}
           color={card.cardColor}
-          totalCards={cardArr.length}
           active={active}
           setActive={setActive}
           isLoaded={isLoaded}
