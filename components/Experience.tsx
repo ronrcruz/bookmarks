@@ -1,7 +1,7 @@
 "use client"
 
 import { Dispatch, SetStateAction, useEffect, useMemo, useRef } from "react"
-import Card from "./ui/Card"
+import Card from "./Card"
 import { Environment, OrbitControls, ContactShadows } from "@react-three/drei"
 import { CardType } from "@/app/definitions"
 import { useFrame, useThree } from "@react-three/fiber"
@@ -48,7 +48,7 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
     }
 
     const targetBottomColor = active !== null
-      ? cardArr.find((card) => card.id === active)?.cardColor || "#cccccc"
+      ? cardArr.find((card) => card.id === active)?.bgColor || "#cccccc"
       : "#cccccc";
 
     easing.dampC(currentBottomColor.current, targetBottomColor, 0.5, delta);
@@ -57,7 +57,7 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
     if (ctx) {
       const gradient = ctx.createLinearGradient(0, 0, 0, gradientCanvas.current.height);
       gradient.addColorStop(0, "#cccccc");
-      gradient.addColorStop(1, currentBottomColor.current.getStyle());
+      gradient.addColorStop(0.7, currentBottomColor.current.getStyle());
 
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, gradientCanvas.current.width, gradientCanvas.current.height);

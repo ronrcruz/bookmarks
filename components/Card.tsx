@@ -4,7 +4,7 @@ import { useFrame, useLoader } from "@react-three/fiber";
 import { useRef, useMemo, useState, Dispatch, SetStateAction, useEffect } from "react";
 import * as THREE from "three";
 import { easing } from "maath";
-import { useTexture, Decal, Float } from "@react-three/drei";
+import { useTexture, Decal } from "@react-three/drei";
 import { RGBELoader } from "three/examples/jsm/Addons.js";
 import { CardType } from "@/app/definitions";
 
@@ -55,10 +55,11 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [bookmark, foil, normalMap] = useTexture([
     "/bookmark.png",
-    "/bookmark-foil.png",
-    "/NormalMap4.png",
+    "/foil.png",
+    "/NormalMap.png",
   ]);
   const envMap = useLoader(RGBELoader, "/EnvMap.hdr");
+
   // const [bookmark, foil, normalMap] = useTexture([card.illustration, card.foil, card.normalMap]);
   // const envMap = useLoader(RGBELoader, card.envMap);
 
@@ -68,7 +69,31 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
   bookmark.generateMipmaps = true;
   bookmark.offset.set(0.02, 0);
 
+  foil.minFilter = THREE.LinearFilter;
+  foil.magFilter = THREE.LinearFilter;
+  foil.anisotropy = 16;
+  foil.generateMipmaps = true;
+
   envMap.mapping = THREE.EquirectangularReflectionMapping;
+
+  // useEffect(() => {
+  //   if (envMap) {
+  //     envMap.mapping = THREE.EquirectangularReflectionMapping;
+  //     envMap.matrixAutoUpdate = false;
+
+  //     // Create a rotation matrix
+  //     const rotationMatrix = new THREE.Matrix3();
+  //     const angle = Math.PI; // Rotate 90 degrees
+  //     rotationMatrix.set(
+  //       Math.cos(angle), -Math.sin(angle), 0,
+  //       Math.sin(angle), Math.cos(angle), 0,
+  //       0, 0, 1
+  //     );
+
+  //     envMap.matrix.copy(rotationMatrix);
+  //     envMap.needsUpdate = true;
+  //   }
+  // }, [envMap]);
 
   const pointerOver = (e: { stopPropagation: () => any }) => {
     e.stopPropagation();
