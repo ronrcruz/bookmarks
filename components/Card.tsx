@@ -58,10 +58,21 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
     "/foil.png",
     "/NormalMap.png",
   ]);
-  const envMap = useLoader(RGBELoader, "/EnvMap.hdr");
 
   // const [bookmark, foil, normalMap] = useTexture([card.illustration, card.foil, card.normalMap]);
-  // const envMap = useLoader(RGBELoader, card.envMap);
+  const envMap = card.foilColor === "gold" ? {
+    // map: useLoader(RGBELoader, "/GoldEnvMap.hdr"),
+    // rotation: new THREE.Euler(-0.2, 0, 0.5),
+    map: useLoader(RGBELoader, "/GoldEnvMap2.hdr"),
+    rotation: new THREE.Euler(0.4, 0, 0.1),
+    intensity: 3
+  } : {
+    map: useLoader(RGBELoader, "/SilverEnvMap.hdr"),
+    rotation: new THREE.Euler(-0.3, 0.3, 1.2),
+    intensity: 4
+  }
+
+
 
   bookmark.minFilter = THREE.LinearFilter;
   bookmark.magFilter = THREE.LinearFilter;
@@ -74,26 +85,7 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
   foil.anisotropy = 16;
   foil.generateMipmaps = true;
 
-  envMap.mapping = THREE.EquirectangularReflectionMapping;
-
-  // useEffect(() => {
-  //   if (envMap) {
-  //     envMap.mapping = THREE.EquirectangularReflectionMapping;
-  //     envMap.matrixAutoUpdate = false;
-
-  //     // Create a rotation matrix
-  //     const rotationMatrix = new THREE.Matrix3();
-  //     const angle = Math.PI; // Rotate 90 degrees
-  //     rotationMatrix.set(
-  //       Math.cos(angle), -Math.sin(angle), 0,
-  //       Math.sin(angle), Math.cos(angle), 0,
-  //       0, 0, 1
-  //     );
-
-  //     envMap.matrix.copy(rotationMatrix);
-  //     envMap.needsUpdate = true;
-  //   }
-  // }, [envMap]);
+  envMap.map.mapping = THREE.EquirectangularReflectionMapping;
 
   const pointerOver = (e: { stopPropagation: () => any }) => {
     e.stopPropagation();
@@ -200,10 +192,11 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
           normalMap={normalMap}
           normalScale={new THREE.Vector2(0.1, 0.1)}
           sheen={1}
-          // sheenColor={"#ffcc00"}
-          envMap={envMap}
-          envMapIntensity={0.8}
+          // sheenColor={"#cccccc"}
+          envMap={envMap.map}
+          envMapIntensity={envMap.intensity}
           reflectivity={0.8}
+          envMapRotation={envMap.rotation}
         />
       </mesh>
     </group>
