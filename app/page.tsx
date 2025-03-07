@@ -22,7 +22,7 @@ export default function Home() {
       foilColor: "gold",
       normalMap: "",
       sheenColor: "",
-      name: "",
+      name: "Blue Fern",
       info: "",
     },
     {
@@ -34,7 +34,7 @@ export default function Home() {
       foilColor: "gold",
       normalMap: "",
       sheenColor: "",
-      name: "",
+      name: "Blue Fern",
       info: "",
     },
     {
@@ -46,7 +46,7 @@ export default function Home() {
       foilColor: "gold",
       normalMap: "",
       sheenColor: "",
-      name: "",
+      name: "Blue Fern",
       info: "",
     },
     {
@@ -55,10 +55,10 @@ export default function Home() {
       bgColor: "#91b2cf",
       illustration: "/bookmark.png",
       foil: "/bookmark-foil.png",
-      foilColor: "gold",
+      foilColor: "silver",
       normalMap: "/NormalMap4.png",
       sheenColor: "",
-      name: "",
+      name: "Blue Fern",
       info: "",
     },
     {
@@ -70,7 +70,7 @@ export default function Home() {
       foilColor: "gold",
       normalMap: "",
       sheenColor: "",
-      name: "",
+      name: "Blue Fern",
       info: "",
     },
     {
@@ -82,7 +82,7 @@ export default function Home() {
       foilColor: "gold",
       normalMap: "",
       sheenColor: "",
-      name: "",
+      name: "Blue Fern",
       info: "",
     },
     {
@@ -94,7 +94,7 @@ export default function Home() {
       foilColor: "gold",
       normalMap: "",
       sheenColor: "",
-      name: "",
+      name: "Blue Fern",
       info: "",
     },
     {
@@ -106,7 +106,7 @@ export default function Home() {
       foilColor: "gold",
       normalMap: "",
       sheenColor: "",
-      name: "",
+      name: "Blue Fern",
       info: "",
     },
     {
@@ -118,7 +118,7 @@ export default function Home() {
       foilColor: "gold",
       normalMap: "",
       sheenColor: "",
-      name: "",
+      name: "Blue-Fern",
       info: "",
     },
     {
@@ -130,7 +130,7 @@ export default function Home() {
       foilColor: "gold",
       normalMap: "",
       sheenColor: "",
-      name: "",
+      name: "Blue Fern",
       info: "",
     }
   ]

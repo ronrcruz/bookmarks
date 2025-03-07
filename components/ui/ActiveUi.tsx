@@ -3,6 +3,7 @@
 import { CardType } from "@/app/definitions";
 import { Dispatch, SetStateAction } from "react";
 import { useState, useEffect } from "react";
+import { motion } from "motion/react";
 
 interface ActiveUiProps {
   cardArr: CardType[];
@@ -15,7 +16,9 @@ export default function ActiveUi({ cardArr, active, setActive }: ActiveUiProps) 
 
   useEffect(() => {
     if (active === null) {
-      setActiveCard(null);
+      setTimeout(() => {
+        setActiveCard(null);
+      }, 300);
       return;
     }
     const foundCard = cardArr.find((card) => card.id === active) || null;
@@ -27,10 +30,12 @@ export default function ActiveUi({ cardArr, active, setActive }: ActiveUiProps) 
   const animation = `transition ease-in-out ${active ? "opacity-100 translate-y-0 delay-700 duration-700" : "opacity-0 translate-y-2 duration-300"}`;
 
   return (
-    <div className={`fixed h-full w-full flex z-30 p-16 ${active ? "pointer-events-auto" : "pointer-events-none"} bg-gradient-to-b from-transparent to-[${activeCard?.cardColor}]`}>
-      <div className={`flex flex-col w-1/4 relative ${animation}`}>
-        <h2 className="flex text-4xl h-1/4">Name</h2>
-        <p className="h-1/2 overflow-scroll text-sm/4 leading-tight">
+    <div className={`fixed h-full w-full flex z-30 p-16 ${active ? "pointer-events-auto" : "pointer-events-none"} translate-x-4 bg-gradient-to-b from-transparent to-[${activeCard?.cardColor}]`}>
+      <div className={`flex flex-col w-1/4 relative gap-20 ${animation}`}>
+        <h2 className={`flex text-5xl font-thin flex-row `}>
+          {activeCard?.name}
+        </h2>
+        <p className={`h-2/3 overflow-scroll text-sm/4 leading-tight  `}>
 
           This mini bookmark is the perfect companion for any reader!<br /><br />
 
@@ -45,7 +50,9 @@ export default function ActiveUi({ cardArr, active, setActive }: ActiveUiProps) 
 
           This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It's also double-sided, so whichever way you place it in your book you'll have a lovely design to see.
         </p>
+        <div className="border w-full border-black font-cursive text-3xl mt-auto h-4"></div>
       </div>
+
       <button onClick={() => setActive(null)} className={`h-16 w-16 ml-auto border-neutral-800 border ${animation}`}></button>
 
       {/* <div className={`flex justify-end items-end ml-auto `}>{active} / 8</div> */}
