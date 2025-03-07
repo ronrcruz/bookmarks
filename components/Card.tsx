@@ -188,14 +188,13 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
           transparent
           roughness={0.1}
           metalness={0.8}
+          reflectivity={0.8}
+          sheen={1}
           map={foil}
           normalMap={normalMap}
           normalScale={new THREE.Vector2(0.1, 0.1)}
-          sheen={1}
-          // sheenColor={"#cccccc"}
           envMap={envMap.map}
           envMapIntensity={envMap.intensity}
-          reflectivity={0.8}
           envMapRotation={envMap.rotation}
         />
       </mesh>
