@@ -122,6 +122,7 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
         targetPosition = [0, 16, 0];
         smoothTime = 0.4;
         intensity = 0.25;
+        // intensity = 0.1;
         const rotationX = mousePos.y * intensity;
         const rotationY = mousePos.x * intensity;
         targetRotation = [Math.PI / 2 - rotationX, Math.PI - rotationY, Math.PI];

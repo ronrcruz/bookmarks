@@ -24,6 +24,7 @@ export default function Home() {
       sheenColor: "",
       name: "Blue Fern",
       info: "",
+      inStock: false,
     },
     {
       id: 2,
@@ -36,6 +37,7 @@ export default function Home() {
       sheenColor: "",
       name: "Blue Fern",
       info: "",
+      inStock: false,
     },
     {
       id: 3,
@@ -48,6 +50,7 @@ export default function Home() {
       sheenColor: "",
       name: "Blue Fern",
       info: "",
+      inStock: false,
     },
     {
       id: 4,
@@ -60,6 +63,7 @@ export default function Home() {
       sheenColor: "",
       name: "Blue Fern",
       info: "",
+      inStock: false,
     },
     {
       id: 5,
@@ -72,6 +76,7 @@ export default function Home() {
       sheenColor: "",
       name: "Blue Fern",
       info: "",
+      inStock: false,
     },
     {
       id: 6,
@@ -84,6 +89,7 @@ export default function Home() {
       sheenColor: "",
       name: "Blue Fern",
       info: "",
+      inStock: false,
     },
     {
       id: 7,
@@ -96,6 +102,7 @@ export default function Home() {
       sheenColor: "",
       name: "Blue Fern",
       info: "",
+      inStock: false,
     },
     {
       id: 8,
@@ -108,6 +115,7 @@ export default function Home() {
       sheenColor: "",
       name: "Blue Fern",
       info: "",
+      inStock: false,
     },
     {
       id: 9,
@@ -120,6 +128,7 @@ export default function Home() {
       sheenColor: "",
       name: "Blue-Fern",
       info: "",
+      inStock: false,
     },
     {
       id: 10,
@@ -132,6 +141,7 @@ export default function Home() {
       sheenColor: "",
       name: "Blue Fern",
       info: "",
+      inStock: false,
     }
   ]
 

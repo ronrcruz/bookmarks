@@ -11,4 +11,5 @@ export type CardType = {
   sheenColor: string
   name: string
   info: string
+  inStock: boolean
 }
