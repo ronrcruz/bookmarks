@@ -56,16 +56,29 @@ export default function ActiveUi({ cardArr, active, setActive }: ActiveUiProps) 
     <div className={`fixed h-full w-full  flex justify-between z-30 p-14 ${active ? "pointer-events-auto" : "pointer-events-none"} bg-gradient-to-b from-transparent to-[${activeCard?.cardColor}]`}>
 
       {/* LEFT */}
-      <div className={`flex flex-col justify-between h-full w-1/4 relative transition ease-in-out ${active ? animation + "delay-700" : animation}`}>
+      <div className={`flex flex-col justify-between h-full w-1/4 relative transition ease-in-out ${active ? animation + "delay-500" : animation}`}>
         <h2 className={`flex text-5xl flex-row h-12 transition`}>
           {activeCard?.name}
         </h2>
 
-        <div className={`h-2/3 relative overflow-scroll text-sm/4 leading-tight flex flex-col transition pr-3 ${active ? animation + "delay-1000" : animation}`}>
+        <div
+          className={`h-2/3 relative overflow-scroll text-sm/4 leading-tight flex flex-col transition pr-3 ${animation}`}
+          style={{
+            animationDelay: active ? "700ms" : "0ms",
+            transitionDelay: active ? "700ms" : "0ms"
+          }}
+        >
           {activeCard?.info}
         </div>
 
-        <div className="flex gap-2 w-full h-12 items-center p-2 transition">
+        <div
+          className={`flex gap-2 w-full h-12 items-center p-2 transition ${animation}`}
+          style={{
+            animationDelay: active ? "900ms" : "0ms",
+            transitionDelay: active ? "900ms" : "0ms"
+          }}
+        >
+
           {[...Array(10)].map((_, i) =>
             <div className={`border rounded-full size-2 border-black/30 ${activeCard?.id === i + 1 ? "bg-neutral-800" : "bg-none"} transition`}></div>
           )}
@@ -73,10 +86,21 @@ export default function ActiveUi({ cardArr, active, setActive }: ActiveUiProps) 
       </div>
 
       {/* RIGHT */}
-      <div className={`flex flex-col justify-between h-full w-1/4 relative ${animation}`}>
-        <button onClick={() => setActive(null)} className={`size-12 border-neutral-800 border ml-auto`}></button>
+      <div className={`flex flex-col justify-between h-full w-1/4 relative`}>
+        <button
+          onClick={() => setActive(null)} className={`size-12 border-neutral-800 border ml-auto ${animation}`}
+          style={{
+            animationDelay: active ? "500ms" : "0ms",
+            transitionDelay: active ? "500ms" : "0ms"
+          }}
+        ></button>
 
-        <div className="flex w-full h-2/3 p-4 pb-0">
+        <div className={`flex w-full h-2/3 p-4 pb-0 ${animation}`}
+          style={{
+            animationDelay: active ? "700ms" : "0ms",
+            transitionDelay: active ? "700ms" : "0ms"
+          }}
+        >
           <ul className="flex flex-col gap-6 w-full relative justify-between items-center">
             <li className="flex flex-row justify-between w-full px-6">
               <RxDimensions size={"2rem"} />
@@ -123,7 +147,14 @@ export default function ActiveUi({ cardArr, active, setActive }: ActiveUiProps) 
         </div>
 
         {activeCard?.inStock ?
-          <button onClick={() => setActive(null)} className={`group h-12 w-full rounded-full border-neutral-800 border overflow-hidden p-0`}>
+          <button
+            onClick={() => setActive(null)}
+            className={`group h-12 w-full rounded-full border-neutral-800 border overflow-hidden p-0 ${animation}`}
+            style={{
+              animationDelay: active ? "700ms" : "0ms",
+              transitionDelay: active ? "700ms" : "0ms"
+            }}
+          >
             <div className="flex flex-col group-hover:-translate-y-12 transition ease-in-out duration-300">
               <div className="h-12 w-full flex justify-center items-center">
                 Buy now
@@ -135,12 +166,16 @@ export default function ActiveUi({ cardArr, active, setActive }: ActiveUiProps) 
           </button>
           :
           <button
-            className={`h-12 w-full rounded-full border-black/30 text-black/50 opacity-80 border items-center hover:cursor-not-allowed`}
+            className={`h-12 w-full rounded-full border-black/20 text-black/40 border items-center hover:cursor-not-allowed ${animation}`}
+            style={{
+              animationDelay: active ? "900ms" : "0ms",
+              transitionDelay: active ? "900ms" : "0ms"
+            }}
           >
             Out of stock
           </button>
         }
       </div>
-    </div>
+    </div >
   )
 }
