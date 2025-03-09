@@ -7,6 +7,7 @@ import { BiPound, BiDollar, BiEuro } from "react-icons/bi"
 import { SiMaterialdesignicons } from "react-icons/si"
 import { RxDimensions } from "react-icons/rx"
 import NumberFlow from "@number-flow/react"
+import { TfiClose } from "react-icons/tfi"
 
 interface ActiveUiProps {
   cardArr: CardType[];
@@ -88,12 +89,14 @@ export default function ActiveUi({ cardArr, active, setActive }: ActiveUiProps) 
       {/* RIGHT */}
       <div className={`flex flex-col justify-between h-full w-1/4 relative`}>
         <button
-          onClick={() => setActive(null)} className={`size-12 border-neutral-800 border ml-auto ${animation}`}
+          onClick={() => setActive(null)} className={`size-12 flex justify-center ml-auto ${animation}`}
           style={{
             animationDelay: active ? "500ms" : "0ms",
             transitionDelay: active ? "500ms" : "0ms"
           }}
-        ></button>
+        >
+          <TfiClose className="size-10" />
+        </button>
 
         <div className={`flex w-full h-2/3 p-4 pb-0 ${animation}`}
           style={{
