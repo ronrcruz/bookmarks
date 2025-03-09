@@ -160,7 +160,7 @@ export default function Home() {
   ]
 
   return (
-    <main className={`h-dvh w-dvw bg-gradient-to-b from-transparent to-neutral-500 relative`}>
+    <main className={`h-dvh w-dvw bg-linear-to-b from-transparent to-neutral-500 relative`}>
       <ActiveUi active={active} setActive={setActive} cardArr={cardArr} />
 
       {!isLoaded && <LoadingScreen onLoaded={() => setIsLoaded(true)} />}
