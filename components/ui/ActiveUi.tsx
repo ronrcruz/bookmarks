@@ -81,7 +81,10 @@ export default function ActiveUi({ cardArr, active, setActive }: ActiveUiProps) 
         >
 
           {[...Array(10)].map((_, i) =>
-            <div className={`border rounded-full size-2 border-black/30 ${activeCard?.id === i + 1 ? "bg-neutral-800" : "bg-none"} transition`}></div>
+            <button
+              onClick={() => setActive(i + 1)}
+              className={`border rounded-full size-2 border-black/30 ${activeCard?.id === i + 1 ? "bg-neutral-800" : "bg-none"} transition`}>
+            </button>
           )}
         </div>
       </div>
