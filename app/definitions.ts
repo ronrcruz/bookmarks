@@ -1,4 +1,4 @@
-import { Euler } from "three";
+import { ReactElement } from "react";
 
 export type CardType = {
   id: number;
@@ -10,6 +10,6 @@ export type CardType = {
   normalMap: string
   sheenColor: string
   name: string
-  info: string
+  info: ReactElement
   inStock: boolean
 }

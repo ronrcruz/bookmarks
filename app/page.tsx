@@ -6,7 +6,6 @@ import { Canvas } from "@react-three/fiber"
 import { CardType } from "./definitions"
 import ActiveUi from "@/components/ui/ActiveUi"
 import LoadingScreen from "@/components/LoadingScreen"
-import { Euler } from "three"
 
 export default function Home() {
   const [active, setActive] = useState<number | null>(null)
@@ -15,7 +14,7 @@ export default function Home() {
   const cardArr: CardType[] = [
     {
       id: 1,
-      cardColor: "#91b2cf",
+      cardColor: "#aecae3",
       bgColor: "#91b2cf",
       illustration: "",
       foil: "",
@@ -23,7 +22,22 @@ export default function Home() {
       normalMap: "",
       sheenColor: "",
       name: "Blue Fern",
-      info: "",
+      info: (
+        <p>
+          This mini bookmark is the perfect companion for any reader!<br /><br />
+
+          My “I’m well-read” design is inspired by my book club, the Wellread book club. Being “well-read” can mean many different things, but I associate it with reading from a wide variety of genres… which is our goal for the book club. Each month, we read a book from a different genre. <br /><br />
+
+          I thought it would be fun to design a mini bookmark that we could use for the books we read for the book club, or any of our books!<br /><br />
+
+          <span className="italic">You don’t have to be a member of the book club to purchase this item. I just want to make that clear :)</span><br /><br />
+
+          I also think of a well-read book is a book that has been annotated, dog eared, highlighted, or underlined. If you’re that kind of reader, then this book mark is perfect for you!<br /><br />
+
+
+          This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It's also double-sided, so whichever way you place it in your book you'll have a lovely design to see.
+        </p>
+      ),
       inStock: false,
     },
     {
@@ -36,7 +50,7 @@ export default function Home() {
       normalMap: "",
       sheenColor: "",
       name: "Blue Fern",
-      info: "",
+      info: (<p></p>),
       inStock: false,
     },
     {
@@ -49,7 +63,7 @@ export default function Home() {
       normalMap: "",
       sheenColor: "",
       name: "Blue Fern",
-      info: "",
+      info: (<p></p>),
       inStock: false,
     },
     {
@@ -62,7 +76,7 @@ export default function Home() {
       normalMap: "/NormalMap4.png",
       sheenColor: "",
       name: "Blue Fern",
-      info: "",
+      info: (<p></p>),
       inStock: false,
     },
     {
@@ -75,7 +89,7 @@ export default function Home() {
       normalMap: "",
       sheenColor: "",
       name: "Blue Fern",
-      info: "",
+      info: (<p></p>),
       inStock: false,
     },
     {
@@ -88,7 +102,7 @@ export default function Home() {
       normalMap: "",
       sheenColor: "",
       name: "Blue Fern",
-      info: "",
+      info: (<p></p>),
       inStock: false,
     },
     {
@@ -101,7 +115,7 @@ export default function Home() {
       normalMap: "",
       sheenColor: "",
       name: "Blue Fern",
-      info: "",
+      info: (<p></p>),
       inStock: false,
     },
     {
@@ -114,7 +128,7 @@ export default function Home() {
       normalMap: "",
       sheenColor: "",
       name: "Blue Fern",
-      info: "",
+      info: (<p></p>),
       inStock: false,
     },
     {
@@ -127,7 +141,7 @@ export default function Home() {
       normalMap: "",
       sheenColor: "",
       name: "Blue-Fern",
-      info: "",
+      info: (<p></p>),
       inStock: false,
     },
     {
@@ -140,7 +154,7 @@ export default function Home() {
       normalMap: "",
       sheenColor: "",
       name: "Blue Fern",
-      info: "",
+      info: (<p></p>),
       inStock: false,
     }
   ]
