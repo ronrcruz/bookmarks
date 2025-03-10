@@ -12,4 +12,5 @@ export type CardType = {
   name: string
   info: ReactElement
   inStock: boolean
+  isFlipped: boolean
 }

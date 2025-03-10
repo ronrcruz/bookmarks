@@ -13,9 +13,10 @@ interface ActiveUiProps {
   cardArr: CardType[];
   active: number | null;
   setActive: Dispatch<SetStateAction<number | null>>;
+  flipCard: (cardId: number, isFlipped: boolean) => void
 }
 
-export default function ActiveUi({ cardArr, active, setActive }: ActiveUiProps) {
+export default function ActiveUi({ cardArr, active, setActive, flipCard }: ActiveUiProps) {
   const [activeCard, setActiveCard] = useState<CardType | null>(null)
   const [activeCurrency, setActiveCurrency] = useState({ name: "usd", value: 8.43, symbol: '$' })
 
@@ -53,6 +54,8 @@ export default function ActiveUi({ cardArr, active, setActive }: ActiveUiProps) 
 
   const animation = `transition ease-in-out ${active ? "opacity-100 translate-y-0 duration-700 " : "opacity-0 translate-y-2 duration-300"}`;
 
+  console.log(active, activeCard?.isFlipped)
+
   return (
     <div className={`fixed h-full w-full  flex justify-between z-30 p-14 ${active ? "pointer-events-auto" : "pointer-events-none"} bg-gradient-to-b from-transparent to-[${activeCard?.cardColor}]`}>
 
@@ -82,12 +85,21 @@ export default function ActiveUi({ cardArr, active, setActive }: ActiveUiProps) 
 
           {[...Array(10)].map((_, i) =>
             <button
+              key={i}
               onClick={() => setActive(i + 1)}
               className={`border rounded-full size-2 border-black/30 ${activeCard?.id === i + 1 ? "bg-neutral-800" : "bg-none"} transition`}>
             </button>
           )}
         </div>
       </div>
+
+      {/* MIDDLE */}
+      {activeCard &&
+        <button
+          onClick={() => flipCard(activeCard.id, activeCard.isFlipped ? false : true)}
+          className="h-72 w-1/4 border border-black self-center"
+        ></button>
+      }
 
       {/* RIGHT */}
       <div className={`flex flex-col justify-between h-full w-1/4 relative`}>
@@ -135,6 +147,7 @@ export default function ActiveUi({ cardArr, active, setActive }: ActiveUiProps) 
               <div className="flex flex-row text-xl my-1">
                 {currencies.map((currency) =>
                   <button
+                    key={currency.name}
                     onClick={() => {
                       setActiveCurrency({
                         name: currency.name,

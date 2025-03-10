@@ -13,9 +13,10 @@ interface ExperienceProps {
   active: number | null;
   setActive: Dispatch<SetStateAction<number | null>>;
   isLoaded: boolean
+  flipCard: (cardId: number, isFlipped: boolean) => void
 }
 
-export default function Experience({ cardArr, active, setActive, isLoaded }: ExperienceProps) {
+export default function Experience({ cardArr, active, setActive, isLoaded, flipCard }: ExperienceProps) {
   const { scene } = useThree();
   const currentBottomColor = useRef(new THREE.Color("#cccccc"));
   const gradientCanvas = useRef(document.createElement("canvas"));
@@ -94,6 +95,7 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
           active={active}
           setActive={setActive}
           isLoaded={isLoaded}
+          flipCard={flipCard}
         />
       )}
 
