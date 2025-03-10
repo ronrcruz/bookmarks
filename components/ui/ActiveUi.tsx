@@ -85,7 +85,7 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                   <button
                     key={i}
                     onClick={() => setActive(i + 1)}
-                    className={`rounded-full size-2 ${activeCard?.id === i + 1 ? "bg-neutral-800" : "bg-none"}`}
+                    className={`border rounded-full size-2 border-black/30 ${activeCard?.id === i + 1 ? "bg-neutral-800" : "bg-none"}`}
                   ></button>
                 ))}
               </motion.div>
@@ -96,7 +96,7 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
               <motion.button
                 disabled={!active ? true : false}
                 onClick={() => flipCard(activeCard.id, !activeCard.isFlipped)}
-                className="h-[32.5rem] w-[18.5rem] rounded-2xl self-center border border-black">
+                className="h-[32.5rem] w-[18.5rem] rounded-2xl self-center">
               </motion.button>
             )}
 
