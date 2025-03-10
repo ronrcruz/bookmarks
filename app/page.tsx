@@ -180,7 +180,6 @@ export default function Home() {
   return (
     <main className={`h-dvh w-dvw bg-gradient-to-b from-transparent to-neutral-500 relative`}>
       <ActiveUi active={active} setActive={setActive} cardArr={cardArr} flipCard={flipCard} />
-
       {!isLoaded && <LoadingScreen onLoaded={() => setIsLoaded(true)} />}
 
       <Canvas className="fixed z-20" shadows flat dpr={[1, 1.5]} camera={{ position: [0, 2, 8], fov: 30, near: 1, far: 30 }}>
