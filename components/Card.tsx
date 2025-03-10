@@ -73,8 +73,6 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded, flipCard 
     intensity: 4
   }
 
-
-
   bookmark.minFilter = THREE.LinearFilter;
   bookmark.magFilter = THREE.LinearFilter;
   bookmark.anisotropy = 16;

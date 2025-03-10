@@ -50,11 +50,14 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
     }
     const foundCard = cardArr.find((card) => card.id === active) || null;
     setActiveCard(foundCard);
-  }, [active]);
+  }, [active, cardArr]);
+
+  const handleClose = () => {
+    setActive(null)
+    activeCard && flipCard(activeCard?.id, false)
+  }
 
   const animation = `transition ease-in-out ${active ? "opacity-100 translate-y-0 duration-700 " : "opacity-0 translate-y-2 duration-300"}`;
-
-  console.log(active, activeCard?.isFlipped)
 
   return (
     <div className={`fixed h-full w-full  flex justify-between z-30 p-14 ${active ? "pointer-events-auto" : "pointer-events-none"} bg-gradient-to-b from-transparent to-[${activeCard?.cardColor}]`}>
@@ -94,17 +97,19 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
       </div>
 
       {/* MIDDLE */}
-      {activeCard &&
+      {
+        activeCard &&
         <button
-          onClick={() => flipCard(activeCard.id, activeCard.isFlipped ? false : true)}
-          className="h-72 w-1/4 border border-black self-center"
+          onClick={() => flipCard(activeCard.id, !activeCard.isFlipped)}
+          className="h-[32.5rem] w-[18.5rem] rounded-2xl self-center"
         ></button>
       }
 
       {/* RIGHT */}
       <div className={`flex flex-col justify-between h-full w-1/4 relative`}>
         <button
-          onClick={() => setActive(null)} className={`size-12 flex justify-center ml-auto ${animation}`}
+          onClick={handleClose}
+          className={`size-12 flex justify-center ml-auto ${animation}`}
           style={{
             animationDelay: active ? "500ms" : "0ms",
             transitionDelay: active ? "500ms" : "0ms"
