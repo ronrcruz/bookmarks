@@ -8,6 +8,15 @@ import { SiMaterialdesignicons } from "react-icons/si"
 import { RxDimensions } from "react-icons/rx"
 import NumberFlow from "@number-flow/react"
 import { TfiClose } from "react-icons/tfi"
+import { Instrument_Sans } from "next/font/google";
+
+
+const instrument = Instrument_Sans({
+  weight: "400",
+  variable: "--font-instrument",
+  subsets: ["latin"]
+})
+
 
 interface ActiveUiProps {
   cardArr: CardType[];
@@ -60,11 +69,11 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
   const animation = `transition ease-in-out ${active ? "opacity-100 translate-y-0 duration-700 " : "opacity-0 translate-y-2 duration-300"}`;
 
   return (
-    <div className={`fixed h-full w-full  flex justify-between z-30 p-14 ${active ? "pointer-events-auto" : "pointer-events-none"} bg-gradient-to-b from-transparent to-[${activeCard?.cardColor}]`}>
+    <div className={`${instrument.className} fixed h-full w-full  flex justify-between z-30 p-14 ${active ? "pointer-events-auto" : "pointer-events-none"} bg-gradient-to-b from-transparent to-[${activeCard?.cardColor}]`}>
 
       {/* LEFT */}
       <div className={`flex flex-col justify-between h-full w-1/4 relative transition ease-in-out ${active ? animation + "delay-500" : animation}`}>
-        <h2 className={`flex text-5xl flex-row h-12 transition`}>
+        <h2 className={`flex text-5xl flex-row h-12 transition `}>
           {activeCard?.name}
         </h2>
 

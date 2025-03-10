@@ -60,7 +60,10 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded, flipCard 
     "/NormalMap.png",
   ]);
 
-  // const [bookmark, foil, normalMap] = useTexture([card.illustration, card.foil, card.normalMap]);
+  // if (card.illustration.length > 3) {
+  //   const [bookmark, foil, normalMap] = useTexture([card.illustration, card.foil, card.normalMap]);
+  // }
+
   const envMap = card.foilColor === "gold" ? {
     // map: useLoader(RGBELoader, "/GoldEnvMap.hdr"),
     // rotation: new THREE.Euler(-0.2, 0, 0.5),

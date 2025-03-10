@@ -12,11 +12,7 @@ const geistMono = localFont({
   variable: "--font-geist-mono",
   weight: "100 900",
 });
-const brotherSignature = localFont({
-  src: "./fonts/BrotherSignature.otf",
-  variable: "--brother-signature",
-  weight: "100 900",
-})
+
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -31,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${brotherSignature.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
       </body>
