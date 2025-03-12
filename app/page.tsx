@@ -30,7 +30,7 @@ export default function Home() {
 
             I thought it would be fun to design a mini bookmark that we could use for the books we read for the book club, or any of our books!<br /><br />
 
-            <span className="italic">You don&#39;t have to be a member of the book club to purchase this item. I just want to make that clear {":)"}</span><br /><br />
+            <span className="italic">You don&#39;t have to be a member of the book club to purchase this item. I just want to make that clear :)</span><br /><br />
 
             I also think of a well-read book is a book that has been annotated, dog eared, highlighted, or underlined. If you&#39;re that kind of reader, then this book mark is perfect for you!<br /><br />
 
