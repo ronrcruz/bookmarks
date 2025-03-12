@@ -86,7 +86,7 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
     <AnimatePresence>
       {active !== null && (
         <div
-          className="fixed h-full w-full z-30 p-14 flex"
+          className="fixed h-full w-full z-30 p-10 lg:p-14 flex"
           style={{ pointerEvents: active ? "auto" : "none" }}
         >
           {/* INDICATOR */}
@@ -125,7 +125,7 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20, }}
                 transition={{ delay: 0.3, duration: 0.3 }}
-                className="text-5xl">
+                className="text-4xl lg:text-5xl">
                 {activeCard?.name}
               </motion.h2>
               <motion.div
@@ -134,7 +134,7 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ delay: active ? 0.5 : 0, duration: 0.3 }}
-                className="h-2/3 overflow-scroll text-sm leading-tight">
+                className="h-2/3 overflow-scroll text-xs lg:text-sm leading-tight">
                 {activeCard?.info}
               </motion.div>
               <motion.div
@@ -170,7 +170,7 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
               transition={{ delay: 0.4, duration: 0.3 }}
               className="flex flex-col justify-between h-full w-1/4"
             >
-              <motion.button onClick={handleClose} className="size-12 flex justify-center ml-auto">
+              <motion.button onClick={handleClose} className="size-8 lg:size-12 flex justify-center ml-auto">
                 <TfiClose className="size-10" />
               </motion.button>
               <motion.div
@@ -178,20 +178,20 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ delay: 0.2, duration: 0.3 }}
-                className="flex flex-col w-full h-2/3 p-4 relative">
+                className="flex flex-col w-full h-2/3 lg:p-4 relative">
                 <ul className="flex flex-col gap-6 w-full justify-between items-center h-full">
-                  <li className="flex justify-between w-full px-6">
-                    <RxDimensions size="2rem" />
-                    <div className="text-end">
+                  <li className="flex justify-between w-full px-2 lg:px-6">
+                    <RxDimensions className="size-[1.5rem] lg:size-[2rem]" />
+                    <div className="text-xs lg:text-base text-end">
                       <p>2.0in x 3.5in</p>
                       <p>5.08cm x 8.89cm</p>
                     </div>
                   </li>
                   <li className="flex w-full justify-evenly">
-                    <div className="rounded-full bg-[#aecae3] border-black/10 border-2 size-10"></div>
+                    <div className="rounded-full bg-[#aecae3] border-black/10 border-2 size-6 lg:size-10"></div>
                   </li>
-                  <li className="flex justify-between w-full px-6">
-                    <SiMaterialdesignicons size="1.2rem" />
+                  <li className="flex justify-between w-full px-2 lg:px-6 text-xs lg:text-base text-end">
+                    <SiMaterialdesignicons className="size-[1rem] lg:size-[1.4rem]" />
                     <p>
                       Matte paper,{" "}
                       <motion.span
@@ -206,9 +206,9 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                       </motion.span>
                     </p>
                   </li>
-                  <li className="text-5xl font-medium flex justify-between w-full items-end p-1">
+                  <li className="text-3xl lg:text-5xl font-medium flex justify-between w-full items-end p-1">
                     <NumberFlow value={activeCurrency.value} prefix={activeCurrency.symbol} />
-                    <div className="flex flex-row text-xl my-1">
+                    <div className="flex flex-row text-xs lg:text-xl my-1">
                       {currencies.map((currency) => (
                         <button
                           key={currency.name}
