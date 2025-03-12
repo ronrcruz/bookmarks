@@ -51,13 +51,13 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
       if (!hasSeenIndicator) setHasSeenIndicator(true);
 
       if (e.key === "ArrowRight" || e.key === "ArrowUp") {
-        const nextActive = active % 10 + 1;
+        const nextActive = active % 11 + 1;
         setActive(nextActive);
         if (activeCard) {
           flipCard(active, false);
         }
       } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
-        const prevActive = active === 1 ? 10 : active - 1;
+        const prevActive = active === 1 ? 11 : active - 1;
         setActive(prevActive);
         if (activeCard) {
           flipCard(active, false);
@@ -143,7 +143,7 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ delay: active ? 0.6 : 0, duration: 0.3 }}
                 className="flex gap-2 w-full h-12 items-center">
-                {[...Array(10)].map((_, i) => (
+                {[...Array(11)].map((_, i) => (
                   <button
                     key={i}
                     onClick={() => { setActive(i + 1); flipCard(active, false) }}

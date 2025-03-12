@@ -56,7 +56,7 @@ export default function LoadingScreen({ onLoaded }: { onLoaded: () => void }) {
   const { progress } = useProgress();
 
   // Calculate how many divs should be fully opaque based on progress
-  const activeDivCount = Math.floor((progress / 100) * 10);
+  const activeDivCount = Math.floor((progress / 100) * 11);
 
   useEffect(() => {
     if (progress === 100) {
@@ -67,8 +67,8 @@ export default function LoadingScreen({ onLoaded }: { onLoaded: () => void }) {
   console.log(progress)
 
   return (
-    <div className={`fixed inset-0 flex items-center justify-center bg-white z-50 flex-row gap-4 ${progress !== 100 ? "opacity-100" : "delay-700 opacity-0"} transition-opacity duration-1000`}>
-      {[...Array(10)].map((_, index) => (
+    <div className={`fixed inset-0 flex items-center justify-center bg-white z-50 flex-row gap-[17px] ${progress !== 100 ? "opacity-100" : "delay-1000 opacity-0"} transition-opacity duration-1000`}>
+      {[...Array(11)].map((_, index) => (
         <div
           key={index}
           className="h-10 w-[1px] bg-black"
