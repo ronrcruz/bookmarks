@@ -4,6 +4,7 @@ import { CardType } from "@/app/definitions";
 import { Dispatch, SetStateAction, useState, useEffect } from "react";
 import { BiPound, BiDollar, BiEuro } from "react-icons/bi";
 import { SiMaterialdesignicons } from "react-icons/si";
+import { IoIosArrowRoundBack, IoIosArrowRoundForward } from "react-icons/io";
 import { RxDimensions } from "react-icons/rx";
 import NumberFlow from "@number-flow/react";
 import { TfiClose } from "react-icons/tfi";
@@ -25,6 +26,7 @@ interface ActiveUiProps {
 
 export default function ActiveUi({ cardArr, active, setActive, flipCard }: ActiveUiProps) {
   const [activeCard, setActiveCard] = useState<CardType | null>(null);
+  const [hasSeenIndicator, setHasSeenIndicator] = useState(false);
   const [activeCurrency, setActiveCurrency] = useState({ name: "usd", value: 8.43, symbol: "$" });
 
   const currencies = [
@@ -45,6 +47,8 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (active === null) return;
+
+      if (!hasSeenIndicator) setHasSeenIndicator(true);
 
       if (e.key === "ArrowRight" || e.key === "ArrowUp") {
         const nextActive = active % 10 + 1;
@@ -82,9 +86,28 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
     <AnimatePresence>
       {active !== null && (
         <div
-          className="fixed h-full w-full z-30 p-14"
+          className="fixed h-full w-full z-30 p-14 flex"
           style={{ pointerEvents: active ? "auto" : "none" }}
         >
+          {/* INDICATOR */}
+          {!hasSeenIndicator && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 0.5, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute top-6 left-1/2 -translate-x-1/2 border bg-black/90 border-black/20 text-black/40 p-2 rounded-lg shadow-lg flex gap-2 items-center"
+            >
+              <div className="flex gap-1">
+                <div className="text-2xl justify-center flex items-center border border-white/50 text-white p-1 size-8 rounded-lg">
+                  <IoIosArrowRoundBack />
+                </div>
+                <div className="text-2xl justify-center flex items-center border border-white/50 text-white p-1 size-8 rounded-lg">
+                  <IoIosArrowRoundForward />
+                </div>
+              </div>
+            </motion.div>
+          )}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
