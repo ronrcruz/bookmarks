@@ -40,15 +40,50 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
     }
     setActiveCard(cardArr.find((card) => card.id === active) || null);
 
-    console.log(active)
   }, [active, cardArr]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (active === null) return;
+
+      if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+        const nextActive = active % 10 + 1;
+        setActive(nextActive);
+        if (activeCard) {
+          flipCard(active, false);
+        }
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+        const prevActive = active === 1 ? 10 : active - 1;
+        setActive(prevActive);
+        if (activeCard) {
+          flipCard(active, false);
+        }
+      } else if (e.key === "Escape") {
+        handleClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [active, activeCard, flipCard, setActive]);
+
+  const handleClose = () => {
+    if (activeCard) {
+      setActive(null);
+      flipCard(activeCard?.id, false)
+    }
+  }
+
 
   return (
     <AnimatePresence>
       {active !== null && (
         <div
           className="fixed h-full w-full z-30 p-14"
-          style={{ pointerEvents: active ? "auto" : "none" }} // Directly apply pointer-events
+          style={{ pointerEvents: active ? "auto" : "none" }}
         >
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -84,7 +119,7 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                 {[...Array(10)].map((_, i) => (
                   <button
                     key={i}
-                    onClick={() => setActive(i + 1)}
+                    onClick={() => { setActive(i + 1); flipCard(active, false) }}
                     className={`border rounded-full size-2 border-black/30 ${activeCard?.id === i + 1 ? "bg-neutral-800" : "bg-none"}`}
                   ></button>
                 ))}
@@ -108,7 +143,7 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
               transition={{ delay: 0.4, duration: 0.3 }}
               className="flex flex-col justify-between h-full w-1/4"
             >
-              <motion.button onClick={() => setActive(null)} className="size-12 flex justify-center ml-auto">
+              <motion.button onClick={handleClose} className="size-12 flex justify-center ml-auto">
                 <TfiClose className="size-10" />
               </motion.button>
               <motion.div
@@ -131,8 +166,17 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                   <li className="flex justify-between w-full px-6">
                     <SiMaterialdesignicons size="1.2rem" />
                     <p>
-                      Matte paper, <span>{activeCard && activeCard.foilColor.charAt(0).toUpperCase() + activeCard.foilColor.slice(1)}</span>
-                      foil
+                      Matte paper,{" "}
+                      <motion.span
+                        key={activeCard?.foilColor}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ delay: 0, duration: 0.3 }}
+                      >
+                        {activeCard && activeCard.foilColor.charAt(0).toUpperCase() + activeCard.foilColor.slice(1)}
+                        foil
+                      </motion.span>
                     </p>
                   </li>
                   <li className="text-5xl font-medium flex justify-between w-full items-end p-1">
@@ -174,7 +218,8 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
             </motion.div>
           </motion.div>
         </div>
-      )}
-    </AnimatePresence>
+      )
+      }
+    </AnimatePresence >
   );
 }

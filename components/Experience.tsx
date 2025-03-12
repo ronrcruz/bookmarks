@@ -70,6 +70,7 @@ export default function Experience({ cardArr, active, setActive, isLoaded, flipC
     if (planeMaterialRef.current && opacityDelay.current >= 0.2) {
       easing.damp(planeMaterialRef.current, "opacity", targetOpacity.current, 1.9, delta);
     }
+
   });
 
   return (

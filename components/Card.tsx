@@ -37,7 +37,6 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded, flipCard 
   const [hover, setHover] = useState(false);
   const groupRef = useRef<any>(null);
   const meshRef = useRef<any>(null);
-  const frontPlaneRef = useRef<any>(null);
   const roundedRectShape = createRoundedRectShape(1.0, 1.75, 0.1);
   const geometry = new THREE.ExtrudeGeometry(roundedRectShape, { depth: 0.02, bevelEnabled: false });
   const planeGeometry = useMemo(() => {
@@ -54,11 +53,7 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded, flipCard 
   }, []);
   const initialPos = useMemo(() => new THREE.Vector3(cardPos * 0.4, 0, 0), [cardPos]);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [bookmark, foil, normalMap] = useTexture([
-    "/bookmark.png",
-    "/foil.png",
-    "/NormalMap.png",
-  ]);
+  const [bookmark, foil, normalMap] = useTexture(["/bookmark.png", "/foil.png", "/NormalMap.png",]);
 
   // if (card.illustration.length > 3) {
   //   const [bookmark, foil, normalMap] = useTexture([card.illustration, card.foil, card.normalMap]);
@@ -121,26 +116,26 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded, flipCard 
       let intensity: number;
 
       if (active === id) {
+
         targetPosition = [0, 16, 0];
         smoothTime = 0.4;
         intensity = 0.25;
-        // intensity = 0.1;
         const rotationX = mousePos.y * intensity;
         const rotationY = mousePos.x * intensity;
-        targetRotation = [Math.PI / 2 - rotationX, card.isFlipped ? Math.PI - rotationY + Math.PI : Math.PI - rotationY, Math.PI];
-        // targetRotation = [Math.PI / 2 - rotationX - 0.5, Math.PI - rotationY + 0.3, Math.PI - 0.3];
+        targetRotation = [
+          Math.PI / 2 - rotationX,
+          card.isFlipped ? Math.PI - rotationY + Math.PI : Math.PI - rotationY,
+          0
+        ];
       } else if (hover) {
         targetPosition = [groupRef.current.position.x, 0.5, groupRef.current.position.z];
         smoothTime = 0.1;
-        targetRotation = [0, 0.7, 0];
+        targetRotation = [0, card.isFlipped ? 0.7 + Math.PI : 0.7, 0];
       } else {
         targetPosition = [initialPos.x, initialPos.y, initialPos.z];
         smoothTime = active === null ? 0.1 : 0.5;
-        targetRotation = [0, 0.7, 0];
+        targetRotation = [0, card.isFlipped ? 0.7 + Math.PI : 0.7, 0];
       }
-
-
-
 
       // GROUP POSITION ANIMATION
       easing.damp3(groupRef.current.position, targetPosition, smoothTime, delta);
@@ -172,10 +167,10 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded, flipCard 
         <meshPhysicalMaterial
           color={color}
           opacity={1}
-          side={THREE.DoubleSide}
           roughness={0.9}
           metalness={0.2}
         />
+        {/* ILLUSTRATION */}
         <Decal receiveShadow={active ? false : true} position={[0, 0, 0]} scale={[1, 1.75, 0.1]}>
           <meshPhysicalMaterial
             polygonOffset
@@ -183,14 +178,31 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded, flipCard 
             map={bookmark}
             roughness={0.9}
             metalness={0.2}
-            map-flipX={false}
+            side={THREE.FrontSide}
           />
         </Decal>
       </mesh>
 
-      {/* Front Plane with Displacement */}
-      <mesh ref={frontPlaneRef} geometry={planeGeometry} position={[0, 0, 0.04]}>
+      {/* FRONT FOIL */}
+      <mesh geometry={planeGeometry} position={[0, 0, 0.03]}>
         <meshPhysicalMaterial
+          transparent
+          roughness={0.1}
+          metalness={0.8}
+          reflectivity={0.8}
+          sheen={1}
+          map={foil}
+          normalMap={normalMap}
+          normalScale={new THREE.Vector2(0.1, 0.1)}
+          envMap={envMap.map}
+          envMapIntensity={envMap.intensity}
+          envMapRotation={envMap.rotation}
+        />
+      </mesh>
+      {/* BACK FOIL */}
+      <mesh geometry={planeGeometry} rotation={[0, Math.PI, 0]} position={[0, 0, -0.01]}>
+        <meshPhysicalMaterial
+          side={THREE.DoubleSide}
           transparent
           roughness={0.1}
           metalness={0.8}
