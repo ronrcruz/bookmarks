@@ -106,7 +106,7 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded, flipCard 
   useEffect(() => {
     window.addEventListener("mousemove", pointerMove as any);
     return () => window.removeEventListener("mousemove", pointerMove as any);
-  }, [active, id]);
+  }, [active, id, pointerMove]);
 
   useFrame((state, delta) => {
     if (groupRef.current) {
@@ -177,7 +177,7 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded, flipCard 
             polygonOffsetFactor={-1}
             map={bookmark}
             roughness={0.9}
-            metalness={0.2}
+            metalness={0.1}
             side={THREE.FrontSide}
           />
         </Decal>
