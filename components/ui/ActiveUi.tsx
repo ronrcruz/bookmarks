@@ -102,14 +102,18 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20, }}
                 transition={{ delay: 0.3, duration: 0.3 }}
-                className="text-5xl">{activeCard?.name}</motion.h2>
+                className="text-5xl">
+                {activeCard?.name}
+              </motion.h2>
               <motion.div
                 key={activeCard?.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ delay: active ? 0.5 : 0, duration: 0.3 }}
-                className="h-2/3 overflow-scroll text-sm leading-tight">{activeCard?.info}</motion.div>
+                className="h-2/3 overflow-scroll text-sm leading-tight">
+                {activeCard?.info}
+              </motion.div>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
