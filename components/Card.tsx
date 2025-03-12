@@ -95,18 +95,19 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded, flipCard 
     setHover(false)
   );
 
-  const pointerMove = (e: MouseEvent) => {
-    if (active === id) {
-      const x = (e.clientX / window.innerWidth) * 2 - 1;
-      const y = -(e.clientY / window.innerHeight) * 2 + 1;
-      setMousePos({ x, y });
-    }
-  };
 
   useEffect(() => {
+    const pointerMove = (e: MouseEvent) => {
+      if (active === id) {
+        const x = (e.clientX / window.innerWidth) * 2 - 1;
+        const y = -(e.clientY / window.innerHeight) * 2 + 1;
+        setMousePos({ x, y });
+      }
+    };
+
     window.addEventListener("mousemove", pointerMove as any);
     return () => window.removeEventListener("mousemove", pointerMove as any);
-  }, [active, id, pointerMove]);
+  }, [active, id]);
 
   useFrame((state, delta) => {
     if (groupRef.current) {
