@@ -14,7 +14,7 @@ export default function Home() {
     [
       {
         id: 1,
-        cardColor: "#aecae3",
+        cardColor: "#adc8e0",
         bgColor: "#91b2cf",
         illustration: "",
         foil: "",
@@ -42,7 +42,7 @@ export default function Home() {
       },
       {
         id: 2,
-        cardColor: "#aecae3",
+        cardColor: "#adc8e0",
         bgColor: "#91b2cf",
         illustration: "",
         foil: "",
@@ -56,7 +56,7 @@ export default function Home() {
       },
       {
         id: 3,
-        cardColor: "#aecae3",
+        cardColor: "#adc8e0",
         bgColor: "#91b2cf",
         illustration: "",
         foil: "",
@@ -70,7 +70,7 @@ export default function Home() {
       },
       {
         id: 4,
-        cardColor: "#aecae3",
+        cardColor: "#adc8e0",
         bgColor: "#91b2cf",
         illustration: "/bookmark.png",
         foil: "/bookmark-foil.png",
@@ -84,7 +84,7 @@ export default function Home() {
       },
       {
         id: 5,
-        cardColor: "#aecae3",
+        cardColor: "#adc8e0",
         bgColor: "#91b2cf",
         illustration: "",
         foil: "",
@@ -98,7 +98,7 @@ export default function Home() {
       },
       {
         id: 6,
-        cardColor: "#aecae3",
+        cardColor: "#adc8e0",
         bgColor: "#91b2cf",
         illustration: "",
         foil: "",
@@ -112,7 +112,7 @@ export default function Home() {
       },
       {
         id: 7,
-        cardColor: "#aecae3",
+        cardColor: "#adc8e0",
         bgColor: "#91b2cf",
         illustration: "",
         foil: "",
@@ -126,7 +126,7 @@ export default function Home() {
       },
       {
         id: 8,
-        cardColor: "#aecae3",
+        cardColor: "#adc8e0",
         bgColor: "#91b2cf",
         illustration: "",
         foil: "",
@@ -140,7 +140,7 @@ export default function Home() {
       },
       {
         id: 9,
-        cardColor: "#aecae3",
+        cardColor: "#adc8e0",
         bgColor: "#91b2cf",
         illustration: "",
         foil: "",
@@ -154,7 +154,7 @@ export default function Home() {
       },
       {
         id: 10,
-        cardColor: "#aecae3",
+        cardColor: "#adc8e0",
         bgColor: "#91b2cf",
         illustration: "",
         foil: "",

@@ -67,7 +67,6 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
   }
 
   const silverEnvMap = {
-    // map: useLoader(RGBELoader, "/SilverEnvMap.hdr"),
     map: useLoader(RGBELoader, "/st_peters_square_night_1k.hdr"),
     rotation: new THREE.Euler(-0.3, 0.3, 1.2),
     intensity: 4
@@ -79,7 +78,7 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
   bookmark.magFilter = THREE.LinearFilter;
   bookmark.anisotropy = 16;
   bookmark.generateMipmaps = true;
-  bookmark.offset.set(0.02, 0);
+  // bookmark.offset.set(0.02, 0);
 
   foil.minFilter = THREE.LinearFilter;
   foil.magFilter = THREE.LinearFilter;
@@ -177,18 +176,38 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
         <meshPhysicalMaterial
           color={color}
           opacity={1}
-          roughness={0.9}
-          metalness={0.2}
         />
-        {/* ILLUSTRATION */}
-        <Decal receiveShadow={active ? false : true} position={[0, 0, 0]} scale={[1, 1.75, 0.1]}>
+
+        {/* FRONT ILLUSTRATION */}
+        <Decal
+          receiveShadow={active ? false : true}
+          position={[0.02, 0, 0]}
+          scale={[1, 1.75, 0.1]}
+        >
           <meshPhysicalMaterial
             polygonOffset
             polygonOffsetFactor={-1}
             map={bookmark}
             roughness={0.9}
             metalness={0.1}
-            side={THREE.FrontSide}
+            side={THREE.DoubleSide}
+          />
+        </Decal>
+
+        {/* BACK ILLUSTRATION */}
+        <Decal
+          receiveShadow={active ? false : true}
+          position={[0, 0, -0.04]}
+          scale={[1, 1.75, 0.1]}
+          rotation={[0, Math.PI, 0]}
+        >
+          <meshPhysicalMaterial
+            polygonOffset
+            polygonOffsetFactor={-1}
+            map={bookmark}
+            roughness={0.9}
+            metalness={0.1}
+            side={THREE.DoubleSide}
           />
         </Decal>
       </mesh>
