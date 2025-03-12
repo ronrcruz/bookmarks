@@ -30,13 +30,12 @@ interface CardProps {
   active: number | null;
   setActive: Dispatch<SetStateAction<number | null>>;
   isLoaded: boolean;
-  flipCard: (cardId: number, isFlipped: boolean) => void
 }
 
-const Card = ({ card, id, cardPos, color, active, setActive, isLoaded, flipCard }: CardProps) => {
+const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardProps) => {
   const [hover, setHover] = useState(false);
-  const groupRef = useRef<any>(null);
-  const meshRef = useRef<any>(null);
+  const groupRef = useRef<THREE.Group>(null);
+  const meshRef = useRef<THREE.Mesh>(null);
   const roundedRectShape = createRoundedRectShape(1.0, 1.75, 0.1);
   const geometry = new THREE.ExtrudeGeometry(roundedRectShape, { depth: 0.02, bevelEnabled: false });
   const planeGeometry = useMemo(() => {
@@ -59,17 +58,19 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded, flipCard 
   //   const [bookmark, foil, normalMap] = useTexture([card.illustration, card.foil, card.normalMap]);
   // }
 
-  const envMap = card.foilColor === "gold" ? {
-    // map: useLoader(RGBELoader, "/GoldEnvMap.hdr"),
-    // rotation: new THREE.Euler(-0.2, 0, 0.5),
+  const goldEnvMao = {
     map: useLoader(RGBELoader, "/GoldEnvMap2.hdr"),
     rotation: new THREE.Euler(0.4, 0, 0.1),
     intensity: 3
-  } : {
+  }
+
+  const silverEnvMap = {
     map: useLoader(RGBELoader, "/SilverEnvMap.hdr"),
     rotation: new THREE.Euler(-0.3, 0.3, 1.2),
     intensity: 4
   }
+
+  const envMap = card.foilColor === "gold" ? goldEnvMao : silverEnvMap
 
   bookmark.minFilter = THREE.LinearFilter;
   bookmark.magFilter = THREE.LinearFilter;
@@ -84,12 +85,12 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded, flipCard 
 
   envMap.map.mapping = THREE.EquirectangularReflectionMapping;
 
-  const pointerOver = (e: { stopPropagation: () => any }) => {
+  const pointerOver = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
     if (!active) setHover(true);
   };
   const pointerOut = () => !active && setHover(false);
-  const click = (e: { stopPropagation: () => any }) => (
+  const click = (e: { stopPropagation: () => void }) => (
     e.stopPropagation(),
     !active ? setActive(id) : setActive(null),
     setHover(false)
@@ -105,8 +106,8 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded, flipCard 
       }
     };
 
-    window.addEventListener("mousemove", pointerMove as any);
-    return () => window.removeEventListener("mousemove", pointerMove as any);
+    window.addEventListener("mousemove", pointerMove);
+    return () => window.removeEventListener("mousemove", pointerMove);
   }, [active, id]);
 
   useFrame((state, delta) => {
@@ -126,7 +127,7 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded, flipCard 
         targetRotation = [
           Math.PI / 2 - rotationX,
           card.isFlipped ? Math.PI - rotationY + Math.PI : Math.PI - rotationY,
-          0
+          Math.PI
         ];
       } else if (hover) {
         targetPosition = [groupRef.current.position.x, 0.5, groupRef.current.position.z];
@@ -142,7 +143,8 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded, flipCard 
       easing.damp3(groupRef.current.position, targetPosition, smoothTime, delta);
 
       // GROUP ROTATION ANIMATION
-      easing.damp3(groupRef.current.rotation, targetRotation, active ? 0.5 : 0.175, delta);
+      const rotation = new THREE.Vector3(groupRef.current.rotation.x, groupRef.current.rotation.y, groupRef.current.rotation.z)
+      easing.damp3(rotation, targetRotation, active ? 0.5 : 0.175, delta);
 
       // CAMERA POSITION ANIMATION
       if (!isLoaded) {

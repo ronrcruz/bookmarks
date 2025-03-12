@@ -96,7 +96,6 @@ export default function Experience({ cardArr, active, setActive, isLoaded, flipC
           active={active}
           setActive={setActive}
           isLoaded={isLoaded}
-          flipCard={flipCard}
         />
       )}
 
