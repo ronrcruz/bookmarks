@@ -26,13 +26,13 @@ export default function Home() {
           <p>
             This mini bookmark is the perfect companion for any reader!<br /><br />
 
-            My “I&apos;m well-read” design is inspired by my book club, the Wellread book club. Being “well-read” can mean many different things, but I associate it with reading from a wide variety of genres… which is our goal for the book club. Each month, we read a book from a different genre. <br /><br />
+            My “I&#39;m well-read” design is inspired by my book club, the Wellread book club. Being “well-read” can mean many different things, but I associate it with reading from a wide variety of genres… which is our goal for the book club. Each month, we read a book from a different genre. <br /><br />
 
             I thought it would be fun to design a mini bookmark that we could use for the books we read for the book club, or any of our books!<br /><br />
 
-            <span className="italic">You don&apos;t have to be a member of the book club to purchase this item. I just want to make that clear {":)"}</span><br /><br />
+            <span className="italic">You don&#39;t have to be a member of the book club to purchase this item. I just want to make that clear {":)"}</span><br /><br />
 
-            I also think of a well-read book is a book that has been annotated, dog eared, highlighted, or underlined. If you&apos;re that kind of reader, then this book mark is perfect for you!<br /><br />
+            I also think of a well-read book is a book that has been annotated, dog eared, highlighted, or underlined. If you&#39;re that kind of reader, then this book mark is perfect for you!<br /><br />
 
 
             This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It's also double-sided, so whichever way you place it in your book you'll have a lovely design to see.
@@ -183,7 +183,7 @@ export default function Home() {
       {!isLoaded && <LoadingScreen onLoaded={() => setIsLoaded(true)} />}
 
       <Canvas className="fixed z-20" shadows flat dpr={[1, 1.5]} camera={{ position: [0, 2, 8], fov: 30, near: 1, far: 30 }}>
-        <Experience cardArr={cardArr} active={active} setActive={setActive} isLoaded={isLoaded} flipCard={flipCard} />
+        <Experience cardArr={cardArr} active={active} setActive={setActive} isLoaded={isLoaded} />
       </Canvas>
     </main>
   )
