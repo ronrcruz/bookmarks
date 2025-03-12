@@ -59,13 +59,14 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
   // }
 
   const goldEnvMao = {
-    map: useLoader(RGBELoader, "/GoldEnvMap2.hdr"),
+    map: useLoader(RGBELoader, "/pretville_cinema_1k.hdr"),
     rotation: new THREE.Euler(0.4, 0, 0.1),
     intensity: 3
   }
 
   const silverEnvMap = {
-    map: useLoader(RGBELoader, "/SilverEnvMap.hdr"),
+    // map: useLoader(RGBELoader, "/SilverEnvMap.hdr"),
+    map: useLoader(RGBELoader, "/st_peters_square_night_1k.hdr"),
     rotation: new THREE.Euler(-0.3, 0.3, 1.2),
     intensity: 4
   }
@@ -118,7 +119,6 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
       let intensity: number;
 
       if (active === id) {
-
         targetPosition = [0, 16, 0];
         smoothTime = 0.4;
         intensity = 0.25;
@@ -143,8 +143,33 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
       easing.damp3(groupRef.current.position, targetPosition, smoothTime, delta);
 
       // GROUP ROTATION ANIMATION
-      const rotation = new THREE.Vector3(groupRef.current.rotation.x, groupRef.current.rotation.y, groupRef.current.rotation.z)
-      easing.damp3(rotation, targetRotation, active ? 0.5 : 0.175, delta);
+      // const rotation = new THREE.Vector3(groupRef.current.rotation.x, groupRef.current.rotation.y, groupRef.current.rotation.z)
+      // easing.damp3(groupRef.current.rotation, targetRotation, active ? 0.5 : 0.175, delta);
+      if (groupRef.current.rotation instanceof THREE.Euler) {
+        const rotation = groupRef.current.rotation;
+        const dampFactor = active ? 2 : 8;
+
+        rotation.x = THREE.MathUtils.damp(
+          rotation.x,
+          targetRotation[0],
+          dampFactor,
+          delta
+        );
+        rotation.y = THREE.MathUtils.damp(
+          rotation.y,
+          targetRotation[1],
+          dampFactor,
+          delta
+        );
+        rotation.z = THREE.MathUtils.damp(
+          rotation.z,
+          targetRotation[2],
+          dampFactor,
+          delta
+        );
+      }
+
+
 
       // CAMERA POSITION ANIMATION
       if (!isLoaded) {

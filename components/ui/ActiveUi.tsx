@@ -135,7 +135,7 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
               <motion.button
                 disabled={!active ? true : false}
                 onClick={() => flipCard(activeCard.id, !activeCard.isFlipped)}
-                className="h-[32.5rem] w-[18.5rem] rounded-2xl self-center">
+                className="h-[32.5rem] w-[18.5rem] rounded-2xl self-center outline-none">
               </motion.button>
             )}
 
