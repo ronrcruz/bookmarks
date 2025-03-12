@@ -53,6 +53,8 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
   const initialPos = useMemo(() => new THREE.Vector3(cardPos * 0.4, 0, 0), [cardPos]);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [bookmark, foil, normalMap] = useTexture(["/bookmark.png", "/foil.png", "/NormalMap.png",]);
+  const rotationRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0.7, 0));
+
 
   // if (card.illustration.length > 3) {
   //   const [bookmark, foil, normalMap] = useTexture([card.illustration, card.foil, card.normalMap]);
@@ -143,33 +145,13 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
       easing.damp3(groupRef.current.position, targetPosition, smoothTime, delta);
 
       // GROUP ROTATION ANIMATION
-      // const rotation = new THREE.Vector3(groupRef.current.rotation.x, groupRef.current.rotation.y, groupRef.current.rotation.z)
-      // easing.damp3(groupRef.current.rotation, targetRotation, active ? 0.5 : 0.175, delta);
-      if (groupRef.current.rotation instanceof THREE.Euler) {
-        const rotation = groupRef.current.rotation;
-        const dampFactor = active ? 2 : 8;
+      easing.damp3(rotationRef.current, targetRotation, active ? 0.5 : 0.175, delta);
 
-        rotation.x = THREE.MathUtils.damp(
-          rotation.x,
-          targetRotation[0],
-          dampFactor,
-          delta
-        );
-        rotation.y = THREE.MathUtils.damp(
-          rotation.y,
-          targetRotation[1],
-          dampFactor,
-          delta
-        );
-        rotation.z = THREE.MathUtils.damp(
-          rotation.z,
-          targetRotation[2],
-          dampFactor,
-          delta
-        );
-      }
-
-
+      groupRef.current.rotation.set(
+        rotationRef.current.x,
+        rotationRef.current.y,
+        rotationRef.current.z
+      );
 
       // CAMERA POSITION ANIMATION
       if (!isLoaded) {
