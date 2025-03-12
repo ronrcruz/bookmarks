@@ -4,8 +4,14 @@ export type CardType = {
   id: number;
   cardColor: string
   bgColor: string
-  illustration: string
-  foil: string
+  illustration: {
+    front: string
+    back: string
+  }
+  foil: {
+    front: string
+    back: string
+  }
   foilColor: "gold" | "silver"
   normalMap: string
   sheenColor: string

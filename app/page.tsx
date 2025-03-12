@@ -16,8 +16,14 @@ export default function Home() {
         id: 1,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
-        illustration: "",
-        foil: "",
+        illustration: {
+          front: "",
+          back: ""
+        },
+        foil: {
+          front: "",
+          back: ""
+        },
         foilColor: "gold",
         normalMap: "",
         sheenColor: "",
@@ -44,8 +50,14 @@ export default function Home() {
         id: 2,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
-        illustration: "",
-        foil: "",
+        illustration: {
+          front: "",
+          back: ""
+        },
+        foil: {
+          front: "",
+          back: ""
+        },
         foilColor: "gold",
         normalMap: "",
         sheenColor: "",
@@ -58,8 +70,14 @@ export default function Home() {
         id: 3,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
-        illustration: "",
-        foil: "",
+        illustration: {
+          front: "",
+          back: ""
+        },
+        foil: {
+          front: "",
+          back: ""
+        },
         foilColor: "gold",
         normalMap: "",
         sheenColor: "",
@@ -72,8 +90,14 @@ export default function Home() {
         id: 4,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
-        illustration: "/bookmark.png",
-        foil: "/bookmark-foil.png",
+        illustration: {
+          front: "/bookmark.png",
+          back: ""
+        },
+        foil: {
+          front: "/bookmark-foil.png",
+          back: ""
+        },
         foilColor: "silver",
         normalMap: "/NormalMap4.png",
         sheenColor: "",
@@ -86,8 +110,14 @@ export default function Home() {
         id: 5,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
-        illustration: "",
-        foil: "",
+        illustration: {
+          front: "",
+          back: ""
+        },
+        foil: {
+          front: "",
+          back: ""
+        },
         foilColor: "gold",
         normalMap: "",
         sheenColor: "",
@@ -100,8 +130,14 @@ export default function Home() {
         id: 6,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
-        illustration: "",
-        foil: "",
+        illustration: {
+          front: "",
+          back: ""
+        },
+        foil: {
+          front: "",
+          back: ""
+        },
         foilColor: "gold",
         normalMap: "",
         sheenColor: "",
@@ -114,8 +150,14 @@ export default function Home() {
         id: 7,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
-        illustration: "",
-        foil: "",
+        illustration: {
+          front: "",
+          back: ""
+        },
+        foil: {
+          front: "",
+          back: ""
+        },
         foilColor: "gold",
         normalMap: "",
         sheenColor: "",
@@ -128,8 +170,14 @@ export default function Home() {
         id: 8,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
-        illustration: "",
-        foil: "",
+        illustration: {
+          front: "",
+          back: ""
+        },
+        foil: {
+          front: "",
+          back: ""
+        },
         foilColor: "gold",
         normalMap: "",
         sheenColor: "",
@@ -142,8 +190,14 @@ export default function Home() {
         id: 9,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
-        illustration: "",
-        foil: "",
+        illustration: {
+          front: "",
+          back: ""
+        },
+        foil: {
+          front: "",
+          back: ""
+        },
         foilColor: "gold",
         normalMap: "",
         sheenColor: "",
@@ -156,8 +210,14 @@ export default function Home() {
         id: 10,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
-        illustration: "",
-        foil: "",
+        illustration: {
+          front: "",
+          back: ""
+        },
+        foil: {
+          front: "",
+          back: ""
+        },
         foilColor: "gold",
         normalMap: "",
         sheenColor: "",
