@@ -54,6 +54,13 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [bookmark, foil, normalMap] = useTexture(["/bookmark.png", "/foil.png", "/NormalMap.png",]);
   const rotationRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0.7, 0));
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
 
   // if (card.illustration.length > 3) {
@@ -118,8 +125,9 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
       let smoothTime: number;
       let targetRotation: [number, number, number];
       let intensity: number;
+
       if (active === id) {
-        targetPosition = [0, 16, 0];
+        targetPosition = [0, windowWidth < 780 ? 15 : 16, 0];
         smoothTime = 0.4;
         intensity = 0.25;
         const rotationX = mousePos.y * intensity;

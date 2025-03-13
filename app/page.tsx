@@ -1,15 +1,22 @@
 "use client"
 
-import { useState } from "react"
-import Experience from "@/components/Experience"
-import { Canvas } from "@react-three/fiber"
+import { useState, useEffect } from "react"
 import { CardType } from "./definitions"
-import ActiveUi from "@/components/ui/ActiveUi"
-import LoadingScreen from "@/components/LoadingScreen"
+import DesktopScene from "@/components/DesktopScene"
 
 export default function Home() {
   const [active, setActive] = useState<number | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkScreenSize = () => setIsMobile(window.innerWidth <= 599)
+    checkScreenSize()
+    window.addEventListener("resize", checkScreenSize)
+
+    return () => window.removeEventListener("resize", checkScreenSize)
+  }, [])
+
   const [cardArr, setCardArr] = useState<CardType[]>(
     [
       {
@@ -248,23 +255,33 @@ export default function Home() {
       }
     ]
   )
+
   const flipCard = (cardId: number, isFlipped: boolean) => {
-    setCardArr((prevState: CardType[]) => {
-      return prevState.map((card) => {
-        return card.id === cardId ? { ...card, isFlipped } : card;
-      });
-    });
+    setCardArr((prevState: CardType[]) =>
+      prevState.map((card) => (card.id === cardId ? { ...card, isFlipped } : card))
+    )
   }
 
-  return (
-    <main className={`h-dvh w-dvw bg-gradient-to-b from-transparent to-neutral-500 relative`}>
-      <ActiveUi active={active} setActive={setActive} cardArr={cardArr} flipCard={flipCard} />
-      {!isLoaded && <LoadingScreen onLoaded={() => setIsLoaded(true)} />}
+  // MEDIUM MEDIA QUERY: 780
 
-      <Canvas className="fixed z-20" shadows flat dpr={[1, 1.5]} camera={{ position: [0, 2, 8], fov: 30, near: 1, far: 30 }}>
-        <Experience cardArr={cardArr} active={active} setActive={setActive} isLoaded={isLoaded} />
-      </Canvas>
+  return (
+    <main className="h-dvh w-dvw relative">
+      {isMobile ? (
+        <div className="h-full w-full">
+          <h1>SMALL</h1>
+        </div>
+      ) : (
+        <DesktopScene
+          cardArr={cardArr}
+          active={active}
+          setActive={setActive}
+          isLoaded={isLoaded}
+          setIsLoaded={setIsLoaded}
+          flipCard={flipCard}
+        />
+      )}
     </main>
   )
 }
+
 
