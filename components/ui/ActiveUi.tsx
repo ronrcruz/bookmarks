@@ -81,6 +81,13 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
     }
   }
 
+  const handlePage = (activeId: number) => {
+    if (active) {
+      setActive(activeId);
+      flipCard(active, false)
+    }
+  }
+
 
   return (
     <AnimatePresence>
@@ -88,15 +95,16 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
         <div
           className="fixed h-full w-full z-30 p-10 lg:p-14 flex"
           style={{ pointerEvents: active ? "auto" : "none" }}
+          onClick={() => setHasSeenIndicator(true)}
         >
           {/* INDICATOR */}
           {!hasSeenIndicator && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, x: "-50%", y: 20 }}
               animate={{ opacity: 0.5, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="absolute top-6 left-1/2 -translate-x-1/2 border bg-black/90 border-black/20 text-black/40 p-2 rounded-lg shadow-lg flex gap-2 items-center"
+              className="absolute top-6 left-1/2 border bg-black/90 border-black/20 text-black/40 p-2 rounded-lg shadow-lg flex gap-2 items-center"
             >
               <div className="flex gap-1">
                 <div className="text-2xl justify-center flex items-center border border-white/50 text-white p-1 size-8 rounded-lg">
@@ -146,7 +154,7 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                 {[...Array(11)].map((_, i) => (
                   <button
                     key={i}
-                    onClick={() => { setActive(i + 1); flipCard(active, false) }}
+                    onClick={() => handlePage(i + 1)}
                     className={`border rounded-full size-2 border-black/30 ${activeCard?.id === i + 1 ? "bg-neutral-800" : "bg-none"}`}
                   ></button>
                 ))}

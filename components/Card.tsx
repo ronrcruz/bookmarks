@@ -118,7 +118,6 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
       let smoothTime: number;
       let targetRotation: [number, number, number];
       let intensity: number;
-
       if (active === id) {
         targetPosition = [0, 16, 0];
         smoothTime = 0.4;
@@ -163,7 +162,7 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
 
   return (
     <group ref={groupRef} position={initialPos} rotation={[0, 0.7, 0]}>
-      {/* Base Card (no displacement) */}
+      {/* BASE CARD */}
       <mesh
         onPointerOver={pointerOver}
         onPointerOut={pointerOut}
