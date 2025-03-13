@@ -98,6 +98,15 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
         />
       )}
 
+      {/* <mesh position={[0, 1.8, 0]} rotation-x={-Math.PI / 2}>
+        <planeGeometry args={[50, 50]} />
+        <meshPhysicalMaterial
+          transmission={1}
+          roughness={0.5}
+          opacity={0.1}
+        />
+      </mesh> */}
+
       {!active && (
         <>
           <mesh position={[0, (-1.75 / 2) + 0.0001, 0]} rotation-x={-Math.PI / 2}>

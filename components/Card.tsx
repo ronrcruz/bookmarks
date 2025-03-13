@@ -163,7 +163,11 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
       if (!isLoaded) {
         easing.damp3(state.camera.position, [state.camera.position.x, 30, 0], 2.0, delta);
       } else {
-        easing.damp3(state.camera.position, [state.camera.position.x, active ? 20.5 : 2, active ? 0 : 8], 2.0, delta);
+        if (active) {
+          easing.damp3(state.camera.position, [state.camera.position.x, 20.5, active ? 0 : 8], 2.0, delta);
+        } else {
+          easing.damp3(state.camera.position, [state.camera.position.x, 2, active ? 0 : 8], 2.0, delta);
+        }
       }
     }
   });
