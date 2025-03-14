@@ -415,8 +415,6 @@ export default function Home() {
     )
   }
 
-  // MEDIUM MEDIA QUERY: 780
-
   return (
     <main className="h-dvh w-dvw relative">
       {isMobile ? (
