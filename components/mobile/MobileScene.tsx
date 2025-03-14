@@ -11,7 +11,7 @@ interface MobileSceneProps {
   setActive: Dispatch<SetStateAction<number | null>>;
   isLoaded: boolean;
   setIsLoaded: Dispatch<SetStateAction<boolean>>;
-  flipCard: (cardId: number, isFlipped: boolean) => void;
+  flipCard: (cardId: number, isFlipped: boolean, selectedVariantIndex: number) => void;
 }
 
 export default function MobileScene({ cardArr, active, setActive, isLoaded, setIsLoaded, flipCard }: MobileSceneProps) {

@@ -20,15 +20,16 @@ export type CardType = {
   sheenColor: string
   inStock: boolean
   isFlipped: boolean
+  selectedVariantIndex: number;
 }
 
 type ColorVariant = {
   colorName: string
   cardColor: string
   bgColor: string
+  foilColor: "gold" | "silver"
   illustration: {
     front: string
     back: string
   }
-  foilColor: "gold" | "silver"
 }

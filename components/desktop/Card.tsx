@@ -26,13 +26,19 @@ interface CardProps {
   card: CardType;
   id: number;
   cardPos: number;
-  color: string;
   active: number | null;
   setActive: Dispatch<SetStateAction<number | null>>;
   isLoaded: boolean;
 }
 
-const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardProps) => {
+const Card = ({
+  card,
+  id,
+  cardPos,
+  active,
+  setActive,
+  isLoaded,
+}: CardProps) => {
   const [hover, setHover] = useState(false);
   const groupRef = useRef<THREE.Group>(null);
   const meshRef = useRef<THREE.Mesh>(null);
@@ -52,7 +58,17 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
   }, []);
   const initialPos = useMemo(() => new THREE.Vector3(cardPos * 0.4, 0, 0), [cardPos]);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  // Use selected variant's properties
+  const selectedVariant = card.colorVariations[card.selectedVariantIndex];
   const [bookmark, foil, normalMap] = useTexture(["/bookmark.png", "/foil.png", "/NormalMap.png",]);
+
+  // const illustrationFront = selectedVariant.illustration.front || card.illustration.front || "/bookmark.png";
+  // const foilFront = selectedVariant.foil.front || card.foil.front || "/foil.png";
+  // const normalMapPath = card.normalMap || "/NormalMap.png";
+  // const [bookmark, foil, normalMap] = useTexture([illustrationFront, foilFront, normalMapPath]);
+
+
   const rotationRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0.7, 0));
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
@@ -62,30 +78,24 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-
-  // if (card.illustration.length > 3) {
-  //   const [bookmark, foil, normalMap] = useTexture([card.illustration, card.foil, card.normalMap]);
-  // }
-
-  const goldEnvMao = {
+  const goldEnvMap = {
     map: useLoader(RGBELoader, "/pretville_cinema_1k.hdr"),
     rotation: new THREE.Euler(0.4, 0, 0.1),
-    intensity: 3
-  }
+    intensity: 3,
+  };
 
   const silverEnvMap = {
     map: useLoader(RGBELoader, "/st_peters_square_night_1k.hdr"),
     rotation: new THREE.Euler(-0.3, 0.3, 1.2),
-    intensity: 4
-  }
+    intensity: 4,
+  };
 
-  const envMap = card.foilColor === "gold" ? goldEnvMao : silverEnvMap
+  const envMap = selectedVariant.foilColor === "gold" ? goldEnvMap : silverEnvMap;
 
   bookmark.minFilter = THREE.LinearFilter;
   bookmark.magFilter = THREE.LinearFilter;
   bookmark.anisotropy = 16;
   bookmark.generateMipmaps = true;
-  // bookmark.offset.set(0.02, 0);
 
   foil.minFilter = THREE.LinearFilter;
   foil.magFilter = THREE.LinearFilter;
@@ -99,12 +109,11 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
     if (!active) setHover(true);
   };
   const pointerOut = () => !active && setHover(false);
-  const click = (e: { stopPropagation: () => void }) => (
-    e.stopPropagation(),
-    !active ? setActive(id) : setActive(null),
-    setHover(false)
-  );
-
+  const click = (e: { stopPropagation: () => void }) => {
+    e.stopPropagation();
+    !active ? setActive(id) : setActive(null);
+    setHover(false);
+  };
 
   useEffect(() => {
     const pointerMove = (e: MouseEvent) => {
@@ -114,7 +123,6 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
         setMousePos({ x, y });
       }
     };
-
     window.addEventListener("mousemove", pointerMove);
     return () => window.removeEventListener("mousemove", pointerMove);
   }, [active, id]);
@@ -135,7 +143,7 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
         targetRotation = [
           Math.PI / 2 - rotationX,
           card.isFlipped ? Math.PI - rotationY + Math.PI : Math.PI - rotationY,
-          Math.PI
+          Math.PI,
         ];
       } else if (hover) {
         targetPosition = [groupRef.current.position.x, 0.5, groupRef.current.position.z];
@@ -147,19 +155,10 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
         targetRotation = [0, card.isFlipped ? 0.7 + Math.PI : 0.7, 0];
       }
 
-      // GROUP POSITION ANIMATION
       easing.damp3(groupRef.current.position, targetPosition, smoothTime, delta);
-
-      // GROUP ROTATION ANIMATION
       easing.damp3(rotationRef.current, targetRotation, active ? 0.5 : 0.175, delta);
+      groupRef.current.rotation.set(rotationRef.current.x, rotationRef.current.y, rotationRef.current.z);
 
-      groupRef.current.rotation.set(
-        rotationRef.current.x,
-        rotationRef.current.y,
-        rotationRef.current.z
-      );
-
-      // CAMERA POSITION ANIMATION
       if (!isLoaded) {
         easing.damp3(state.camera.position, [state.camera.position.x, 30, 0], 2.0, delta);
       } else {
@@ -184,17 +183,10 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
         castShadow
         onClick={click}
       >
-        <meshPhysicalMaterial
-          color={color}
-          opacity={1}
-        />
+        <meshPhysicalMaterial color={selectedVariant.cardColor} opacity={1} />
 
         {/* FRONT ILLUSTRATION */}
-        <Decal
-          receiveShadow={active ? false : true}
-          position={[0.02, 0, 0]}
-          scale={[1, 1.75, 0.1]}
-        >
+        <Decal receiveShadow={active ? false : true} position={[0.02, 0, 0]} scale={[1, 1.75, 0.1]}>
           <meshPhysicalMaterial
             polygonOffset
             polygonOffsetFactor={-1}
@@ -223,6 +215,7 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
         </Decal>
       </mesh>
 
+
       {/* FRONT FOIL */}
       <mesh geometry={planeGeometry} position={[0, 0, 0.03]}>
         <meshPhysicalMaterial
@@ -239,6 +232,7 @@ const Card = ({ card, id, cardPos, color, active, setActive, isLoaded }: CardPro
           envMapRotation={envMap.rotation}
         />
       </mesh>
+
       {/* BACK FOIL */}
       <mesh geometry={planeGeometry} rotation={[0, Math.PI, 0]} position={[0, 0, -0.01]}>
         <meshPhysicalMaterial
