@@ -339,8 +339,9 @@ const Card = ({
     );
   }, [cardPos, spacing]);
 
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const selectedVariant = card.colorVariations[card.selectedVariantIndex];
   const [bookmark, foil, normalMap] = useTexture(["/bookmark.png", "/foil.png", "/NormalMap.png",]);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const rotationRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 0);
 
@@ -365,7 +366,7 @@ const Card = ({
     intensity: 4
   }
 
-  const envMap = card.foilColor === "gold" ? goldEnvMao : silverEnvMap
+  const envMap = selectedVariant.foilColor === "gold" ? goldEnvMao : silverEnvMap
 
   bookmark.minFilter = THREE.LinearFilter;
   bookmark.magFilter = THREE.LinearFilter;
@@ -488,10 +489,7 @@ const Card = ({
         castShadow
         onClick={click}
       >
-        <meshPhysicalMaterial
-          color={color}
-          opacity={1}
-        />
+        <meshPhysicalMaterial color={selectedVariant.cardColor} opacity={1} />
 
         {/* FRONT ILLUSTRATION */}
         <Decal

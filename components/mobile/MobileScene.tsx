@@ -8,13 +8,14 @@ import { CardType } from "@/app/definitions";
 interface MobileSceneProps {
   cardArr: CardType[]
   active: number | null;
+  setCardArr: Dispatch<SetStateAction<CardType[]>>
   setActive: Dispatch<SetStateAction<number | null>>;
   isLoaded: boolean;
   setIsLoaded: Dispatch<SetStateAction<boolean>>;
   flipCard: (cardId: number, isFlipped: boolean, selectedVariantIndex: number) => void;
 }
 
-export default function MobileScene({ cardArr, active, setActive, isLoaded, setIsLoaded, flipCard }: MobileSceneProps) {
+export default function MobileScene({ cardArr, active, setActive, isLoaded, setIsLoaded, flipCard, setCardArr }: MobileSceneProps) {
   return (
     <div className="h-full w-full">
       {/* <ActiveUi active={active} setActive={setActive} cardArr={cardArr} flipCard={flipCard} /> */}
