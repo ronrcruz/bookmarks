@@ -59,7 +59,6 @@ const Card = ({
   const initialPos = useMemo(() => new THREE.Vector3(cardPos * 0.4, 0, 0), [cardPos]);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
-  // Use selected variant's properties
   const selectedVariant = card.colorVariations[card.selectedVariantIndex];
   const [bookmark, foil, normalMap] = useTexture(["/bookmark.png", "/foil.png", "/NormalMap.png",]);
 
@@ -67,7 +66,6 @@ const Card = ({
   // const foilFront = selectedVariant.foil.front || card.foil.front || "/foil.png";
   // const normalMapPath = card.normalMap || "/NormalMap.png";
   // const [bookmark, foil, normalMap] = useTexture([illustrationFront, foilFront, normalMapPath]);
-
 
   const rotationRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0.7, 0));
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -110,14 +108,11 @@ const Card = ({
   };
   const pointerOut = () => !active && setHover(false);
 
-
-
   const click = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
     setActive(id);
     setHover(false);
   };
-
 
   useEffect(() => {
     const pointerMove = (e: MouseEvent) => {
