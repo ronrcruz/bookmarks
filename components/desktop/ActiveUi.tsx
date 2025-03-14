@@ -200,21 +200,21 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                     </div>
                   </li>
 
-                  <motion.li
-                    key={activeCard?.name}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 5, }}
-                    transition={{ delay: 0.1, duration: 0.3 }}
+                  <li
                     className="flex w-full justify-center gap-6"
                   >
                     {activeCard?.colorVariations.map((variant) =>
-                      <button
+                      <motion.button
+                        key={variant.colorName}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 5, }}
+                        transition={{ delay: 0.1, duration: 0.3 }}
                         style={{ backgroundColor: variant.cardColor }}
                         className="rounded-full border-black/10 border-2 size-6 lg:size-10">
-                      </button>
+                      </motion.button>
                     )}
-                  </motion.li>
+                  </li>
 
                   <li className="flex justify-between w-full px-2 lg:px-6 text-xs lg:text-base text-end">
                     <SiMaterialdesignicons className="size-[1rem] lg:size-[1.4rem]" />
@@ -255,7 +255,7 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 20 }}
                   transition={{ delay: 0.4, duration: 0.3 }}
-                  onClick={() => setActive(null)} className="group h-12 w-full rounded-full border-neutral-800 border">
+                  onClick={() => setActive(null)} className="group h-12 w-full rounded-full border-neutral-800 border overflow-hidden">
                   <div className="flex flex-col group-hover:-translate-y-12 transition duration-300">
                     <div className="h-12 flex justify-center items-center">Buy now</div>
                     <div className="bg-black text-white h-12 flex justify-center items-center">Buy now</div>

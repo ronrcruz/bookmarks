@@ -83,7 +83,7 @@ export default function Home() {
             This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It&#39;s also double-sided, so whichever way you place it in your book you&#39;ll have a lovely design to see.
           </p>
         ),
-        inStock: false,
+        inStock: true,
         isFlipped: false,
       },
       {
