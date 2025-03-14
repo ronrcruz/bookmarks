@@ -240,7 +240,7 @@ export default function ActiveUi({
                         transition={{ delay: 0.1, duration: 0.3 }}
                       >
                         {selectedVariant && selectedVariant?.foilColor.charAt(0).toUpperCase() +
-                          selectedVariant?.foilColor.slice(1)}{" "}
+                          selectedVariant?.foilColor.slice(1)}
                         foil
                       </motion.span>
                     </p>
