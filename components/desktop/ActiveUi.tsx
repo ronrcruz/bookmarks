@@ -1,7 +1,7 @@
 "use client";
 
 import { CardType } from "@/app/definitions";
-import { Dispatch, SetStateAction, useState, useEffect, useMemo } from "react";
+import { Dispatch, SetStateAction, useState, useEffect, useMemo, useCallback } from "react";
 import { BiPound, BiDollar, BiEuro } from "react-icons/bi";
 import { SiMaterialdesignicons } from "react-icons/si";
 import { IoIosArrowRoundBack, IoIosArrowRoundForward } from "react-icons/io";
@@ -50,12 +50,12 @@ export default function ActiveUi({
     return activeCard?.colorVariations[selectedVariantIndex];
   }, [activeCard, selectedVariantIndex]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (activeCard) {
       setActive(null);
       flipCard(activeCard.id, false);
     }
-  };
+  }, [activeCard, flipCard, setActive]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
