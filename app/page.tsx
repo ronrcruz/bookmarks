@@ -6,17 +6,16 @@ import DesktopScene from "@/components/desktop/DesktopScene"
 import MobileScene from "@/components/mobile/MobileScene"
 
 export default function Home() {
-  const [active, setActive] = useState<number | null>(null)
-  const [isLoaded, setIsLoaded] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
+  const [active, setActive] = useState<number | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const checkScreenSize = () => setIsMobile(window.innerWidth <= 599)
-    checkScreenSize()
-    window.addEventListener("resize", checkScreenSize)
-
-    return () => window.removeEventListener("resize", checkScreenSize)
-  }, [])
+    const checkScreenSize = () => setIsMobile(window.innerWidth <= 599);
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
 
   const [cardArr, setCardArr] = useState<CardType[]>(
     [
@@ -85,6 +84,7 @@ export default function Home() {
         ),
         inStock: true,
         isFlipped: false,
+        selectedVariantIndex: 0
       },
       {
         id: 2,
@@ -117,6 +117,7 @@ export default function Home() {
         info: (<p></p>),
         inStock: false,
         isFlipped: false,
+        selectedVariantIndex: 0
       },
       {
         id: 3,
@@ -149,6 +150,7 @@ export default function Home() {
         info: (<p></p>),
         inStock: false,
         isFlipped: false,
+        selectedVariantIndex: 0
       },
       {
         id: 4,
@@ -181,6 +183,7 @@ export default function Home() {
         info: (<p></p>),
         inStock: false,
         isFlipped: false,
+        selectedVariantIndex: 0
       },
       {
         id: 5,
@@ -213,6 +216,7 @@ export default function Home() {
         info: (<p></p>),
         inStock: false,
         isFlipped: false,
+        selectedVariantIndex: 0
       },
       {
         id: 6,
@@ -245,6 +249,7 @@ export default function Home() {
         info: (<p></p>),
         inStock: false,
         isFlipped: false,
+        selectedVariantIndex: 0
       },
       {
         id: 7,
@@ -277,6 +282,7 @@ export default function Home() {
         info: (<p></p>),
         inStock: false,
         isFlipped: false,
+        selectedVariantIndex: 0
       },
       {
         id: 8,
@@ -309,6 +315,7 @@ export default function Home() {
         info: (<p></p>),
         inStock: false,
         isFlipped: false,
+        selectedVariantIndex: 0
       },
       {
         id: 9,
@@ -341,6 +348,7 @@ export default function Home() {
         info: (<p></p>),
         inStock: false,
         isFlipped: false,
+        selectedVariantIndex: 0
       },
       {
         id: 10,
@@ -373,6 +381,7 @@ export default function Home() {
         info: (<p></p>),
         inStock: false,
         isFlipped: false,
+        selectedVariantIndex: 0
       },
       {
         id: 11,
@@ -405,15 +414,18 @@ export default function Home() {
         info: (<p></p>),
         inStock: false,
         isFlipped: false,
+        selectedVariantIndex: 0
       }
     ]
   )
 
   const flipCard = (cardId: number, isFlipped: boolean) => {
     setCardArr((prevState: CardType[]) =>
-      prevState.map((card) => (card.id === cardId ? { ...card, isFlipped } : card))
-    )
-  }
+      prevState.map((card) =>
+        card.id === cardId ? { ...card, isFlipped } : card
+      )
+    );
+  };
 
   return (
     <main className="h-dvh w-dvw relative">
@@ -429,6 +441,7 @@ export default function Home() {
       ) : (
         <DesktopScene
           cardArr={cardArr}
+          setCardArr={setCardArr}
           active={active}
           setActive={setActive}
           isLoaded={isLoaded}
