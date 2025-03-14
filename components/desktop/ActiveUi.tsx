@@ -50,6 +50,13 @@ export default function ActiveUi({
     return activeCard?.colorVariations[selectedVariantIndex];
   }, [activeCard, selectedVariantIndex]);
 
+  const handleClose = () => {
+    if (activeCard) {
+      setActive(null);
+      flipCard(activeCard.id, false);
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (active === null) return;
@@ -71,14 +78,9 @@ export default function ActiveUi({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [active, activeCard, flipCard, setActive]);
+  }, [active, activeCard, flipCard, setActive, handleClose, hasSeenIndicator]);
 
-  const handleClose = () => {
-    if (activeCard) {
-      setActive(null);
-      flipCard(activeCard.id, false);
-    }
-  };
+
 
   const handlePage = (activeId: number) => {
     if (active && activeCard) {

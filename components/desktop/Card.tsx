@@ -109,11 +109,15 @@ const Card = ({
     if (!active) setHover(true);
   };
   const pointerOut = () => !active && setHover(false);
+
+
+
   const click = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
-    !active ? setActive(id) : setActive(null);
+    setActive(id);
     setHover(false);
   };
+
 
   useEffect(() => {
     const pointerMove = (e: MouseEvent) => {
