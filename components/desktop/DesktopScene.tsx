@@ -1,7 +1,7 @@
 import { Canvas } from "@react-three/fiber";
 import Experience from "./Experience";
 import LoadingScreen from "./LoadingScreen";
-import ActiveUi from "./ui/ActiveUi";
+import ActiveUi from "./ActiveUi";
 import { Dispatch, SetStateAction } from "react";
 import { CardType } from "@/app/definitions";
 

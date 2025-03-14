@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { CardType } from "./definitions"
-import DesktopScene from "@/components/DesktopScene"
+import DesktopScene from "@/components/desktop/DesktopScene"
+import MobileScene from "@/components/mobile/MobileScene"
 
 export default function Home() {
   const [active, setActive] = useState<number | null>(null)
@@ -23,6 +24,38 @@ export default function Home() {
         id: 1,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
+        colorVariations: [
+          {
+            colorName: "Blue",
+            cardColor: "#adc8e0",
+            bgColor: "#91b2cf",
+            illustration: {
+              front: "",
+              back: "",
+            },
+            foilColor: "silver"
+          },
+          {
+            colorName: "Green",
+            cardColor: "#50523c",
+            bgColor: "#50523c",
+            illustration: {
+              front: "",
+              back: "",
+            },
+            foilColor: "silver"
+          },
+          {
+            colorName: "Black",
+            cardColor: "#2b2826",
+            bgColor: "#2b2826",
+            illustration: {
+              front: "",
+              back: "",
+            },
+            foilColor: "gold"
+          },
+        ],
         illustration: {
           front: "",
           back: ""
@@ -57,6 +90,18 @@ export default function Home() {
         id: 2,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
+        colorVariations: [
+          {
+            colorName: "",
+            cardColor: "#adc8e0",
+            bgColor: "#91b2cf",
+            illustration: {
+              front: "",
+              back: "",
+            },
+            foilColor: "gold"
+          }
+        ],
         illustration: {
           front: "",
           back: ""
@@ -77,6 +122,18 @@ export default function Home() {
         id: 3,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
+        colorVariations: [
+          {
+            colorName: "",
+            cardColor: "#adc8e0",
+            bgColor: "#91b2cf",
+            illustration: {
+              front: "",
+              back: "",
+            },
+            foilColor: "gold"
+          }
+        ],
         illustration: {
           front: "",
           back: ""
@@ -97,6 +154,18 @@ export default function Home() {
         id: 4,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
+        colorVariations: [
+          {
+            colorName: "",
+            cardColor: "#adc8e0",
+            bgColor: "#91b2cf",
+            illustration: {
+              front: "",
+              back: "",
+            },
+            foilColor: "gold"
+          }
+        ],
         illustration: {
           front: "/bookmark.png",
           back: ""
@@ -117,6 +186,18 @@ export default function Home() {
         id: 5,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
+        colorVariations: [
+          {
+            colorName: "",
+            cardColor: "#adc8e0",
+            bgColor: "#91b2cf",
+            illustration: {
+              front: "",
+              back: "",
+            },
+            foilColor: "gold"
+          }
+        ],
         illustration: {
           front: "",
           back: ""
@@ -137,6 +218,18 @@ export default function Home() {
         id: 6,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
+        colorVariations: [
+          {
+            colorName: "",
+            cardColor: "#adc8e0",
+            bgColor: "#91b2cf",
+            illustration: {
+              front: "",
+              back: "",
+            },
+            foilColor: "gold"
+          }
+        ],
         illustration: {
           front: "",
           back: ""
@@ -157,6 +250,18 @@ export default function Home() {
         id: 7,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
+        colorVariations: [
+          {
+            colorName: "",
+            cardColor: "#adc8e0",
+            bgColor: "#91b2cf",
+            illustration: {
+              front: "",
+              back: "",
+            },
+            foilColor: "gold"
+          }
+        ],
         illustration: {
           front: "",
           back: ""
@@ -177,6 +282,18 @@ export default function Home() {
         id: 8,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
+        colorVariations: [
+          {
+            colorName: "",
+            cardColor: "#adc8e0",
+            bgColor: "#91b2cf",
+            illustration: {
+              front: "",
+              back: "",
+            },
+            foilColor: "gold"
+          }
+        ],
         illustration: {
           front: "",
           back: ""
@@ -197,6 +314,18 @@ export default function Home() {
         id: 9,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
+        colorVariations: [
+          {
+            colorName: "",
+            cardColor: "#adc8e0",
+            bgColor: "#91b2cf",
+            illustration: {
+              front: "",
+              back: "",
+            },
+            foilColor: "gold"
+          }
+        ],
         illustration: {
           front: "",
           back: ""
@@ -217,6 +346,18 @@ export default function Home() {
         id: 10,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
+        colorVariations: [
+          {
+            colorName: "",
+            cardColor: "#adc8e0",
+            bgColor: "#91b2cf",
+            illustration: {
+              front: "",
+              back: "",
+            },
+            foilColor: "gold"
+          }
+        ],
         illustration: {
           front: "",
           back: ""
@@ -237,6 +378,18 @@ export default function Home() {
         id: 11,
         cardColor: "#adc8e0",
         bgColor: "#91b2cf",
+        colorVariations: [
+          {
+            colorName: "",
+            cardColor: "#adc8e0",
+            bgColor: "#91b2cf",
+            illustration: {
+              front: "",
+              back: "",
+            },
+            foilColor: "gold"
+          }
+        ],
         illustration: {
           front: "",
           back: ""
@@ -267,9 +420,14 @@ export default function Home() {
   return (
     <main className="h-dvh w-dvw relative">
       {isMobile ? (
-        <div className="h-full w-full">
-          <h1>SMALL</h1>
-        </div>
+        <MobileScene
+          cardArr={cardArr}
+          active={active}
+          setActive={setActive}
+          isLoaded={isLoaded}
+          setIsLoaded={setIsLoaded}
+          flipCard={flipCard}
+        />
       ) : (
         <DesktopScene
           cardArr={cardArr}
