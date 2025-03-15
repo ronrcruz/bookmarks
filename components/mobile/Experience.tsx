@@ -16,7 +16,7 @@ interface ExperienceProps {
 }
 
 export default function Experience({ cardArr, active, setActive, isLoaded }: ExperienceProps) {
-  const { scene } = useThree();
+  const { scene, camera } = useThree();
   const currentBottomColor = useRef(new THREE.Color("#cccccc"));
   const gradientCanvas = useRef(document.createElement("canvas"));
   const gradientTexture = useRef(new THREE.CanvasTexture(gradientCanvas.current));
@@ -74,6 +74,14 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
       easing.damp(planeMaterialRef.current, "opacity", targetOpacity.current, 1.9, delta);
     }
 
+    // Camera positioning
+    if (active) {
+      easing.damp3(state.camera.position, [state.camera.position.x, 9, 0], 3.0, delta);
+    } else {
+      easing.damp3(state.camera.position, [0, 2, 10], 1.0, delta);
+    }
+    camera.lookAt(0, 0, 0);
+
   });
 
   return (
@@ -89,16 +97,18 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
         environmentRotation={active ? [Math.PI, -Math.PI / 2, 0] : [0, 0, 0]}
       />
 
-      <ScrollControls pages={cardArr.length}>
+      <ScrollControls pages={1} horizontal={false}>
         {cardArr.map((card, i) =>
           <Card
             card={card}
             key={card.id}
             id={card.id}
+            index={i}
             cardPos={i - (cardArr.length - 1) / 2}
             active={active}
             setActive={setActive}
             isLoaded={isLoaded}
+            cards={cardArr}
           />
         )}
       </ScrollControls>
