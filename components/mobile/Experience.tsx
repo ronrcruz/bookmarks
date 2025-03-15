@@ -47,9 +47,13 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
       easing.damp(ambientLightRef.current, "intensity", targetIntensity, 0.3, delta);
     }
 
-    const targetBottomColor = active !== null
-      ? cardArr.find((card) => card.id === active)?.bgColor || "#cccccc"
-      : "#cccccc";
+    const activeCard = cardArr.find((card) => card.id === active);
+    const selectedVariant =
+      activeCard && active !== null
+        ? activeCard.colorVariations[activeCard.selectedVariantIndex]
+        : null;
+    const targetBottomColor =
+      active !== null && selectedVariant ? selectedVariant.bgColor : "#cccccc";
 
     easing.dampC(currentBottomColor.current, targetBottomColor, 0.5, delta);
 
@@ -89,7 +93,7 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
         pages={Math.max(1, cardArr.length / 3)} // Number of pages (adjust based on how many cards you want visible at once)
         distance={1} // Scroll distance
         damping={0.3} // Scroll damping
-        horizontal={true} // Enable horizontal scrolling
+        horizontal={false} // Enable horizontal scrolling
         infinite={false} // Disable infinite scrolling
       >
         {cardArr.map((card, i) =>
@@ -98,12 +102,9 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
             key={card.id}
             id={card.id}
             cardPos={i - (cardArr.length - 1) / 2}
-            color={card.cardColor}
             active={active}
             setActive={setActive}
             isLoaded={isLoaded}
-            cards={cardArr}
-            scroll={null}
           />
         )}
       </ScrollControls>
