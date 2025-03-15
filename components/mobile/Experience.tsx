@@ -89,13 +89,7 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
         environmentRotation={active ? [Math.PI, -Math.PI / 2, 0] : [0, 0, 0]}
       />
 
-      <ScrollControls
-        pages={Math.max(1, cardArr.length / 3)} // Number of pages (adjust based on how many cards you want visible at once)
-        distance={1} // Scroll distance
-        damping={0.3} // Scroll damping
-        horizontal={false} // Enable horizontal scrolling
-        infinite={false} // Disable infinite scrolling
-      >
+      <ScrollControls pages={cardArr.length}>
         {cardArr.map((card, i) =>
           <Card
             card={card}

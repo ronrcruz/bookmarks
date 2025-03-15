@@ -49,7 +49,7 @@ const Card = ({ card, id, cardPos, active, setActive, isLoaded }: CardProps) => 
     geo.attributes.uv.needsUpdate = true;
     return geo;
   }, []);
-  const initialPos = useMemo(() => new THREE.Vector3(0, cardPos * 0.25, cardPos * -0.2 + 5), [cardPos]);
+  const initialPos = useMemo(() => new THREE.Vector3(0, cardPos * 0.25, cardPos * -0.2 + 4.5), [cardPos]);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const rotationRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
