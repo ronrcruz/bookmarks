@@ -75,9 +75,9 @@ const Card = ({
   }, []);
 
   // Constants for positioning
-  const dz = 0.5; // Spacing between cards along z-axis
+  const dz = 1.75 / 2; // Spacing between cards along z-axis
   const focusZ = 5; // Z-position of the focused card
-  const elevationThreshold = 0.3; // Threshold for elevation
+  const elevationThreshold = 0.8; // Threshold for elevation
   const elevationHeight = 0.7; // Height to elevate the focused card
 
   // Initial position when scroll.offset = 0

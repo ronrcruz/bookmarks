@@ -91,17 +91,17 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
       <OrbitControls enableRotate={false} enableZoom={false} enablePan={false} />
 
       <ambientLight ref={ambientLightRef} intensity={1} />
-      <directionalLight castShadow intensity={active ? 2 : 1} position={[10, 3, 6]} shadow-mapSize={[1028, 1028]}></directionalLight>
-      {/* <directionalLight castShadow intensity={1} position={[-10, 3, 6]} shadow-mapSize={[1028, 1028]}></directionalLight> */}
-      {/* <directionalLight castShadow intensity={2} position={[0, 0, cardArr.length]} shadow-mapSize={[1028, 1028]}></directionalLight> */}
+      <directionalLight castShadow intensity={1} position={[10, 3, 6]} shadow-mapSize={[1028, 1028]}></directionalLight>
+      <directionalLight castShadow intensity={1} position={[-10, 3, 6]} shadow-mapSize={[1028, 1028]}></directionalLight>
+      <directionalLight castShadow intensity={0.7} position={[0, 0, cardArr.length]} shadow-mapSize={[1028, 1028]}></directionalLight>
 
-      <Environment
+      {/* <Environment
         environmentIntensity={1}
         preset={"city"}
         environmentRotation={active ? [Math.PI, Math.PI / 2, 0] : [Math.PI, Math.PI / 2, 0]}
-      />
+      /> */}
 
-      <ScrollControls pages={2} horizontal={false}>
+      <ScrollControls pages={1.5} horizontal={false}>
         {cardArr.map((card, i) =>
           <Card
             card={card}
