@@ -190,7 +190,7 @@ export default function ActiveUi({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ delay: 0.4, duration: 0.3 }}
-              className="flex flex-col justify-between h-full w-1/4"
+              className="flex flex-col justify-between h-full w-1/4 backdrop-blur-xl"
             >
               <motion.button onClick={handleClose} className="size-8 lg:size-12 flex justify-center ml-auto">
                 <TfiClose className="size-10" />

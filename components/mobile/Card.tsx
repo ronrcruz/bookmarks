@@ -37,13 +37,11 @@ const Card = ({
   card,
   id,
   index,
-  cardPos,
   active,
   setActive,
-  isLoaded,
+  // isLoaded,
   cards,
 }: CardProps) => {
-  const [hover, setHover] = useState(false);
   const groupRef = useRef<THREE.Group>(null);
   const meshRef = useRef<THREE.Mesh>(null);
   const roundedRectShape = createRoundedRectShape(1.0, 1.75, 0.1);
@@ -112,15 +110,9 @@ const Card = ({
 
   envMap.map.mapping = THREE.EquirectangularReflectionMapping;
 
-  const pointerOver = (e: { stopPropagation: () => void }) => {
-    e.stopPropagation();
-    if (!active) setHover(true);
-  };
-  const pointerOut = () => !active && setHover(false);
   const click = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
     !active ? setActive(id) : setActive(null);
-    setHover(false);
   };
 
   useEffect(() => {
@@ -159,7 +151,7 @@ const Card = ({
       const rotationY = mousePos.x * intensity;
       targetRotation = [
         -Math.PI / 2 - rotationX,
-        card.isFlipped ? rotationY : rotationY,
+        card.isFlipped ? rotationY + Math.PI : rotationY,
         0,
       ];
     } else {
@@ -180,8 +172,6 @@ const Card = ({
     <group ref={groupRef} position={initialPos}>
       {/* BASE CARD */}
       <mesh
-        onPointerOver={pointerOver}
-        onPointerOut={pointerOut}
         ref={meshRef}
         geometry={geometry}
         receiveShadow
