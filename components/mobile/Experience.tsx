@@ -75,10 +75,12 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
     }
 
     // Camera positioning
-    if (active) {
-      easing.damp3(state.camera.position, [state.camera.position.x, 9, 0], 3.0, delta);
+    if (!isLoaded) {
+      easing.damp3(state.camera.position, [state.camera.position.x, 20, 0], 2.0, delta);
+    } else if (active) {
+      easing.damp3(state.camera.position, [state.camera.position.x, 9, 0], 0.35, delta);
     } else {
-      easing.damp3(state.camera.position, [0, 2, 10], 1.0, delta);
+      easing.damp3(state.camera.position, [0, 2, 10], 0.15, delta);
     }
     camera.lookAt(0, 0, 0);
 
@@ -97,7 +99,7 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
         environmentRotation={active ? [Math.PI, -Math.PI / 2, 0] : [0, 0, 0]}
       />
 
-      <ScrollControls pages={1} horizontal={false}>
+      <ScrollControls pages={2} horizontal={false}>
         {cardArr.map((card, i) =>
           <Card
             card={card}
@@ -112,22 +114,6 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
           />
         )}
       </ScrollControls>
-
-      {!active && (
-        <>
-          <mesh position={[0, (-1.75 / 2) + 0.0001, 0]} rotation-x={-Math.PI / 2}>
-            <planeGeometry args={[50, 50]} />
-            <meshBasicMaterial ref={planeMaterialRef} color={"#e6e6e6"} transparent opacity={1} />
-          </mesh>
-          <ContactShadows
-            position={[0, -1.75 / 2, 0]}
-            scale={12}
-            resolution={512}
-            opacity={6}
-            far={1}
-          />
-        </>
-      )}
     </>
   )
 }
