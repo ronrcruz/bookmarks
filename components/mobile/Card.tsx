@@ -171,7 +171,7 @@ const Card = ({
 
     // Animate position and rotation
     easing.damp3(groupRef.current.position, targetPosition, smoothTime, delta);
-    easing.damp3(rotationRef.current, targetRotation, active ? 0.15 : 0.26, delta);
+    easing.damp3(rotationRef.current, targetRotation, active ? 0.15 : 0.265, delta);
 
     groupRef.current.rotation.set(rotationRef.current.x, rotationRef.current.y, rotationRef.current.z);
   });

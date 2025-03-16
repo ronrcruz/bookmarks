@@ -1,7 +1,7 @@
 "use client";
 
 import { CardType } from "@/app/definitions";
-import { Dispatch, SetStateAction, useState, useEffect } from "react";
+import { Dispatch, SetStateAction, useState, useEffect, useMemo, useCallback } from "react";
 import { BiPound, BiDollar, BiEuro } from "react-icons/bi";
 import { SiMaterialdesignicons } from "react-icons/si";
 import { IoIosArrowRoundBack, IoIosArrowRoundForward } from "react-icons/io";
@@ -19,13 +19,19 @@ const instrument = Instrument_Sans({
 
 interface ActiveUiProps {
   cardArr: CardType[];
+  setCardArr: Dispatch<SetStateAction<CardType[]>>;
   active: number | null;
   setActive: Dispatch<SetStateAction<number | null>>;
-  flipCard: (cardId: number, isFlipped: boolean) => void;
+  flipCard: (cardId: number, isFlipped: boolean) => void; // Updated
 }
 
-export default function ActiveUi({ cardArr, active, setActive, flipCard }: ActiveUiProps) {
-  const [activeCard, setActiveCard] = useState<CardType | null>(null);
+export default function ActiveUi({
+  cardArr,
+  setCardArr,
+  active,
+  setActive,
+  flipCard,
+}: ActiveUiProps) {
   const [hasSeenIndicator, setHasSeenIndicator] = useState(false);
   const [activeCurrency, setActiveCurrency] = useState({ name: "usd", value: 8.43, symbol: "$" });
 
@@ -35,14 +41,21 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
     { name: "eur", icon: <BiEuro />, value: 7.79, symbol: "€" },
   ];
 
-  useEffect(() => {
-    if (active === null) {
-      setTimeout(() => setActiveCard(null), 300);
-      return;
-    }
-    setActiveCard(cardArr.find((card) => card.id === active) || null);
+  const activeCard = useMemo(() => {
+    return cardArr.find((card) => card.id === active) || null;
+  }, [cardArr, active]);
 
-  }, [active, cardArr]);
+  const selectedVariantIndex = activeCard?.selectedVariantIndex ?? 0;
+  const selectedVariant = useMemo(() => {
+    return activeCard?.colorVariations[selectedVariantIndex];
+  }, [activeCard, selectedVariantIndex]);
+
+  const handleClose = useCallback(() => {
+    if (activeCard) {
+      setActive(null);
+      flipCard(activeCard.id, false);
+    }
+  }, [activeCard, flipCard, setActive]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -53,41 +66,38 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
       if (e.key === "ArrowRight" || e.key === "ArrowUp") {
         const nextActive = active % 11 + 1;
         setActive(nextActive);
-        if (activeCard) {
-          flipCard(active, false);
-        }
+        if (activeCard) flipCard(active, false);
       } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
         const prevActive = active === 1 ? 11 : active - 1;
         setActive(prevActive);
-        if (activeCard) {
-          flipCard(active, false);
-        }
+        if (activeCard) flipCard(active, false);
       } else if (e.key === "Escape") {
         handleClose();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [active, activeCard, flipCard, setActive, handleClose, hasSeenIndicator]);
 
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [active, activeCard, flipCard, setActive]);
 
-  const handleClose = () => {
-    if (activeCard) {
-      setActive(null);
-      flipCard(activeCard?.id, false)
-    }
-  }
 
   const handlePage = (activeId: number) => {
-    if (active) {
+    if (active && activeCard) {
       setActive(activeId);
-      flipCard(active, false)
+      flipCard(active, false);
     }
-  }
+  };
 
+  const handleVariantClick = (index: number) => {
+    if (active !== null) {
+      setCardArr((prev) =>
+        prev.map((card) =>
+          card.id === active ? { ...card, selectedVariantIndex: index } : card
+        )
+      );
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -124,16 +134,15 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
             className={`${instrument.className} h-full w-full flex justify-between`}
           >
             {/* LEFT */}
-            <motion.div
-              className="flex flex-col justify-between h-full w-1/4"
-            >
+            <motion.div className="flex flex-col justify-between h-full w-1/4">
               <motion.h2
                 key={activeCard?.name}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20, }}
+                exit={{ opacity: 0, y: 20 }}
                 transition={{ delay: 0.3, duration: 0.3 }}
-                className="text-4xl lg:text-5xl">
+                className="text-4xl lg:text-5xl"
+              >
                 {activeCard?.name}
               </motion.h2>
               <motion.div
@@ -142,7 +151,8 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ delay: active ? 0.5 : 0, duration: 0.3 }}
-                className="h-2/3 overflow-scroll text-xs lg:text-sm leading-tight">
+                className="h-2/3 overflow-scroll text-xs lg:text-sm leading-tight"
+              >
                 {activeCard?.info}
               </motion.div>
               <motion.div
@@ -150,13 +160,15 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ delay: active ? 0.6 : 0, duration: 0.3 }}
-                className="flex gap-2 w-full h-12 items-center">
+                className="flex gap-2 w-full h-12 items-center"
+              >
                 {[...Array(11)].map((_, i) => (
                   <button
                     key={i}
                     onClick={() => handlePage(i + 1)}
-                    className={`border rounded-full size-2 border-black/30 ${activeCard?.id === i + 1 ? "bg-neutral-800" : "bg-none"}`}
-                  ></button>
+                    className={`border rounded-full size-2 border-black/30 ${activeCard?.id === i + 1 ? "bg-neutral-800" : "bg-none"
+                      }`}
+                  />
                 ))}
               </motion.div>
             </motion.div>
@@ -164,10 +176,12 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
             {/* MIDDLE */}
             {activeCard && (
               <motion.button
-                disabled={!active ? true : false}
-                onClick={() => flipCard(activeCard.id, !activeCard.isFlipped)}
-                className="h-[32.5rem] w-[18.5rem] rounded-2xl self-center outline-none">
-              </motion.button>
+                disabled={!active}
+                onClick={() =>
+                  flipCard(activeCard.id, !activeCard.isFlipped)
+                }
+                className="h-[32.5rem] w-[18.5rem] rounded-2xl self-center outline-none"
+              />
             )}
 
             {/* RIGHT */}
@@ -181,12 +195,14 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
               <motion.button onClick={handleClose} className="size-8 lg:size-12 flex justify-center ml-auto">
                 <TfiClose className="size-10" />
               </motion.button>
+
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ delay: 0.2, duration: 0.3 }}
-                className="flex flex-col w-full h-2/3 lg:p-4 relative">
+                className="flex flex-col w-full h-2/3 lg:p-4 relative"
+              >
                 <ul className="flex flex-col gap-6 w-full justify-between items-center h-full">
                   <li className="flex justify-between w-full px-2 lg:px-6">
                     <RxDimensions className="size-[1.5rem] lg:size-[2rem]" />
@@ -195,25 +211,41 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                       <p>5.08cm x 8.89cm</p>
                     </div>
                   </li>
-                  <li className="flex w-full justify-evenly">
-                    <div className="rounded-full bg-[#aecae3] border-black/10 border-2 size-6 lg:size-10"></div>
+
+                  <li className="flex w-full justify-center gap-6">
+                    {activeCard?.colorVariations.map((variant, index) => (
+                      <motion.button
+                        key={variant.colorName}
+                        onClick={() => handleVariantClick(index)}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 5 }}
+                        transition={{ delay: 0.1, duration: 0.3 }}
+                        style={{ backgroundColor: variant.cardColor }}
+                        className={`rounded-full border-black/10 border-2 size-6 lg:size-10 ${selectedVariantIndex === index ? "ring-2 ring-black" : ""
+                          }`}
+                      />
+                    ))}
                   </li>
+
                   <li className="flex justify-between w-full px-2 lg:px-6 text-xs lg:text-base text-end">
                     <SiMaterialdesignicons className="size-[1rem] lg:size-[1.4rem]" />
                     <p>
                       Matte paper,{" "}
                       <motion.span
-                        key={activeCard?.foilColor}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        transition={{ delay: 0, duration: 0.3 }}
+                        key={selectedVariant?.foilColor}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ delay: 0.1, duration: 0.3 }}
                       >
-                        {activeCard && activeCard.foilColor.charAt(0).toUpperCase() + activeCard.foilColor.slice(1)}
+                        {selectedVariant && selectedVariant?.foilColor.charAt(0).toUpperCase() +
+                          selectedVariant?.foilColor.slice(1)}
                         foil
                       </motion.span>
                     </p>
                   </li>
+
                   <li className="text-3xl lg:text-5xl font-medium flex justify-between w-full items-end p-1">
                     <NumberFlow value={activeCurrency.value} prefix={activeCurrency.symbol} />
                     <div className="flex flex-row text-xs lg:text-xl my-1">
@@ -236,7 +268,9 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 20 }}
                   transition={{ delay: 0.4, duration: 0.3 }}
-                  onClick={() => setActive(null)} className="group h-12 w-full rounded-full border-neutral-800 border">
+                  onClick={() => setActive(null)}
+                  className="group h-12 w-full rounded-full border-neutral-800 border overflow-hidden"
+                >
                   <div className="flex flex-col group-hover:-translate-y-12 transition duration-300">
                     <div className="h-12 flex justify-center items-center">Buy now</div>
                     <div className="bg-black text-white h-12 flex justify-center items-center">Buy now</div>
@@ -248,13 +282,15 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 20 }}
                   transition={{ delay: 0.4, duration: 0.3 }}
-                  className="h-12 w-full rounded-full border-black/20 text-black/40 border hover:cursor-not-allowed">Out of stock</motion.button>
+                  className="h-12 w-full rounded-full border-black/20 text-black/40 border hover:cursor-not-allowed"
+                >
+                  Out of stock
+                </motion.button>
               )}
             </motion.div>
           </motion.div>
         </div>
-      )
-      }
-    </AnimatePresence >
+      )}
+    </AnimatePresence>
   );
 }

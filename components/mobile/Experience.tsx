@@ -78,9 +78,9 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
     if (!isLoaded) {
       easing.damp3(state.camera.position, [state.camera.position.x, 20, 0], 2.0, delta);
     } else if (active) {
-      easing.damp3(state.camera.position, [state.camera.position.x, 9, 0], 0.35, delta);
+      easing.damp3(state.camera.position, [state.camera.position.x, 9.5, 0], 0.35, delta);
     } else {
-      easing.damp3(state.camera.position, [0, 2, 10], 0.15, delta);
+      easing.damp3(state.camera.position, [0, 1.9, 10], 0.15, delta);
     }
     camera.lookAt(0, 0, 0);
 
@@ -90,13 +90,15 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
     <>
       <OrbitControls enableRotate={false} enableZoom={false} enablePan={false} />
 
-      <ambientLight ref={ambientLightRef} intensity={0} />
-      <directionalLight castShadow intensity={1} position={[10, 6, 6]} shadow-mapSize={[1028, 1028]}></directionalLight>
+      <ambientLight ref={ambientLightRef} intensity={1} />
+      <directionalLight castShadow intensity={active ? 2 : 1} position={[10, 3, 6]} shadow-mapSize={[1028, 1028]}></directionalLight>
+      {/* <directionalLight castShadow intensity={1} position={[-10, 3, 6]} shadow-mapSize={[1028, 1028]}></directionalLight> */}
+      {/* <directionalLight castShadow intensity={2} position={[0, 0, cardArr.length]} shadow-mapSize={[1028, 1028]}></directionalLight> */}
 
       <Environment
         environmentIntensity={1}
         preset={"city"}
-        environmentRotation={active ? [Math.PI, -Math.PI / 2, 0] : [0, 0, 0]}
+        environmentRotation={active ? [Math.PI, Math.PI / 2, 0] : [Math.PI, Math.PI / 2, 0]}
       />
 
       <ScrollControls pages={2} horizontal={false}>
