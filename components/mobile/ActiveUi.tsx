@@ -141,20 +141,20 @@ export default function ActiveUi({
           >
 
             {/* TOP */}
-            <motion.div className="flex flex-row justify-between w-full h-20 p-5">
+            <motion.div className="flex flex-row justify-between w-full h-24 p-5 ">
               <motion.h2
                 key={activeCard?.name}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ delay: 0.3, duration: 0.3 }}
-                className="text-2xl z-10"
+                // exit={{ opacity: 0, y: -20 }}
+                transition={{ delay: 0, duration: 0.3 }}
+                className="text-3xl z-10"
               >
                 {activeCard?.name}
               </motion.h2>
 
               <motion.button onClick={handleClose} className="size-8 lg:size-12 flex justify-center items-center">
-                <TfiClose className="size-6" />
+                <TfiClose className="size-8" />
               </motion.button>
 
             </motion.div>
@@ -170,15 +170,15 @@ export default function ActiveUi({
                 className="h-[32.5rem] w-[18.5rem] rounded-2xl self-center outline-none"
               />
             )}
-            <div className="flex justify-center gap-3 mt-auto mb-1">
+            <div className="flex justify-center gap-3 mt-auto mb-1 rounded-full ">
               {activeCard?.colorVariations.map((variant, index) => (
                 <motion.button
                   key={variant.colorName}
                   onClick={() => handleVariantClick(index)}
-                  initial={{ opacity: 0, y: 5 }}
+                  initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 5 }}
-                  transition={{ delay: 0.1, duration: 0.3 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  transition={{ delay: 0.3, duration: 0.3 }}
                   style={{ backgroundColor: variant.cardColor }}
                   className={`rounded-full border-black/10 border-2 size-4 ${selectedVariantIndex === index ? "ring-1 ring-black" : ""}`}
                 />

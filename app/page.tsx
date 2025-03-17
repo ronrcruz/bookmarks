@@ -30,7 +30,7 @@ export default function Home() {
               front: "",
               back: "",
             },
-            foilColor: "silver"
+            foilColor: "gold"
           },
           {
             colorName: "Green",

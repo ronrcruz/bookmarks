@@ -147,7 +147,7 @@ const Card = ({
 
     if (active === id) {
       // Card is active (clicked)
-      targetPosition = [0, 4.5, 0];
+      targetPosition = [0, 4.5, -0.055];
       smoothTime = 0.35;
       intensity = 0.25;
       const rotationX = mousePos.y * intensity;
