@@ -146,14 +146,20 @@ export default function ActiveUi({
                 key={activeCard?.name}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                // exit={{ opacity: 0, y: -20 }}
-                transition={{ delay: 0, duration: 0.3 }}
+                exit={{ opacity: 0, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.3 }}
                 className="text-3xl z-10"
               >
                 {activeCard?.name}
               </motion.h2>
 
-              <motion.button onClick={handleClose} className="size-8 lg:size-12 flex justify-center items-center">
+              <motion.button
+                key={activeCard?.name}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.3 }}
+                onClick={handleClose} className="size-8 lg:size-12 flex justify-center items-center">
                 <TfiClose className="size-8" />
               </motion.button>
 
@@ -178,7 +184,7 @@ export default function ActiveUi({
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 20 }}
-                  transition={{ delay: 0.3, duration: 0.3 }}
+                  transition={{ delay: 0.4, duration: 0.3 }}
                   style={{ backgroundColor: variant.cardColor }}
                   className={`rounded-full border-black/10 border-2 size-4 ${selectedVariantIndex === index ? "ring-1 ring-black" : ""}`}
                 />
