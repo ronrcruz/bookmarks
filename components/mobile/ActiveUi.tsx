@@ -3,9 +3,9 @@
 import { CardType } from "@/app/definitions";
 import { Dispatch, SetStateAction, useState, useEffect, useMemo, useCallback } from "react";
 import { BiPound, BiDollar, BiEuro } from "react-icons/bi";
-import { SiMaterialdesignicons } from "react-icons/si";
-import { IoIosArrowRoundBack, IoIosArrowRoundForward } from "react-icons/io";
-import { RxDimensions } from "react-icons/rx";
+// import { SiMaterialdesignicons } from "react-icons/si";
+// import { IoIosArrowRoundBack, IoIosArrowRoundForward } from "react-icons/io";
+// import { RxDimensions } from "react-icons/rx";
 import NumberFlow from "@number-flow/react";
 import { TfiClose } from "react-icons/tfi";
 import { Instrument_Sans } from "next/font/google";
