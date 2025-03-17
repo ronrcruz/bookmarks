@@ -130,6 +130,9 @@ const Card = ({
   useFrame((state, delta) => {
     if (!groupRef.current) return;
 
+    const dz = active ? 9 : 1.75 / 2; // Spacing between cards along z-axis
+
+
     const N = cards.length;
     const focusedIndex = scroll.offset * (N - 1); // Maps scroll offset (0 to 1) to card index (0 to N-1)
     const targetZ = 5 + (index - focusedIndex) * dz; // Position cards relative to focused card at z=5

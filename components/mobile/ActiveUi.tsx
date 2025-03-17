@@ -141,24 +141,24 @@ export default function ActiveUi({
           >
 
             {/* TOP */}
-            <motion.div className="flex flex-row justify-between w-full h-20 p-5 backdrop-blur-md">
+            <motion.div className="flex flex-row justify-between w-full h-20 p-5">
               <motion.h2
                 key={activeCard?.name}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ delay: 0.3, duration: 0.3 }}
-                className="text-4xl lg:text-5xl z-10"
+                className="text-2xl z-10"
               >
                 {activeCard?.name}
               </motion.h2>
 
-              <motion.button onClick={handleClose} className="size-8 lg:size-12 flex justify-center ml-auto z-10">
-                <TfiClose className="size-10" />
+              <motion.button onClick={handleClose} className="size-8 lg:size-12 flex justify-center items-center">
+                <TfiClose className="size-6" />
               </motion.button>
 
             </motion.div>
-            {/* <div className="h-20 w-full backdrop-blur-md z-0 blur-xl absolute"></div> */}
+            {/* <div className="h-20 w-full z-0 blur-xl absolute"></div> */}
 
             {/* MIDDLE */}
             {activeCard && (
@@ -191,7 +191,7 @@ export default function ActiveUi({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ delay: 0.4, duration: 0.3 }}
-              className="flex justify-between w-full backdrop-blur-md h-16 items-center p-5 px-3"
+              className="flex justify-between w-full h-16 items-center p-5 px-3"
             >
               <div className="font-medium flex text-xl p-1 gap-1 items-center ">
                 <button

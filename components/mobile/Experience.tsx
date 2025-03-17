@@ -101,7 +101,7 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
         environmentRotation={active ? [Math.PI, Math.PI / 2, 0] : [Math.PI, Math.PI / 2, 0]}
       /> */}
 
-      <ScrollControls pages={1.5} horizontal={false}>
+      <ScrollControls pages={cardArr.length / 2} horizontal={false}>
         {cardArr.map((card, i) =>
           <Card
             card={card}
