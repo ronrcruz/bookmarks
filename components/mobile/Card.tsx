@@ -102,7 +102,7 @@ const Card = ({
 
   const click = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
-    !active ? setActive(id) : setActive(null);
+    setActive(id)
   };
 
   useEffect(() => {
