@@ -60,17 +60,7 @@ const Card = ({
   }, []);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const rotationRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
-  const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 0);
   const scroll = useScroll();
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const handleResize = () => setWindowWidth(window.innerWidth);
-      window.addEventListener("resize", handleResize);
-      setWindowWidth(window.innerWidth);
-      return () => window.removeEventListener("resize", handleResize);
-    }
-  }, []);
 
   // Constants for positioning
   const dz = 1.75 / 2; // Spacing between cards along z-axis
@@ -130,8 +120,7 @@ const Card = ({
   useFrame((state, delta) => {
     if (!groupRef.current) return;
 
-    const dz = active ? 9 : 1.75 / 2; // Spacing between cards along z-axis
-
+    const dz = active ? 10 : 1.75 / 2; // Spacing between cards along z-axis
 
     const N = cards.length;
     const focusedIndex = scroll.offset * (N - 1); // Maps scroll offset (0 to 1) to card index (0 to N-1)

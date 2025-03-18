@@ -46,9 +46,9 @@ export default function ActiveUi({
   }, [cardArr, active]);
 
   const selectedVariantIndex = activeCard?.selectedVariantIndex ?? 0;
-  const selectedVariant = useMemo(() => {
-    return activeCard?.colorVariations[selectedVariantIndex];
-  }, [activeCard, selectedVariantIndex]);
+  // const selectedVariant = useMemo(() => {
+  //   return activeCard?.colorVariations[selectedVariantIndex];
+  // }, [activeCard, selectedVariantIndex]);
 
   const handleClose = useCallback(() => {
     if (activeCard) {
@@ -80,12 +80,12 @@ export default function ActiveUi({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [active, activeCard, flipCard, setActive, handleClose, hasSeenIndicator]);
 
-  const handlePage = (activeId: number) => {
-    if (active && activeCard) {
-      setActive(activeId);
-      flipCard(active, false);
-    }
-  };
+  // const handlePage = (activeId: number) => {
+  //   if (active && activeCard) {
+  //     setActive(activeId);
+  //     flipCard(active, false);
+  //   }
+  // };
 
   const handleCurrencyClick = (id: number) => {
     const nextActive = id % currencies.length
