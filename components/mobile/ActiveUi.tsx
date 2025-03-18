@@ -1,11 +1,11 @@
 "use client";
 
 import { CardType } from "@/app/definitions";
-import { Dispatch, SetStateAction, useState, useEffect } from "react";
+import { Dispatch, SetStateAction, useState, useEffect, useMemo, useCallback } from "react";
 import { BiPound, BiDollar, BiEuro } from "react-icons/bi";
-import { SiMaterialdesignicons } from "react-icons/si";
-import { IoIosArrowRoundBack, IoIosArrowRoundForward } from "react-icons/io";
-import { RxDimensions } from "react-icons/rx";
+// import { SiMaterialdesignicons } from "react-icons/si";
+// import { IoIosArrowRoundBack, IoIosArrowRoundForward } from "react-icons/io";
+// import { RxDimensions } from "react-icons/rx";
 import NumberFlow from "@number-flow/react";
 import { TfiClose } from "react-icons/tfi";
 import { Instrument_Sans } from "next/font/google";
@@ -19,30 +19,43 @@ const instrument = Instrument_Sans({
 
 interface ActiveUiProps {
   cardArr: CardType[];
+  setCardArr: Dispatch<SetStateAction<CardType[]>>;
   active: number | null;
   setActive: Dispatch<SetStateAction<number | null>>;
   flipCard: (cardId: number, isFlipped: boolean) => void;
 }
 
-export default function ActiveUi({ cardArr, active, setActive, flipCard }: ActiveUiProps) {
-  const [activeCard, setActiveCard] = useState<CardType | null>(null);
+export default function ActiveUi({
+  cardArr,
+  setCardArr,
+  active,
+  setActive,
+  flipCard,
+}: ActiveUiProps) {
   const [hasSeenIndicator, setHasSeenIndicator] = useState(false);
-  const [activeCurrency, setActiveCurrency] = useState({ name: "usd", value: 8.43, symbol: "$" });
+  const [activeCurrency, setActiveCurrency] = useState({ id: 1, name: "usd", value: 8.43, symbol: "$" });
 
   const currencies = [
-    { name: "usd", icon: <BiDollar />, value: 8.43, symbol: "$" },
-    { name: "gbp", icon: <BiPound />, value: 6.53, symbol: "£" },
-    { name: "eur", icon: <BiEuro />, value: 7.79, symbol: "€" },
+    { id: 1, name: "usd", icon: <BiDollar />, value: 8.43, symbol: "$" },
+    { id: 2, name: "gbp", icon: <BiPound />, value: 6.53, symbol: "£" },
+    { id: 3, name: "eur", icon: <BiEuro />, value: 7.79, symbol: "€" },
   ];
 
-  useEffect(() => {
-    if (active === null) {
-      setTimeout(() => setActiveCard(null), 300);
-      return;
-    }
-    setActiveCard(cardArr.find((card) => card.id === active) || null);
+  const activeCard = useMemo(() => {
+    return cardArr.find((card) => card.id === active) || null;
+  }, [cardArr, active]);
 
-  }, [active, cardArr]);
+  const selectedVariantIndex = activeCard?.selectedVariantIndex ?? 0;
+  // const selectedVariant = useMemo(() => {
+  //   return activeCard?.colorVariations[selectedVariantIndex];
+  // }, [activeCard, selectedVariantIndex]);
+
+  const handleClose = useCallback(() => {
+    if (activeCard) {
+      setActive(null);
+      flipCard(activeCard.id, false);
+    }
+  }, [activeCard, flipCard, setActive]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -51,54 +64,55 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
       if (!hasSeenIndicator) setHasSeenIndicator(true);
 
       if (e.key === "ArrowRight" || e.key === "ArrowUp") {
-        const nextActive = active % 11 + 1;
+        const nextActive = active % cardArr.length + 1;
         setActive(nextActive);
-        if (activeCard) {
-          flipCard(active, false);
-        }
+        if (activeCard) flipCard(active, false);
       } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
         const prevActive = active === 1 ? 11 : active - 1;
         setActive(prevActive);
-        if (activeCard) {
-          flipCard(active, false);
-        }
+        if (activeCard) flipCard(active, false);
       } else if (e.key === "Escape") {
         handleClose();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [active, activeCard, flipCard, setActive, handleClose, hasSeenIndicator]);
 
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [active, activeCard, flipCard, setActive]);
+  // const handlePage = (activeId: number) => {
+  //   if (active && activeCard) {
+  //     setActive(activeId);
+  //     flipCard(active, false);
+  //   }
+  // };
 
-  const handleClose = () => {
-    if (activeCard) {
-      setActive(null);
-      flipCard(activeCard?.id, false)
-    }
+  const handleCurrencyClick = (id: number) => {
+    const nextActive = id % currencies.length
+    console.log(nextActive)
+    setActiveCurrency(currencies[nextActive])
   }
 
-  const handlePage = (activeId: number) => {
-    if (active) {
-      setActive(activeId);
-      flipCard(active, false)
+  const handleVariantClick = (index: number) => {
+    if (active !== null) {
+      setCardArr((prev) =>
+        prev.map((card) =>
+          card.id === active ? { ...card, selectedVariantIndex: index } : card
+        )
+      );
     }
-  }
-
+  };
 
   return (
     <AnimatePresence>
       {active !== null && (
         <div
-          className="fixed h-full w-full z-30 p-10 lg:p-14 flex"
+          className="fixed h-full w-full z-30 flex justify-between"
           style={{ pointerEvents: active ? "auto" : "none" }}
           onClick={() => setHasSeenIndicator(true)}
         >
           {/* INDICATOR */}
-          {!hasSeenIndicator && (
+          {/* {!hasSeenIndicator && (
             <motion.div
               initial={{ opacity: 0, x: "-50%", y: 20 }}
               animate={{ opacity: 0.5, y: 0 }}
@@ -115,141 +129,118 @@ export default function ActiveUi({ cardArr, active, setActive, flipCard }: Activ
                 </div>
               </div>
             </motion.div>
-          )}
+          )} */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ delay: 0, duration: 0.3 }}
-            className={`${instrument.className} h-full w-full flex justify-between`}
+            className={`${instrument.className} h-full w-full flex justify-between flex-col`}
           >
-            {/* LEFT */}
-            <motion.div
-              className="flex flex-col justify-between h-full w-1/4"
-            >
+
+            {/* TOP */}
+            <motion.div className="flex flex-row justify-between w-full h-24 p-5 ">
               <motion.h2
                 key={activeCard?.name}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20, }}
+                exit={{ opacity: 0, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.3 }}
-                className="text-4xl lg:text-5xl">
+                className="text-3xl z-10"
+              >
                 {activeCard?.name}
               </motion.h2>
-              <motion.div
-                key={activeCard?.id}
+
+              <motion.button
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ delay: active ? 0.5 : 0, duration: 0.3 }}
-                className="h-2/3 overflow-scroll text-xs lg:text-sm leading-tight">
-                {activeCard?.info}
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ delay: active ? 0.6 : 0, duration: 0.3 }}
-                className="flex gap-2 w-full h-12 items-center">
-                {[...Array(11)].map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handlePage(i + 1)}
-                    className={`border rounded-full size-2 border-black/30 ${activeCard?.id === i + 1 ? "bg-neutral-800" : "bg-none"}`}
-                  ></button>
-                ))}
-              </motion.div>
+                exit={{ opacity: 0, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.3 }}
+                onClick={handleClose} className="size-8 lg:size-12 flex justify-center items-center">
+                <TfiClose className="size-8" />
+              </motion.button>
+
             </motion.div>
+            {/* <div className="h-20 w-full z-0 blur-xl absolute"></div> */}
 
             {/* MIDDLE */}
             {activeCard && (
               <motion.button
-                disabled={!active ? true : false}
-                onClick={() => flipCard(activeCard.id, !activeCard.isFlipped)}
-                className="h-[32.5rem] w-[18.5rem] rounded-2xl self-center outline-none">
-              </motion.button>
+                disabled={!active}
+                onClick={() =>
+                  flipCard(activeCard.id, !activeCard.isFlipped)
+                }
+                className="h-[32.5rem] w-[18.5rem] rounded-2xl self-center outline-none"
+              />
             )}
+            <div className="flex justify-center gap-3 mt-auto mb-1 rounded-full ">
+              {activeCard?.colorVariations.map((variant, index) => (
+                <motion.button
+                  key={variant.colorName}
+                  onClick={() => handleVariantClick(index)}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  transition={{ delay: 0.4, duration: 0.3 }}
+                  style={{ backgroundColor: variant.cardColor }}
+                  className={`rounded-full border-black/10 border-2 size-4 ${selectedVariantIndex === index ? "ring-1 ring-black" : ""}`}
+                />
+              ))}
+            </div>
 
-            {/* RIGHT */}
+            {/* BOTTOM */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ delay: 0.4, duration: 0.3 }}
-              className="flex flex-col justify-between h-full w-1/4"
+              className="flex justify-between w-full h-16 items-center p-5 px-3"
             >
-              <motion.button onClick={handleClose} className="size-8 lg:size-12 flex justify-center ml-auto">
-                <TfiClose className="size-10" />
-              </motion.button>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ delay: 0.2, duration: 0.3 }}
-                className="flex flex-col w-full h-2/3 lg:p-4 relative">
-                <ul className="flex flex-col gap-6 w-full justify-between items-center h-full">
-                  <li className="flex justify-between w-full px-2 lg:px-6">
-                    <RxDimensions className="size-[1.5rem] lg:size-[2rem]" />
-                    <div className="text-xs lg:text-base text-end">
-                      <p>2.0in x 3.5in</p>
-                      <p>5.08cm x 8.89cm</p>
+              <div className="font-medium flex text-xl p-1 gap-1 items-center ">
+                <button
+                  onClick={() => handleCurrencyClick(activeCurrency.id)}
+                  className="border-[0.5px] border-black flex text-base rounded-full size-6 items-center justify-center overflow-hidden">
+                  <motion.span
+                    key={activeCurrency.name}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {activeCurrency.symbol}
+                  </motion.span>
+                </button>
+                <NumberFlow value={activeCurrency.value} />
+              </div>
+
+              <div className="h-full flex flex-row items-center justify-end gap-2">
+                {activeCard?.inStock ? (
+                  <motion.button
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    transition={{ delay: 0.4, duration: 0.3 }}
+                    onClick={() => setActive(null)}
+                    className="group h-10 w-16 rounded-full border-neutral-800 border overflow-hidden"
+                  >
+                    <div className="flex flex-col group-hover:-translate-y-10 transition duration-300">
+                      <div className="h-10 flex justify-center items-center">Buy</div>
+                      <div className="bg-black text-white h-10 flex justify-center items-center">Buy</div>
                     </div>
-                  </li>
-                  <li className="flex w-full justify-evenly">
-                    <div className="rounded-full bg-[#aecae3] border-black/10 border-2 size-6 lg:size-10"></div>
-                  </li>
-                  <li className="flex justify-between w-full px-2 lg:px-6 text-xs lg:text-base text-end">
-                    <SiMaterialdesignicons className="size-[1rem] lg:size-[1.4rem]" />
-                    <p>
-                      Matte paper,{" "}
-                      <motion.span
-                        key={activeCard?.foilColor}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        transition={{ delay: 0, duration: 0.3 }}
-                      >
-                        {activeCard && activeCard.foilColor.charAt(0).toUpperCase() + activeCard.foilColor.slice(1)}
-                        foil
-                      </motion.span>
-                    </p>
-                  </li>
-                  <li className="text-3xl lg:text-5xl font-medium flex justify-between w-full items-end p-1">
-                    <NumberFlow value={activeCurrency.value} prefix={activeCurrency.symbol} />
-                    <div className="flex flex-row text-xs lg:text-xl my-1">
-                      {currencies.map((currency) => (
-                        <button
-                          key={currency.name}
-                          onClick={() => setActiveCurrency(currency)}
-                          className={`${activeCurrency.name === currency.name ? "opacity-100" : "opacity-40"}`}
-                        >
-                          {currency.icon}
-                        </button>
-                      ))}
-                    </div>
-                  </li>
-                </ul>
-              </motion.div>
-              {activeCard?.inStock ? (
-                <motion.button
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  transition={{ delay: 0.4, duration: 0.3 }}
-                  onClick={() => setActive(null)} className="group h-12 w-full rounded-full border-neutral-800 border">
-                  <div className="flex flex-col group-hover:-translate-y-12 transition duration-300">
-                    <div className="h-12 flex justify-center items-center">Buy now</div>
-                    <div className="bg-black text-white h-12 flex justify-center items-center">Buy now</div>
-                  </div>
-                </motion.button>
-              ) : (
-                <motion.button
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  transition={{ delay: 0.4, duration: 0.3 }}
-                  className="h-12 w-full rounded-full border-black/20 text-black/40 border hover:cursor-not-allowed">Out of stock</motion.button>
-              )}
+                  </motion.button>
+                ) : (
+                  <motion.button
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    transition={{ delay: 0.4, duration: 0.3 }}
+                    className="h-12 rounded-full border-black/20 text-black/40 border hover:cursor-not-allowed px-4 justify-center items-center"
+                  >
+                    Out of stock
+                  </motion.button>
+                )}
+              </div>
+
             </motion.div>
           </motion.div>
         </div>

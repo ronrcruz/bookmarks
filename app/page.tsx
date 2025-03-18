@@ -21,8 +21,6 @@ export default function Home() {
     [
       {
         id: 1,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
         colorVariations: [
           {
             colorName: "Blue",
@@ -32,7 +30,7 @@ export default function Home() {
               front: "",
               back: "",
             },
-            foilColor: "silver"
+            foilColor: "gold"
           },
           {
             colorName: "Green",
@@ -55,15 +53,10 @@ export default function Home() {
             foilColor: "gold"
           },
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
         normalMap: "",
         sheenColor: "",
         name: "Blue Fern",
@@ -88,8 +81,6 @@ export default function Home() {
       },
       {
         id: 2,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
         colorVariations: [
           {
             colorName: "",
@@ -102,15 +93,10 @@ export default function Home() {
             foilColor: "gold"
           }
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
         normalMap: "",
         sheenColor: "",
         name: "Dark Blue Oak",
@@ -121,8 +107,6 @@ export default function Home() {
       },
       {
         id: 3,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
         colorVariations: [
           {
             colorName: "",
@@ -135,15 +119,10 @@ export default function Home() {
             foilColor: "gold"
           }
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
         normalMap: "",
         sheenColor: "",
         name: "I'm well-read",
@@ -154,8 +133,6 @@ export default function Home() {
       },
       {
         id: 4,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
         colorVariations: [
           {
             colorName: "",
@@ -168,15 +145,10 @@ export default function Home() {
             foilColor: "gold"
           }
         ],
-        illustration: {
-          front: "/bookmark.png",
-          back: ""
-        },
         foil: {
           front: "/bookmark-foil.png",
           back: ""
         },
-        foilColor: "silver",
         normalMap: "/NormalMap4.png",
         sheenColor: "",
         name: "Van Gogh's Book",
@@ -187,8 +159,6 @@ export default function Home() {
       },
       {
         id: 5,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
         colorVariations: [
           {
             colorName: "",
@@ -201,15 +171,10 @@ export default function Home() {
             foilColor: "gold"
           }
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
         normalMap: "",
         sheenColor: "",
         name: "Penguin's Book",
@@ -220,8 +185,6 @@ export default function Home() {
       },
       {
         id: 6,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
         colorVariations: [
           {
             colorName: "",
@@ -234,15 +197,10 @@ export default function Home() {
             foilColor: "gold"
           }
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
         normalMap: "",
         sheenColor: "",
         name: "Golden Fox",
@@ -253,8 +211,6 @@ export default function Home() {
       },
       {
         id: 7,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
         colorVariations: [
           {
             colorName: "",
@@ -267,15 +223,10 @@ export default function Home() {
             foilColor: "gold"
           }
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
         normalMap: "",
         sheenColor: "",
         name: "Golden Snowman",
@@ -286,8 +237,6 @@ export default function Home() {
       },
       {
         id: 8,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
         colorVariations: [
           {
             colorName: "",
@@ -300,15 +249,10 @@ export default function Home() {
             foilColor: "gold"
           }
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
         normalMap: "",
         sheenColor: "",
         name: "The Nutcracker",
@@ -319,8 +263,6 @@ export default function Home() {
       },
       {
         id: 9,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
         colorVariations: [
           {
             colorName: "",
@@ -333,15 +275,10 @@ export default function Home() {
             foilColor: "gold"
           }
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
         normalMap: "",
         sheenColor: "",
         name: "Golden Readers",
@@ -352,8 +289,6 @@ export default function Home() {
       },
       {
         id: 10,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
         colorVariations: [
           {
             colorName: "",
@@ -366,15 +301,10 @@ export default function Home() {
             foilColor: "gold"
           }
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
         normalMap: "",
         sheenColor: "",
         name: "Hello I'm",
@@ -385,8 +315,6 @@ export default function Home() {
       },
       {
         id: 11,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
         colorVariations: [
           {
             colorName: "",
@@ -399,15 +327,10 @@ export default function Home() {
             foilColor: "gold"
           }
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
         normalMap: "",
         sheenColor: "",
         name: "Protagonist/Antagonist",
@@ -432,6 +355,7 @@ export default function Home() {
       {isMobile ? (
         <MobileScene
           cardArr={cardArr}
+          setCardArr={setCardArr}
           active={active}
           setActive={setActive}
           isLoaded={isLoaded}
