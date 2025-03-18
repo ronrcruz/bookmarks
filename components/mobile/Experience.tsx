@@ -2,7 +2,7 @@
 
 import { Dispatch, SetStateAction, useEffect, useMemo, useRef } from "react"
 import Card from "./Card"
-import { OrbitControls, ScrollControls } from "@react-three/drei"
+import { OrbitControls, ScrollControls, Scroll } from "@react-three/drei"
 import { CardType } from "@/app/definitions"
 import { useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
@@ -24,7 +24,6 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
   const planeMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
   const targetOpacity = useRef(1);
   const opacityDelay = useRef(0);
-
 
   useMemo(() => {
     gradientCanvas.current.width = 256;
@@ -86,29 +85,26 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
   });
 
   return (
-    <>
-      <OrbitControls enableRotate={false} enableZoom={false} enablePan={false} />
 
+    <ScrollControls pages={cardArr.length} horizontal={false} damping={0.2}>
       <ambientLight ref={ambientLightRef} intensity={1} />
       <directionalLight castShadow intensity={1} position={[10, 3, 6]} shadow-mapSize={[1028, 1028]}></directionalLight>
       <directionalLight castShadow intensity={1} position={[-10, 3, 6]} shadow-mapSize={[1028, 1028]}></directionalLight>
       <directionalLight castShadow intensity={0.7} position={[0, 0, cardArr.length]} shadow-mapSize={[1028, 1028]}></directionalLight>
 
-      <ScrollControls pages={cardArr.length} horizontal={false}>
-        {cardArr.map((card, i) =>
-          <Card
-            card={card}
-            key={card.id}
-            id={card.id}
-            index={i}
-            cardPos={i - (cardArr.length - 1) / 2}
-            active={active}
-            setActive={setActive}
-            isLoaded={isLoaded}
-            cards={cardArr}
-          />
-        )}
-      </ScrollControls>
-    </>
+      {cardArr.map((card, i) =>
+        <Card
+          card={card}
+          key={card.id}
+          id={card.id}
+          index={i}
+          cardPos={i - (cardArr.length - 1) / 2}
+          active={active}
+          setActive={setActive}
+          isLoaded={isLoaded}
+          cards={cardArr}
+        />
+      )}
+    </ScrollControls>
   )
 }
