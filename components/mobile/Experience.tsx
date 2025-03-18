@@ -2,7 +2,7 @@
 
 import { Dispatch, SetStateAction, useEffect, useMemo, useRef } from "react"
 import Card from "./Card"
-import { OrbitControls, ScrollControls, Scroll } from "@react-three/drei"
+import { ScrollControls } from "@react-three/drei"
 import { CardType } from "@/app/definitions"
 import { useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"

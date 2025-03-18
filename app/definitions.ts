@@ -9,7 +9,10 @@ export type CardType = {
     front: string
     back: string
   }
-  normalMap: string
+  normalMap: {
+    front: string
+    back: string
+  }
   sheenColor: string
   inStock: boolean
   isFlipped: boolean
