@@ -83,7 +83,6 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
       easing.damp3(state.camera.position, [0, 1.9, 10], 0.15, delta);
     }
     camera.lookAt(0, 0, 0);
-
   });
 
   return (

@@ -21,7 +21,7 @@ export default function MobileScene({ cardArr, active, setActive, isLoaded, setI
       <ActiveUi active={active} setActive={setActive} cardArr={cardArr} setCardArr={setCardArr} flipCard={flipCard} />
       {!isLoaded && <LoadingScreen onLoaded={() => setIsLoaded(true)} />}
 
-      <Canvas className="fixed z-20" shadows flat dpr={[1, 1.5]} camera={{ position: [0, 2, 8], fov: 30, near: 1, far: 30 }}>
+      <Canvas className="fixed z-20 touch-none" shadows flat dpr={[1, 1.5]} camera={{ position: [0, 2, 8], fov: 30, near: 1, far: 30 }}>
         <Experience cardArr={cardArr} active={active} setActive={setActive} isLoaded={isLoaded} />
       </Canvas>
     </div>
