@@ -65,7 +65,7 @@ const Card = ({
   // Constants for positioning
   const dz = 1.75 / 2; // Spacing between cards along z-axis
   const focusZ = 5; // Z-position of the focused card
-  const elevationThreshold = 0.8; // Threshold for elevation
+  const elevationThreshold = 0.4; // Threshold for elevation
   const elevationHeight = 0.7; // Height to elevate the focused card
 
   // Initial position when scroll.offset = 0
@@ -120,7 +120,7 @@ const Card = ({
   useFrame((state, delta) => {
     if (!groupRef.current) return;
 
-    const dz = active ? 10 : 1.75 / 2; // Spacing between cards along z-axis
+    const dz = active ? 20 : 1.75 / 2; // Spacing between cards along z-axis
 
     const N = cards.length;
     const focusedIndex = scroll.offset * (N - 1); // Maps scroll offset (0 to 1) to card index (0 to N-1)

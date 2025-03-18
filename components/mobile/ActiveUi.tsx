@@ -93,8 +93,6 @@ export default function ActiveUi({
     setActiveCurrency(currencies[nextActive])
   }
 
-  console.log(activeCurrency)
-
   const handleVariantClick = (index: number) => {
     if (active !== null) {
       setCardArr((prev) =>
@@ -154,7 +152,6 @@ export default function ActiveUi({
               </motion.h2>
 
               <motion.button
-                key={activeCard?.name}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 0 }}
