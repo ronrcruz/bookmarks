@@ -21,16 +21,15 @@ export default function Home() {
     [
       {
         id: 1,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
+        name: "Blue Fern",
         colorVariations: [
           {
             colorName: "Blue",
             cardColor: "#adc8e0",
             bgColor: "#91b2cf",
             illustration: {
-              front: "",
-              back: "",
+              front: "/fern/illustrations/blue.png",
+              back: "/fern/illustrations/blue.png",
             },
             foilColor: "silver"
           },
@@ -39,45 +38,36 @@ export default function Home() {
             cardColor: "#50523c",
             bgColor: "#50523c",
             illustration: {
-              front: "",
-              back: "",
+              front: "/fern/illustrations/green.png",
+              back: "/fern/illustrations/green.png",
             },
-            foilColor: "silver"
+            foilColor: "gold"
           },
           {
             colorName: "Black",
             cardColor: "#2b2826",
             bgColor: "#2b2826",
             illustration: {
-              front: "",
-              back: "",
+              front: "/fern/illustrations/black.png",
+              back: "/fern/illustrations/black.png",
             },
             foilColor: "gold"
           },
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
-          front: "",
-          back: ""
+          front: "/fern/foil/foil.png",
+          back: "/fern/foil/foil.png",
         },
-        foilColor: "gold",
-        normalMap: "",
+        normalMap: {
+          front: "/fern/normal-maps/normal.png",
+          back: "/fern/normal-maps/normal.png",
+        },
         sheenColor: "",
-        name: "Blue Fern",
         info: (
           <p>
             This mini bookmark is the perfect companion for any reader!<br /><br />
 
-            My “I&#39;m well-read” design is inspired by my book club, the Wellread book club. Being “well-read” can mean many different things, but I associate it with reading from a wide variety of genres… which is our goal for the book club. Each month, we read a book from a different genre. <br /><br />
-
-            I thought it would be fun to design a mini bookmark that we could use for the books we read for the book club, or any of our books!<br /><br />
-
-            <span className="italic">You don&#39;t have to be a member of the book club to purchase this item. I just want to make that clear :)</span><br /><br />
-
-            I also think of a well-read book is a book that has been annotated, dog eared, highlighted, or underlined. If you&#39;re that kind of reader, then this book mark is perfect for you!<br /><br />
+            My blue fern design is inspired by my love of nature and old books with ornate gold or silver foiling! I&#39;ve always had an eye for detail, so it was a joy to create this intricate design.<br /><br />
 
             This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It&#39;s also double-sided, so whichever way you place it in your book you&#39;ll have a lovely design to see.
           </p>
@@ -88,41 +78,64 @@ export default function Home() {
       },
       {
         id: 2,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
+        name: "Dark Blue Oak",
         colorVariations: [
           {
-            colorName: "",
+            colorName: "Dark Blue",
             cardColor: "#adc8e0",
             bgColor: "#91b2cf",
             illustration: {
-              front: "",
-              back: "",
+              front: "/oak/illustrations/blue.png",
+              back: "/oak/illustrations/blue.png",
             },
             foilColor: "gold"
-          }
+          },
+          {
+            colorName: "green",
+            cardColor: "#adc8e0",
+            bgColor: "#91b2cf",
+            illustration: {
+              front: "/oak/illustrations/green.png",
+              back: "/oak/illustrations/green.png",
+            },
+            foilColor: "gold"
+          },
+          {
+            colorName: "orange",
+            cardColor: "#adc8e0",
+            bgColor: "#91b2cf",
+            illustration: {
+              front: "/oak/illustrations/orange.png",
+              back: "/oak/illustrations/orange.png",
+            },
+            foilColor: "gold"
+          },
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
-        normalMap: "",
+        normalMap: {
+          front: "",
+          back: "",
+        },
         sheenColor: "",
-        name: "Dark Blue Oak",
-        info: (<p></p>),
+        info: (
+          <p>
+            This mini bookmark is the perfect companion for any reader!<br /><br />
+
+            My green oak design is inspired by my love of nature and (specifically) one of my favorite types of trees!<br /><br />
+
+            This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It&#39;s also double-sided, so whichever way you place it in your book you&#39;ll have a lovely design to see.
+          </p>
+        ),
         inStock: false,
         isFlipped: false,
         selectedVariantIndex: 0
       },
       {
         id: 3,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
+        name: "I'm well-read",
         colorVariations: [
           {
             colorName: "",
@@ -135,27 +148,37 @@ export default function Home() {
             foilColor: "gold"
           }
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
-        normalMap: "",
+        normalMap: {
+          front: "",
+          back: "",
+        },
         sheenColor: "",
-        name: "I'm well-read",
-        info: (<p></p>),
+        info: (
+          <p>
+            This mini bookmark is the perfect companion for any reader!<br /><br />
+
+            My “I&#39;m well-read” design is inspired by my book club, the Wellread book club. Being “well-read” can mean many different things, but I associate it with reading from a wide variety of genres… which is our goal for the book club. Each month, we read a book from a different genre. <br /><br />
+
+            I thought it would be fun to design a mini bookmark that we could use for the books we read for the book club, or any of our books!<br /><br />
+
+            <span className="italic font-serif">You don&#39;t have to be a member of the book club to purchase this item. I just want to make that clear :)</span><br /><br />
+
+            I also think of a well-read book is a book that has been annotated, dog eared, highlighted, or underlined. If you&#39;re that kind of reader, then this book mark is perfect for you!<br /><br />
+
+            This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It&#39;s also double-sided, so whichever way you place it in your book you&#39;ll have a lovely design to see.
+          </p>
+        ),
         inStock: false,
         isFlipped: false,
         selectedVariantIndex: 0
       },
       {
         id: 4,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
+        name: "Van Gogh's Book",
         colorVariations: [
           {
             colorName: "",
@@ -165,30 +188,32 @@ export default function Home() {
               front: "",
               back: "",
             },
-            foilColor: "gold"
+            foilColor: "silver"
           }
         ],
-        illustration: {
-          front: "/bookmark.png",
-          back: ""
-        },
         foil: {
-          front: "/bookmark-foil.png",
+          front: "",
           back: ""
         },
-        foilColor: "silver",
-        normalMap: "/NormalMap4.png",
+        normalMap: {
+          front: "",
+          back: ""
+        },
         sheenColor: "",
-        name: "Van Gogh's Book",
-        info: (<p></p>),
+        info: (
+          <p>
+            This mini bookmark is the perfect companion for any reader!<br /><br />
+
+            This mini bookmark is printed on thick high quality paper, has silver-foil accents, and a nice buttery matte finish. It&#39;s also double-sided, so whichever way you place it in your book you&#39;ll have a lovely design to see.
+          </p>
+        ),
         inStock: false,
         isFlipped: false,
         selectedVariantIndex: 0
       },
       {
         id: 5,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
+        name: "Penguin's Book",
         colorVariations: [
           {
             colorName: "",
@@ -201,27 +226,31 @@ export default function Home() {
             foilColor: "gold"
           }
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
-        normalMap: "",
+        normalMap: {
+          front: "",
+          back: "",
+        },
         sheenColor: "",
-        name: "Penguin's Book",
-        info: (<p></p>),
+        info: (
+          <p>
+            This mini bookmark is the perfect companion for any reader and any book!<br /><br />
+
+            Do you ever think about how your book might feel when you hold it? No... just me? Regardless, I thought it would be sweet to make this design in honor of whichever book you place it in :)<br /><br />
+
+            This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It&#39;s also double-sided, so whichever way you place it in your book you&#39;ll have a lovely design to see.
+          </p>
+        ),
         inStock: false,
         isFlipped: false,
         selectedVariantIndex: 0
       },
       {
         id: 6,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
+        name: "GOLDEN Fox",
         colorVariations: [
           {
             colorName: "",
@@ -234,27 +263,31 @@ export default function Home() {
             foilColor: "gold"
           }
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
-        normalMap: "",
+        normalMap: {
+          front: "",
+          back: "",
+        },
         sheenColor: "",
-        name: "Golden Fox",
-        info: (<p></p>),
+        info: (
+          <p>
+            This mini bookmark is the perfect companion for any reader!<br /><br />
+
+            My GOLDEN fox design is inspired by my love for (and addiction to buying) adorable ornaments! This fox, in particular is an homage to the fox in my favorite book &#34;The little prince&#34; by Antoine de Saint-Exupery! It was such a joy to paint this illustration, so I hope you love it as much as I do! (The stars make my heart endlessly happy) ✨<br /><br />
+
+            This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It&#39;s also double-sided, so whichever way you place it in your book you&#39;ll have a lovely design to see.
+          </p>
+        ),
         inStock: false,
         isFlipped: false,
         selectedVariantIndex: 0
       },
       {
         id: 7,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
+        name: "GOLDEN Snowman",
         colorVariations: [
           {
             colorName: "",
@@ -265,29 +298,43 @@ export default function Home() {
               back: "",
             },
             foilColor: "gold"
-          }
+          },
+          {
+            colorName: "",
+            cardColor: "#adc8e0",
+            bgColor: "#91b2cf",
+            illustration: {
+              front: "",
+              back: "",
+            },
+            foilColor: "silver"
+          },
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
-        normalMap: "",
+        normalMap: {
+          front: "",
+          back: "",
+        },
         sheenColor: "",
-        name: "Golden Snowman",
-        info: (<p></p>),
+        info: (
+          <p>
+            This mini bookmark is the perfect companion for any reader!<br /><br />
+
+            My GOLDEN Snowman design is inspired by my love for (and addiction to buying) adorable ornaments! Naturally, I couldn&#39;t help but paint a book in his little snowy hands. In my mind, everyone is a reader... even snowmen!<br /><br />
+
+            This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It&#39;s also double-sided, so whichever way you place it in your book you&#39;ll have a lovely design to see.
+          </p>
+        ),
         inStock: false,
         isFlipped: false,
         selectedVariantIndex: 0
       },
       {
         id: 8,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
+        name: "The Nutcracker",
         colorVariations: [
           {
             colorName: "",
@@ -300,27 +347,31 @@ export default function Home() {
             foilColor: "gold"
           }
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
-        normalMap: "",
+        normalMap: {
+          front: "",
+          back: "",
+        },
         sheenColor: "",
-        name: "The Nutcracker",
-        info: (<p></p>),
+        info: (
+          <p>
+            This mini bookmark is the perfect companion for any reader!<br /><br />
+
+            My Nutcracker design is inspired by E.T.A. Hoffman&#39;s classic story. I&#39;ve collected Nutcrackers for many years, because they are one of my favorite holiday decorations. I love that each nutcracker feels as if they have their own personality and story. The nutcracker I painted for this bookmark loves to read... if you couldn&#39;t tell by looking at him :)<br /><br />
+
+            This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It&#39;s also double-sided, so whichever way you place it in your book you&#39;ll have a lovely design to see.
+          </p>
+        ),
         inStock: false,
         isFlipped: false,
         selectedVariantIndex: 0
       },
       {
         id: 9,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
+        name: "Golden Readers",
         colorVariations: [
           {
             colorName: "",
@@ -333,27 +384,33 @@ export default function Home() {
             foilColor: "gold"
           }
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
-        normalMap: "",
+        normalMap: {
+          front: "",
+          back: "",
+        },
         sheenColor: "",
-        name: "Golden Readers",
-        info: (<p></p>),
+        info: (
+          <p>
+            This mini bookmark is the perfect companion for any reader!<br /><br />
+
+            My golden readers design is inspired by Matisse ink sketches. I&#39;ve always had a passion for art history, so to make these Matisse figures into readers was a joy!<br /><br />
+
+            I&#39;m also a huge fan of typography, so the repeat pattern of the work &#34;BOOKS&#34; makes my graphic design loving heart very happy!<br /><br />
+
+            This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It&#39;s also double-sided, so whichever way you place it in your book you&#39;ll have a lovely design to see.
+          </p>
+        ),
         inStock: false,
         isFlipped: false,
         selectedVariantIndex: 0
       },
       {
         id: 10,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
+        name: "Hello I'm",
         colorVariations: [
           {
             colorName: "",
@@ -366,27 +423,33 @@ export default function Home() {
             foilColor: "gold"
           }
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
-        normalMap: "",
+        normalMap: {
+          front: "",
+          back: "",
+        },
         sheenColor: "",
-        name: "Hello I'm",
-        info: (<p></p>),
+        info: (
+          <p>
+            This mini bookmark is the perfect companion for any book nerd!<br /><br />
+
+            I&#39;ve had the idea for this bookmark design for quite a while, and it was so much fun to finally bring it to life!<br /><br />
+
+            Picture this: you&#39;re in the middle of reading a book, when someone interrupts and starts talking to you. Simply hold up your bookmark (the side that has &#34;Hello&#34; crossed out... &#34;I&#39;m reading&#34;) and they will hopefully get the hint to leave you and your book in peace :P<br /><br />
+
+            This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It&#39;s also double-sided, so whichever way you place it in your book you&#39;ll have a lovely design to see.
+          </p>
+        ),
         inStock: false,
         isFlipped: false,
         selectedVariantIndex: 0
       },
       {
         id: 11,
-        cardColor: "#adc8e0",
-        bgColor: "#91b2cf",
+        name: "Protagonist/Antagonist",
         colorVariations: [
           {
             colorName: "",
@@ -399,19 +462,26 @@ export default function Home() {
             foilColor: "gold"
           }
         ],
-        illustration: {
-          front: "",
-          back: ""
-        },
         foil: {
           front: "",
           back: ""
         },
-        foilColor: "gold",
-        normalMap: "",
+        normalMap: {
+          front: "",
+          back: "",
+        },
         sheenColor: "",
-        name: "Protagonist/Antagonist",
-        info: (<p></p>),
+        info: (
+          <p>
+            This mini bookmark is the perfect companion for any protagonist OR antagonist!<br /><br />
+
+            With this bookmark, you must choose: protagonist or antagonist... Will you join ther dark side, or will you be the hero of your own story?<br /><br />
+
+            Side note: I truly love this design and how you can flip between &#34;the dark&#34; and &#34;the light&#34; !!!<br /><br />
+
+            This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It&#39;s also double-sided, so whichever way you place it in your book you&#39;ll have a lovely design to see.
+          </p>
+        ),
         inStock: false,
         isFlipped: false,
         selectedVariantIndex: 0
@@ -432,6 +502,7 @@ export default function Home() {
       {isMobile ? (
         <MobileScene
           cardArr={cardArr}
+          setCardArr={setCardArr}
           active={active}
           setActive={setActive}
           isLoaded={isLoaded}

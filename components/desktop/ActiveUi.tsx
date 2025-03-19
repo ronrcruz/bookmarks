@@ -22,7 +22,7 @@ interface ActiveUiProps {
   setCardArr: Dispatch<SetStateAction<CardType[]>>;
   active: number | null;
   setActive: Dispatch<SetStateAction<number | null>>;
-  flipCard: (cardId: number, isFlipped: boolean) => void; // Updated
+  flipCard: (cardId: number, isFlipped: boolean) => void;
 }
 
 export default function ActiveUi({
@@ -141,7 +141,7 @@ export default function ActiveUi({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ delay: 0.3, duration: 0.3 }}
-                className="text-4xl lg:text-5xl"
+                className="text-4xl lg:text-4xl "
               >
                 {activeCard?.name}
               </motion.h2>
@@ -151,7 +151,7 @@ export default function ActiveUi({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ delay: active ? 0.5 : 0, duration: 0.3 }}
-                className="h-2/3 overflow-scroll text-xs lg:text-sm leading-tight"
+                className="max-h-[66.6666%] overflow-scroll text-xs lg:text-sm leading-tight flex pr-3"
               >
                 {activeCard?.info}
               </motion.div>
@@ -162,12 +162,11 @@ export default function ActiveUi({
                 transition={{ delay: active ? 0.6 : 0, duration: 0.3 }}
                 className="flex gap-2 w-full h-12 items-center"
               >
-                {[...Array(11)].map((_, i) => (
+                {[...Array(cardArr.length)].map((_, i) => (
                   <button
                     key={i}
                     onClick={() => handlePage(i + 1)}
-                    className={`border rounded-full size-2 border-black/30 ${activeCard?.id === i + 1 ? "bg-neutral-800" : "bg-none"
-                      }`}
+                    className={`border rounded-full size-2 border-black/30 ${activeCard?.id === i + 1 ? "bg-neutral-800" : "bg-none"}`}
                   />
                 ))}
               </motion.div>

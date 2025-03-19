@@ -1,8 +1,8 @@
 "use client"
 
-import { Dispatch, SetStateAction, useEffect, useMemo, useRef } from "react"
+import { Dispatch, SetStateAction, useMemo, useRef } from "react"
 import Card from "./Card"
-import { Environment, OrbitControls, ContactShadows, ScrollControls } from "@react-three/drei"
+import { ScrollControls } from "@react-three/drei"
 import { CardType } from "@/app/definitions"
 import { useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
@@ -16,15 +16,11 @@ interface ExperienceProps {
 }
 
 export default function Experience({ cardArr, active, setActive, isLoaded }: ExperienceProps) {
-  const { scene } = useThree();
+  const { scene, camera } = useThree();
   const currentBottomColor = useRef(new THREE.Color("#cccccc"));
   const gradientCanvas = useRef(document.createElement("canvas"));
   const gradientTexture = useRef(new THREE.CanvasTexture(gradientCanvas.current));
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
-  const planeMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
-  const targetOpacity = useRef(1);
-  const opacityDelay = useRef(0);
-
 
   useMemo(() => {
     gradientCanvas.current.width = 256;
@@ -35,11 +31,6 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
     scene.background = gradientTexture.current;
   }, [scene]);
 
-  useEffect(() => {
-    targetOpacity.current = (isLoaded && !active) ? 0 : 1;
-    opacityDelay.current = 0;
-  }, [active, isLoaded]);
-
   useFrame((state, delta) => {
     const targetIntensity = active !== null ? 3 : 2;
 
@@ -47,9 +38,13 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
       easing.damp(ambientLightRef.current, "intensity", targetIntensity, 0.3, delta);
     }
 
-    const targetBottomColor = active !== null
-      ? cardArr.find((card) => card.id === active)?.bgColor || "#cccccc"
-      : "#cccccc";
+    const activeCard = cardArr.find((card) => card.id === active);
+    const selectedVariant =
+      activeCard && active !== null
+        ? activeCard.colorVariations[activeCard.selectedVariantIndex]
+        : null;
+    const targetBottomColor =
+      active !== null && selectedVariant ? selectedVariant.bgColor : "#cccccc";
 
     easing.dampC(currentBottomColor.current, targetBottomColor, 0.5, delta);
 
@@ -65,64 +60,38 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
 
     gradientTexture.current.needsUpdate = true;
 
-    opacityDelay.current += delta;
-    if (planeMaterialRef.current && opacityDelay.current >= 0.2) {
-      easing.damp(planeMaterialRef.current, "opacity", targetOpacity.current, 1.9, delta);
+    // Camera positioning
+    if (!isLoaded) {
+      easing.damp3(state.camera.position, [state.camera.position.x, 20, 0], 2.0, delta);
+    } else if (active) {
+      easing.damp3(state.camera.position, [state.camera.position.x, 9.5, 0], 0.35, delta);
+    } else {
+      easing.damp3(state.camera.position, [0, 1.9, 10], 0.15, delta);
     }
-
+    camera.lookAt(0, 0, 0);
   });
 
   return (
-    <>
-      <OrbitControls enableRotate={false} enableZoom={false} enablePan={false} />
 
-      <ambientLight ref={ambientLightRef} intensity={0} />
-      <directionalLight castShadow intensity={1} position={[10, 6, 6]} shadow-mapSize={[1028, 1028]}></directionalLight>
+    <ScrollControls pages={2} horizontal={false}>
+      <ambientLight ref={ambientLightRef} intensity={1} />
+      <directionalLight castShadow intensity={1} position={[10, 3, 6]} shadow-mapSize={[1028, 1028]}></directionalLight>
+      <directionalLight castShadow intensity={1} position={[-10, 3, 6]} shadow-mapSize={[1028, 1028]}></directionalLight>
+      <directionalLight castShadow intensity={0.7} position={[0, 0, cardArr.length]} shadow-mapSize={[1028, 1028]}></directionalLight>
 
-      <Environment
-        environmentIntensity={1}
-        preset={"city"}
-        environmentRotation={active ? [Math.PI, -Math.PI / 2, 0] : [0, 0, 0]}
-      />
-
-      <ScrollControls
-        pages={Math.max(1, cardArr.length / 3)} // Number of pages (adjust based on how many cards you want visible at once)
-        distance={1} // Scroll distance
-        damping={0.3} // Scroll damping
-        horizontal={true} // Enable horizontal scrolling
-        infinite={false} // Disable infinite scrolling
-      >
-        {cardArr.map((card, i) =>
-          <Card
-            card={card}
-            key={card.id}
-            id={card.id}
-            cardPos={i - (cardArr.length - 1) / 2}
-            color={card.cardColor}
-            active={active}
-            setActive={setActive}
-            isLoaded={isLoaded}
-            cards={cardArr}
-            scroll={null}
-          />
-        )}
-      </ScrollControls>
-
-      {!active && (
-        <>
-          <mesh position={[0, (-1.75 / 2) + 0.0001, 0]} rotation-x={-Math.PI / 2}>
-            <planeGeometry args={[50, 50]} />
-            <meshBasicMaterial ref={planeMaterialRef} color={"#e6e6e6"} transparent opacity={1} />
-          </mesh>
-          <ContactShadows
-            position={[0, -1.75 / 2, 0]}
-            scale={12}
-            resolution={512}
-            opacity={6}
-            far={1}
-          />
-        </>
+      {cardArr.map((card, i) =>
+        <Card
+          card={card}
+          key={card.id}
+          id={card.id}
+          index={i}
+          cardPos={i - (cardArr.length - 1) / 2}
+          active={active}
+          setActive={setActive}
+          isLoaded={isLoaded}
+          cards={cardArr}
+        />
       )}
-    </>
+    </ScrollControls>
   )
 }
