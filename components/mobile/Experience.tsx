@@ -73,7 +73,7 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
 
   return (
 
-    <ScrollControls pages={cardArr.length / 2} horizontal={false}>
+    <ScrollControls pages={2} horizontal={false}>
       <ambientLight ref={ambientLightRef} intensity={1} />
       <directionalLight castShadow intensity={1} position={[10, 3, 6]} shadow-mapSize={[1028, 1028]}></directionalLight>
       <directionalLight castShadow intensity={1} position={[-10, 3, 6]} shadow-mapSize={[1028, 1028]}></directionalLight>
