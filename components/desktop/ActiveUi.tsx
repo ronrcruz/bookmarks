@@ -151,7 +151,7 @@ export default function ActiveUi({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ delay: active ? 0.5 : 0, duration: 0.3 }}
-                className="max-h-[66.6666%] overflow-scroll text-xs lg:text-sm leading-tight flex"
+                className="max-h-[66.6666%] overflow-scroll text-xs lg:text-sm leading-tight flex pr-3"
               >
                 {activeCard?.info}
               </motion.div>
