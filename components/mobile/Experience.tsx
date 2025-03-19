@@ -1,6 +1,6 @@
 "use client"
 
-import { Dispatch, SetStateAction, useEffect, useMemo, useRef } from "react"
+import { Dispatch, SetStateAction, useMemo, useRef } from "react"
 import Card from "./Card"
 import { ScrollControls } from "@react-three/drei"
 import { CardType } from "@/app/definitions"
@@ -21,9 +21,6 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
   const gradientCanvas = useRef(document.createElement("canvas"));
   const gradientTexture = useRef(new THREE.CanvasTexture(gradientCanvas.current));
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
-  const planeMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
-  const targetOpacity = useRef(1);
-  const opacityDelay = useRef(0);
 
   useMemo(() => {
     gradientCanvas.current.width = 256;
@@ -33,11 +30,6 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
     gradientTexture.current.magFilter = THREE.LinearFilter;
     scene.background = gradientTexture.current;
   }, [scene]);
-
-  useEffect(() => {
-    targetOpacity.current = (isLoaded && !active) ? 0 : 1;
-    opacityDelay.current = 0;
-  }, [active, isLoaded]);
 
   useFrame((state, delta) => {
     const targetIntensity = active !== null ? 3 : 2;
@@ -68,11 +60,6 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
 
     gradientTexture.current.needsUpdate = true;
 
-    opacityDelay.current += delta;
-    if (planeMaterialRef.current && opacityDelay.current >= 0.2) {
-      easing.damp(planeMaterialRef.current, "opacity", targetOpacity.current, 1.9, delta);
-    }
-
     // Camera positioning
     if (!isLoaded) {
       easing.damp3(state.camera.position, [state.camera.position.x, 20, 0], 2.0, delta);
@@ -86,7 +73,7 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
 
   return (
 
-    <ScrollControls pages={cardArr.length} horizontal={false} damping={0.2}>
+    <ScrollControls pages={cardArr.length / 2} horizontal={false}>
       <ambientLight ref={ambientLightRef} intensity={1} />
       <directionalLight castShadow intensity={1} position={[10, 3, 6]} shadow-mapSize={[1028, 1028]}></directionalLight>
       <directionalLight castShadow intensity={1} position={[-10, 3, 6]} shadow-mapSize={[1028, 1028]}></directionalLight>

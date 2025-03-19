@@ -25,7 +25,7 @@ const createRoundedRectShape = (width: number, height: number, radius: number): 
 interface CardProps {
   card: CardType;
   id: number;
-  index: number; // Added index prop
+  index: number;
   cardPos: number;
   active: number | null;
   setActive: Dispatch<SetStateAction<number | null>>;
@@ -68,7 +68,6 @@ const Card = ({
   const elevationThreshold = 0.4; // Threshold for elevation
   const elevationHeight = 0.7; // Height to elevate the focused card
 
-  // Initial position when scroll.offset = 0
   const initialPos = useMemo(() => new THREE.Vector3(0, 0, index * dz), [index]);
 
   const selectedVariant = card.colorVariations[card.selectedVariantIndex];
@@ -135,7 +134,6 @@ const Card = ({
     let intensity: number;
 
     if (active === id) {
-      // Card is active (clicked)
       targetPosition = [0, 4.5, -0.055];
       smoothTime = 0.35;
       intensity = 0.25;
@@ -147,13 +145,11 @@ const Card = ({
         0,
       ];
     } else {
-      // Card is in stacking mode
       targetPosition = [0, targetY, targetZ];
       smoothTime = 0.15;
       targetRotation = [0, 0, 0];
     }
 
-    // Animate position and rotation
     easing.damp3(groupRef.current.position, targetPosition, smoothTime, delta);
     easing.damp3(rotationRef.current, targetRotation, active ? 0.35 : 0.265, delta);
 
