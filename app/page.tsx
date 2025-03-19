@@ -67,7 +67,7 @@ export default function Home() {
           <p>
             This mini bookmark is the perfect companion for any reader!<br /><br />
 
-            My blue fern design is inspired by my love of nature and old books with ornate gold or silver foiling! I've always had an eye for detail, so it was a joy to create this intricate design.<br /><br />
+            My blue fern design is inspired by my love of nature and old books with ornate gold or silver foiling! I&#39;ve always had an eye for detail, so it was a joy to create this intricate design.<br /><br />
 
             This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It&#39;s also double-sided, so whichever way you place it in your book you&#39;ll have a lovely design to see.
           </p>
@@ -276,7 +276,7 @@ export default function Home() {
           <p>
             This mini bookmark is the perfect companion for any reader!<br /><br />
 
-            My GOLDEN fox design is inspired by my love for (and addiction to buying) adorable ornaments! This fox, in particular is an homage to the fox in my favorite book "The little prince" by Antoine de Saint-Exupery! It was such a joy to paint this illustration, so I hope you love it as much as I do! (The stars make my heart endlessly happy) ✨<br /><br />
+            My GOLDEN fox design is inspired by my love for (and addiction to buying) adorable ornaments! This fox, in particular is an homage to the fox in my favorite book &#34;The little prince&#34; by Antoine de Saint-Exupery! It was such a joy to paint this illustration, so I hope you love it as much as I do! (The stars make my heart endlessly happy) ✨<br /><br />
 
             This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It&#39;s also double-sided, so whichever way you place it in your book you&#39;ll have a lovely design to see.
           </p>
@@ -399,7 +399,7 @@ export default function Home() {
 
             My golden readers design is inspired by Matisse ink sketches. I&#39;ve always had a passion for art history, so to make these Matisse figures into readers was a joy!<br /><br />
 
-            I&#39;m also a huge fan of typography, so the repeat pattern of the work "BOOKS" makes my graphic design loving heart very happy!<br /><br />
+            I&#39;m also a huge fan of typography, so the repeat pattern of the work &#34;BOOKS&#34; makes my graphic design loving heart very happy!<br /><br />
 
             This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It&#39;s also double-sided, so whichever way you place it in your book you&#39;ll have a lovely design to see.
           </p>
@@ -438,7 +438,7 @@ export default function Home() {
 
             I&#39;ve had the idea for this bookmark design for quite a while, and it was so much fun to finally bring it to life!<br /><br />
 
-            Picture this: you&#39;re in the middle of reading a book, when someone interrupts and starts talking to you. Simply hold up your bookmark (the side that has "Hello" crossed out... "I&#39;m reading") and they will hopefully get the hint to leave you and your book in peace :P<br /><br />
+            Picture this: you&#39;re in the middle of reading a book, when someone interrupts and starts talking to you. Simply hold up your bookmark (the side that has &#34;Hello&#34; crossed out... &#34;I&#39;m reading&#34;) and they will hopefully get the hint to leave you and your book in peace :P<br /><br />
 
             This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It&#39;s also double-sided, so whichever way you place it in your book you&#39;ll have a lovely design to see.
           </p>
@@ -477,7 +477,7 @@ export default function Home() {
 
             With this bookmark, you must choose: protagonist or antagonist... Will you join ther dark side, or will you be the hero of your own story?<br /><br />
 
-            Side note: I truly love this design and how you can flip between "the dark" and "the light" !!!<br /><br />
+            Side note: I truly love this design and how you can flip between &#34;the dark&#34; and &#34;the light&#34; !!!<br /><br />
 
             This mini bookmark is printed on thick high quality paper, has gold-foil accents, and a nice buttery matte finish. It&#39;s also double-sided, so whichever way you place it in your book you&#39;ll have a lovely design to see.
           </p>
