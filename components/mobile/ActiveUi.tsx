@@ -146,7 +146,7 @@ export default function ActiveUi({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.3 }}
-                className="text-3xl z-10"
+                className="text-3xl z-10 flex flex-row "
               >
                 {activeCard?.name}
               </motion.h2>
@@ -196,10 +196,11 @@ export default function ActiveUi({
               transition={{ delay: 0.4, duration: 0.3 }}
               className="flex justify-between w-full h-16 items-center p-5 px-3"
             >
-              <div className="font-medium flex text-xl p-1 gap-1 items-center ">
-                <button
-                  onClick={() => handleCurrencyClick(activeCurrency.id)}
-                  className="border-[0.5px] border-black flex text-base rounded-full size-6 items-center justify-center overflow-hidden">
+              <button
+                onClick={() => handleCurrencyClick(activeCurrency.id)}
+                className="font-medium flex text-3xl p-1 gap-1 items-center">
+                <div
+                  className="border-[0.5px] border-black flex text-base rounded-full size-6 items-center justify-center overflow-hidden ">
                   <motion.span
                     key={activeCurrency.name}
                     initial={{ opacity: 0 }}
@@ -209,9 +210,23 @@ export default function ActiveUi({
                   >
                     {activeCurrency.symbol}
                   </motion.span>
-                </button>
+                </div>
                 <NumberFlow value={activeCurrency.value} />
-              </div>
+              </button>
+              {/* <li className="text-2xl font-medium flex justify-between items-center gap-2 ">
+                <div className="flex flex-col text-xs lg:text-xl my-1">
+                  {currencies.map((currency) => (
+                    <button
+                      key={currency.name}
+                      onClick={() => setActiveCurrency(currency)}
+                      className={`${activeCurrency.name === currency.name ? "opacity-100" : "opacity-40"}`}
+                    >
+                      {currency.icon}
+                    </button>
+                  ))}
+                </div>
+                <NumberFlow value={activeCurrency.value} prefix={activeCurrency.symbol} />
+              </li> */}
 
               <div className="h-full flex flex-row items-center justify-end gap-2">
                 {activeCard?.inStock ? (

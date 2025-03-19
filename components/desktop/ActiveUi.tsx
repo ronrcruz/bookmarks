@@ -22,7 +22,7 @@ interface ActiveUiProps {
   setCardArr: Dispatch<SetStateAction<CardType[]>>;
   active: number | null;
   setActive: Dispatch<SetStateAction<number | null>>;
-  flipCard: (cardId: number, isFlipped: boolean) => void; // Updated
+  flipCard: (cardId: number, isFlipped: boolean) => void;
 }
 
 export default function ActiveUi({
