@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo, Dispatch, SetStateAction } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useLoader } from "@react-three/fiber";
+import { useRef, useMemo, useState, Dispatch, SetStateAction, useEffect } from "react";
 import * as THREE from "three";
 import { easing } from "maath";
 import { useTexture, Decal } from "@react-three/drei";
+import { RGBELoader } from "three/examples/jsm/Addons.js";
 import { CardType } from "@/app/definitions";
 
-// Create a rounded rectangle shape for cards
 const createRoundedRectShape = (width: number, height: number, radius: number): THREE.Shape => {
   const shape = new THREE.Shape();
   shape.moveTo(-width / 2, -height / 2 + radius);
@@ -39,41 +39,36 @@ const Card = ({
   setActive,
   isLoaded,
 }: CardProps) => {
-  // State and refs
   const [hover, setHover] = useState(false);
   const groupRef = useRef<THREE.Group>(null);
-  const rotationRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0.7, 0));
-  const materialRef = useRef<THREE.MeshStandardMaterial>(null);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
-
-  // Get the selected color variant
-  const selectedVariant = card.colorVariations[card.selectedVariantIndex];
-  const [bookmark] = useTexture(["/bookmark.png"]);
-
-  bookmark.minFilter = THREE.LinearFilter;
-  bookmark.magFilter = THREE.LinearFilter;
-  bookmark.anisotropy = 16;
-  bookmark.generateMipmaps = true;
-
-  // Create card geometry
+  const meshRef = useRef<THREE.Mesh>(null);
   const roundedRectShape = createRoundedRectShape(1.0, 1.75, 0.1);
   const geometry = new THREE.ExtrudeGeometry(roundedRectShape, { depth: 0.02, bevelEnabled: false });
-  
-  // Position and color calculations
+  const planeGeometry = useMemo(() => {
+    const shape = createRoundedRectShape(1.0, 1.75, 0.1);
+    const geo = new THREE.ShapeGeometry(shape, 32);
+    geo.computeVertexNormals();
+    const uvs = geo.attributes.uv.array;
+    for (let i = 0; i < uvs.length; i += 2) {
+      uvs[i] = (uvs[i] + 0.5) * (1.0 / 1.0);
+      uvs[i + 1] = (uvs[i + 1] + 0.875) * (1.0 / 1.75);
+    }
+    geo.attributes.uv.needsUpdate = true;
+    return geo;
+  }, []);
   const initialPos = useMemo(() => new THREE.Vector3(cardPos * 0.4, 0, 0), [cardPos]);
-  
-  // Create desaturated version of the card color for non-selected state
-  const cardColor = new THREE.Color(selectedVariant.cardColor);
-  const desaturatedColor = useMemo(() => {
-    const color = new THREE.Color(selectedVariant.cardColor);
-    // Convert to HSL to reduce saturation
-    const hsl = {h: 0, s: 0, l: 0};
-    color.getHSL(hsl);
-    // Reduce saturation by 70%
-    color.setHSL(hsl.h, hsl.s * 0.3, hsl.l);
-    return color;
-  }, [selectedVariant.cardColor]);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  const selectedVariant = card.colorVariations[card.selectedVariantIndex];
+  const [bookmark, foil, normalMap] = useTexture(["/bookmark.png", "/foil.png", "/NormalMap.png",]);
+
+  // const illustrationFront = selectedVariant.illustration.front || card.illustration.front || "/bookmark.png";
+  // const foilFront = selectedVariant.foil.front || card.foil.front || "/foil.png";
+  // const normalMapPath = card.normalMap || "/NormalMap.png";
+  // const [bookmark, foil, normalMap] = useTexture([illustrationFront, foilFront, normalMapPath]);
+
+  const rotationRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0.7, 0));
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -81,15 +76,38 @@ const Card = ({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const goldEnvMap = {
+    map: useLoader(RGBELoader, "/pretville_cinema_1k.hdr"),
+    rotation: new THREE.Euler(0.4, 0, 0.1),
+    intensity: 3,
+  };
+
+  const silverEnvMap = {
+    map: useLoader(RGBELoader, "/st_peters_square_night_1k.hdr"),
+    rotation: new THREE.Euler(-0.3, 0.3, 1.2),
+    intensity: 4,
+  };
+
+  const envMap = selectedVariant.foilColor === "gold" ? goldEnvMap : silverEnvMap;
+
+  bookmark.minFilter = THREE.LinearFilter;
+  bookmark.magFilter = THREE.LinearFilter;
+  bookmark.anisotropy = 16;
+  bookmark.generateMipmaps = true;
+
+  foil.minFilter = THREE.LinearFilter;
+  foil.magFilter = THREE.LinearFilter;
+  foil.anisotropy = 16;
+  foil.generateMipmaps = true;
+
+  envMap.map.mapping = THREE.EquirectangularReflectionMapping;
+
   const pointerOver = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
     if (!active) setHover(true);
   };
-  
-  const pointerOut = () => {
-    if (!active) setHover(false);
-  };
-  
+  const pointerOut = () => !active && setHover(false);
+
   const click = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
     setActive(id);
@@ -109,121 +127,45 @@ const Card = ({
   }, [active, id]);
 
   useFrame((state, delta) => {
-    if (!groupRef.current || !materialRef.current) return;
+    if (groupRef.current) {
+      let targetPosition: [number, number, number];
+      let smoothTime: number;
+      let targetRotation: [number, number, number];
+      let intensity: number;
 
-    let targetPosition: [number, number, number];
-    let targetScale: [number, number, number] = [1, 1, 1];
-    let smoothTime: number;
-    let targetRotation: [number, number, number];
-    let targetOpacity = 1.0;
-    let targetRoughness = 0.6;
-    let targetMetalness = 0.2;
-    let targetEmissive = new THREE.Color(0x000000);
-    let targetColor = cardColor;
-    const intensity = 0.25;
-
-    if (active === id) {
-      // Selected card - center position, facing camera
-      targetPosition = [0, windowWidth < 780 ? 15 : 16, 0];
-      smoothTime = 0.4;
-      targetOpacity = 1.0;
-      targetRoughness = 0.3;
-      targetMetalness = 0.7;
-      targetEmissive = new THREE.Color(0x111111);
-      targetColor = cardColor;
-      
-      // Interactive rotation based on mouse position
-      const rotationX = mousePos.y * intensity;
-      const rotationY = mousePos.x * intensity;
-      
-      targetRotation = [
-        Math.PI / 2 - rotationX,
-        card.isFlipped ? Math.PI - rotationY + Math.PI : Math.PI - rotationY,
-        Math.PI,
-      ];
-    } else if (hover) {
-      // Hover state - slight elevation
-      targetPosition = [groupRef.current.position.x, 0.5, groupRef.current.position.z];
-      smoothTime = 0.1;
-      targetOpacity = 1.0;
-      targetRoughness = 0.5;
-      targetMetalness = 0.3;
-      targetEmissive = new THREE.Color(0x000000);
-      targetColor = cardColor;
-      targetRotation = [0, card.isFlipped ? 0.7 + Math.PI : 0.7, 0];
-    } else if (active !== null && active !== id) {
-      // When any card is active but not this one
-      targetPosition = [initialPos.x, -0.3, -3];
-      targetScale = [0.8, 0.8, 0.8];
-      smoothTime = 0.5;
-      targetOpacity = 0.5;
-      targetRoughness = 0.95;
-      targetMetalness = 0.05;
-      targetEmissive = new THREE.Color(0x000000);
-      targetColor = desaturatedColor;
-      targetRotation = [0, card.isFlipped ? 0.7 + Math.PI : 0.7, 0];
-    } else {
-      // Default state
-      targetPosition = [initialPos.x, initialPos.y, initialPos.z];
-      smoothTime = active === null ? 0.1 : 0.5;
-      targetOpacity = 1.0;
-      targetRoughness = 0.6;
-      targetMetalness = 0.2;
-      targetEmissive = new THREE.Color(0x000000);
-      targetColor = cardColor;
-      targetRotation = [0, card.isFlipped ? 0.7 + Math.PI : 0.7, 0];
-    }
-
-    // Apply animations with easing
-    easing.damp3(groupRef.current.position, targetPosition, smoothTime, delta);
-    easing.damp3(groupRef.current.scale, targetScale, smoothTime, delta);
-    easing.damp3(rotationRef.current, targetRotation, active === id ? 0.5 : 0.175, delta);
-    groupRef.current.rotation.set(rotationRef.current.x, rotationRef.current.y, rotationRef.current.z);
-    
-    // Animate material properties
-    easing.dampC(
-      materialRef.current.color,
-      targetColor,
-      0.3,
-      delta
-    );
-    
-    easing.damp(
-      materialRef.current,
-      "opacity",
-      targetOpacity,
-      0.3,
-      delta
-    );
-    easing.damp(
-      materialRef.current,
-      "roughness",
-      targetRoughness,
-      0.3,
-      delta
-    );
-    easing.damp(
-      materialRef.current,
-      "metalness",
-      targetMetalness,
-      0.3,
-      delta
-    );
-    easing.dampC(
-      materialRef.current.emissive,
-      targetEmissive,
-      0.3,
-      delta
-    );
-    
-    // Camera animations from existing code
-    if (!isLoaded) {
-      easing.damp3(state.camera.position, [state.camera.position.x, 30, 0], 2.0, delta);
-    } else {
-      if (active !== null) {
-        easing.damp3(state.camera.position, [state.camera.position.x, 20.5, active ? 0 : 8], 2.0, delta);
+      if (active === id) {
+        targetPosition = [0, windowWidth < 780 ? 15 : 16, 0];
+        smoothTime = 0.4;
+        intensity = 0.25;
+        const rotationX = mousePos.y * intensity;
+        const rotationY = mousePos.x * intensity;
+        targetRotation = [
+          Math.PI / 2 - rotationX,
+          card.isFlipped ? Math.PI - rotationY + Math.PI : Math.PI - rotationY,
+          Math.PI,
+        ];
+      } else if (hover) {
+        targetPosition = [groupRef.current.position.x, 0.5, groupRef.current.position.z];
+        smoothTime = 0.1;
+        targetRotation = [0, card.isFlipped ? 0.7 + Math.PI : 0.7, 0];
       } else {
-        easing.damp3(state.camera.position, [state.camera.position.x, 2, active ? 0 : 8], 2.0, delta);
+        targetPosition = [initialPos.x, initialPos.y, initialPos.z];
+        smoothTime = active === null ? 0.1 : 0.5;
+        targetRotation = [0, card.isFlipped ? 0.7 + Math.PI : 0.7, 0];
+      }
+
+      easing.damp3(groupRef.current.position, targetPosition, smoothTime, delta);
+      easing.damp3(rotationRef.current, targetRotation, active ? 0.5 : 0.175, delta);
+      groupRef.current.rotation.set(rotationRef.current.x, rotationRef.current.y, rotationRef.current.z);
+
+      if (!isLoaded) {
+        easing.damp3(state.camera.position, [state.camera.position.x, 30, 0], 2.0, delta);
+      } else {
+        if (active) {
+          easing.damp3(state.camera.position, [state.camera.position.x, 20.5, active ? 0 : 8], 2.0, delta);
+        } else {
+          easing.damp3(state.camera.position, [state.camera.position.x, 2, active ? 0 : 8], 2.0, delta);
+        }
       }
     }
   });
@@ -234,47 +176,78 @@ const Card = ({
       <mesh
         onPointerOver={pointerOver}
         onPointerOut={pointerOut}
+        ref={meshRef}
         geometry={geometry}
         receiveShadow
         castShadow
         onClick={click}
       >
-        <meshStandardMaterial
-          ref={materialRef}
-          color={cardColor}
-          roughness={0.6}
-          metalness={0.2}
-          transparent={true}
-          opacity={1.0}
-          emissive={new THREE.Color(0x000000)}
-        />
+        <meshPhysicalMaterial color={selectedVariant.cardColor} opacity={1} />
 
         {/* FRONT ILLUSTRATION */}
-        <Decal receiveShadow={active === id ? false : true} position={[0.02, 0, 0]} scale={[1, 1.75, 0.1]}>
-          <meshStandardMaterial
+        <Decal receiveShadow={active ? false : true} position={[0.02, 0, 0]} scale={[1, 1.75, 0.1]}>
+          <meshPhysicalMaterial
             polygonOffset
             polygonOffsetFactor={-1}
             map={bookmark}
             roughness={0.9}
+            metalness={0.1}
             side={THREE.DoubleSide}
           />
         </Decal>
 
         {/* BACK ILLUSTRATION */}
         <Decal
-          receiveShadow={active === id ? false : true}
+          receiveShadow={active ? false : true}
           position={[0, 0, -0.04]}
           scale={[1, 1.75, 0.1]}
           rotation={[0, Math.PI, 0]}
         >
-          <meshStandardMaterial
+          <meshPhysicalMaterial
             polygonOffset
             polygonOffsetFactor={-1}
             map={bookmark}
             roughness={0.9}
+            metalness={0.1}
             side={THREE.DoubleSide}
           />
         </Decal>
+      </mesh>
+
+
+      {/* FRONT FOIL */}
+      <mesh geometry={planeGeometry} position={[0, 0, 0.03]}>
+        <meshPhysicalMaterial
+          transparent
+          roughness={0.1}
+          metalness={0.8}
+          reflectivity={0.8}
+          sheen={1}
+          map={foil}
+          normalMap={normalMap}
+          normalScale={new THREE.Vector2(0.1, 0.1)}
+          envMap={envMap.map}
+          envMapIntensity={envMap.intensity}
+          envMapRotation={envMap.rotation}
+        />
+      </mesh>
+
+      {/* BACK FOIL */}
+      <mesh geometry={planeGeometry} rotation={[0, Math.PI, 0]} position={[0, 0, -0.01]}>
+        <meshPhysicalMaterial
+          side={THREE.DoubleSide}
+          transparent
+          roughness={0.1}
+          metalness={0.8}
+          reflectivity={0.8}
+          sheen={1}
+          map={foil}
+          normalMap={normalMap}
+          normalScale={new THREE.Vector2(0.1, 0.1)}
+          envMap={envMap.map}
+          envMapIntensity={envMap.intensity}
+          envMapRotation={envMap.rotation}
+        />
       </mesh>
     </group>
   );
