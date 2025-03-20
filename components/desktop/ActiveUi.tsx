@@ -230,18 +230,7 @@ export default function ActiveUi({
                   <li className="flex justify-between w-full px-2 lg:px-6 text-xs lg:text-base text-end">
                     <SiMaterialdesignicons className="size-[1rem] lg:size-[1.4rem]" />
                     <p>
-                      Matte paper,{" "}
-                      <motion.span
-                        key={selectedVariant?.foilColor}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ delay: 0.1, duration: 0.3 }}
-                      >
-                        {selectedVariant && selectedVariant?.foilColor.charAt(0).toUpperCase() +
-                          selectedVariant?.foilColor.slice(1)}
-                        foil
-                      </motion.span>
+                      Matte paper
                     </p>
                   </li>
 

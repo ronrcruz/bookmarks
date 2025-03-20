@@ -1,11 +1,10 @@
 "use client";
 
-import { useFrame, useLoader } from "@react-three/fiber";
+import { useFrame } from "@react-three/fiber";
 import { useRef, useMemo, useState, Dispatch, SetStateAction, useEffect } from "react";
 import * as THREE from "three";
 import { easing } from "maath";
 import { useTexture, Decal } from "@react-three/drei";
-import { RGBELoader } from "three/examples/jsm/Addons.js";
 import { CardType } from "@/app/definitions";
 
 const createRoundedRectShape = (width: number, height: number, radius: number): THREE.Shape => {
@@ -60,12 +59,7 @@ const Card = ({
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   const selectedVariant = card.colorVariations[card.selectedVariantIndex];
-  const [bookmark, foil, normalMap] = useTexture(["/bookmark.png", "/foil.png", "/NormalMap.png",]);
-
-  // const illustrationFront = selectedVariant.illustration.front || card.illustration.front || "/bookmark.png";
-  // const foilFront = selectedVariant.foil.front || card.foil.front || "/foil.png";
-  // const normalMapPath = card.normalMap || "/NormalMap.png";
-  // const [bookmark, foil, normalMap] = useTexture([illustrationFront, foilFront, normalMapPath]);
+  const [bookmark] = useTexture(["/bookmark.png"]);
 
   const rotationRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0.7, 0));
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -76,36 +70,16 @@ const Card = ({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const goldEnvMap = {
-    map: useLoader(RGBELoader, "/pretville_cinema_1k.hdr"),
-    rotation: new THREE.Euler(0.4, 0, 0.1),
-    intensity: 3,
-  };
-
-  const silverEnvMap = {
-    map: useLoader(RGBELoader, "/st_peters_square_night_1k.hdr"),
-    rotation: new THREE.Euler(-0.3, 0.3, 1.2),
-    intensity: 4,
-  };
-
-  const envMap = selectedVariant.foilColor === "gold" ? goldEnvMap : silverEnvMap;
-
   bookmark.minFilter = THREE.LinearFilter;
   bookmark.magFilter = THREE.LinearFilter;
   bookmark.anisotropy = 16;
   bookmark.generateMipmaps = true;
 
-  foil.minFilter = THREE.LinearFilter;
-  foil.magFilter = THREE.LinearFilter;
-  foil.anisotropy = 16;
-  foil.generateMipmaps = true;
-
-  envMap.map.mapping = THREE.EquirectangularReflectionMapping;
-
   const pointerOver = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
     if (!active) setHover(true);
   };
+  
   const pointerOut = () => !active && setHover(false);
 
   const click = (e: { stopPropagation: () => void }) => {
@@ -182,16 +156,20 @@ const Card = ({
         castShadow
         onClick={click}
       >
-        <meshPhysicalMaterial color={selectedVariant.cardColor} opacity={1} />
+        <meshStandardMaterial 
+          color={selectedVariant.cardColor} 
+          roughness={0.7}
+          metalness={0.0}
+        />
 
         {/* FRONT ILLUSTRATION */}
         <Decal receiveShadow={active ? false : true} position={[0.02, 0, 0]} scale={[1, 1.75, 0.1]}>
-          <meshPhysicalMaterial
+          <meshStandardMaterial
             polygonOffset
             polygonOffsetFactor={-1}
             map={bookmark}
-            roughness={0.9}
-            metalness={0.1}
+            roughness={0.8}
+            metalness={0.0}
             side={THREE.DoubleSide}
           />
         </Decal>
@@ -203,51 +181,15 @@ const Card = ({
           scale={[1, 1.75, 0.1]}
           rotation={[0, Math.PI, 0]}
         >
-          <meshPhysicalMaterial
+          <meshStandardMaterial
             polygonOffset
             polygonOffsetFactor={-1}
             map={bookmark}
-            roughness={0.9}
-            metalness={0.1}
+            roughness={0.8}
+            metalness={0.0}
             side={THREE.DoubleSide}
           />
         </Decal>
-      </mesh>
-
-
-      {/* FRONT FOIL */}
-      <mesh geometry={planeGeometry} position={[0, 0, 0.03]}>
-        <meshPhysicalMaterial
-          transparent
-          roughness={0.1}
-          metalness={0.8}
-          reflectivity={0.8}
-          sheen={1}
-          map={foil}
-          normalMap={normalMap}
-          normalScale={new THREE.Vector2(0.1, 0.1)}
-          envMap={envMap.map}
-          envMapIntensity={envMap.intensity}
-          envMapRotation={envMap.rotation}
-        />
-      </mesh>
-
-      {/* BACK FOIL */}
-      <mesh geometry={planeGeometry} rotation={[0, Math.PI, 0]} position={[0, 0, -0.01]}>
-        <meshPhysicalMaterial
-          side={THREE.DoubleSide}
-          transparent
-          roughness={0.1}
-          metalness={0.8}
-          reflectivity={0.8}
-          sheen={1}
-          map={foil}
-          normalMap={normalMap}
-          normalScale={new THREE.Vector2(0.1, 0.1)}
-          envMap={envMap.map}
-          envMapIntensity={envMap.intensity}
-          envMapRotation={envMap.rotation}
-        />
       </mesh>
     </group>
   );
