@@ -63,8 +63,22 @@ export default function Experience({
     const ctx = gradientCanvas.current.getContext("2d");
     if (ctx) {
       const gradient = ctx.createLinearGradient(0, 0, 0, gradientCanvas.current.height);
-      gradient.addColorStop(0, active !== null ? "#cccccc" : "#ffffff");
-      gradient.addColorStop(0.7, currentBottomColor.current.getStyle());
+      
+      // Create a smoother gradient with more color stops
+      if (active !== null && selectedVariant) {
+        // When active, transition between the card color and background
+        gradient.addColorStop(0, "#cccccc");
+        gradient.addColorStop(0.3, "#cccccc");
+        gradient.addColorStop(1.0, currentBottomColor.current.getStyle());
+      } else {
+        // In idle state, create a smooth transition from white to blue
+        gradient.addColorStop(0, "#ffffff");
+        gradient.addColorStop(0.2, "#f3f7fc");
+        gradient.addColorStop(0.4, "#e6eef9");
+        gradient.addColorStop(0.6, "#d9e5f6");
+        gradient.addColorStop(0.8, "#ccddf3");
+        gradient.addColorStop(1.0, "#bdd7ee");
+      }
 
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, gradientCanvas.current.width, gradientCanvas.current.height);
