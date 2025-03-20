@@ -73,6 +73,20 @@ const Card = ({
     }
   }, [inArrowZone, hoverLocked, active]);
 
+  // Update hover state when scroll state changes
+  useEffect(() => {
+    // If we're now locked or in arrow zone but the pointer is over the card,
+    // we need to remove the hover state
+    if ((hoverLocked || inArrowZone) && isPointerOverRef.current) {
+      setHover(false);
+    }
+    // If we're no longer locked or in arrow zone and pointer is over the card,
+    // we can restore the hover state
+    else if (!hoverLocked && !inArrowZone && isPointerOverRef.current && !active) {
+      setHover(true);
+    }
+  }, [hoverLocked, inArrowZone, active]);
+
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener("resize", handleResize);
@@ -88,8 +102,10 @@ const Card = ({
     e.stopPropagation();
     // Always track when pointer is over, even when we can't display hover effect
     isPointerOverRef.current = true;
-    // Only show hover effect if not locked
-    if (!active && !inArrowZone && !hoverLocked) setHover(true);
+    // Only show hover effect if not locked and not scrolling
+    if (!active && !inArrowZone && !hoverLocked) {
+      setHover(true);
+    }
   };
   
   const pointerOut = () => {
@@ -100,7 +116,7 @@ const Card = ({
   const click = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
     // Only allow clicks when not scrolling
-    if (!hoverLocked) {
+    if (!hoverLocked && !inArrowZone) {
       setActive(id);
       setHover(false);
     }

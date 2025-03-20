@@ -34,6 +34,7 @@ export default function DesktopScene({
   const [isHoveringRight, setIsHoveringRight] = useState(false);
   const [inArrowZone, setInArrowZone] = useState(false);
   const [hoverLocked, setHoverLocked] = useState(false);
+  const [isActivelyScrolling, setIsActivelyScrolling] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   
   // Track the last active card
@@ -152,6 +153,9 @@ export default function DesktopScene({
   const startScrollInterval = () => {
     if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
     
+    // Set scrolling state to prevent snapping during active scrolling
+    setIsActivelyScrolling(true);
+    
     scrollIntervalRef.current = setInterval(() => {
       if (isHoveringLeft) {
         setTargetScrollPosition(prev => Math.max(maxScrollLeft, prev - 0.1));
@@ -171,6 +175,18 @@ export default function DesktopScene({
       if (scrollIntervalRef.current) {
         clearInterval(scrollIntervalRef.current);
         scrollIntervalRef.current = null;
+        
+        // Reset hover lock immediately when not hovering over arrows
+        setHoverLocked(false);
+        
+        // Only trigger snap when user stops hovering over arrows
+        if (!isHoveringLeft && !isHoveringRight) {
+          // Slight delay before snapping to make it feel more natural
+          setTimeout(() => {
+            setIsActivelyScrolling(false);
+            handleScrollStop();
+          }, 150);
+        }
       }
     }
     
@@ -178,6 +194,7 @@ export default function DesktopScene({
       if (scrollIntervalRef.current) {
         clearInterval(scrollIntervalRef.current);
         scrollIntervalRef.current = null;
+        setHoverLocked(false); // Always ensure hover lock is released on cleanup
       }
     };
   }, [isHoveringLeft, isHoveringRight, active, maxScrollLeft, maxScrollRight]);
@@ -192,14 +209,15 @@ export default function DesktopScene({
       setScrollPosition(prev => {
         const diff = targetScrollPosition - prev;
         if (Math.abs(diff) < 0.005) {
-          // Call handleScrollStop when animation completes
-          setTimeout(handleScrollStop, 0);
+          // When scrolling stops naturally, ensure we unlock hover
+          setHoverLocked(false);
           return targetScrollPosition;
         }
         
         // Use different easing rate based on whether we just exited active view
-        const easeFactor = justExitedActiveViewRef.current ? 1.0 : 0.15;
-        return prev + diff * easeFactor; // Smoother easing
+        // Use a smoother easing factor for better feel
+        const easeFactor = justExitedActiveViewRef.current ? 0.15 : 0.08;
+        return prev + diff * easeFactor;
       });
       
       animationFrameRef.current = requestAnimationFrame(animateScroll);
@@ -228,6 +246,10 @@ export default function DesktopScene({
         setShowRightArrow(true);
       } else {
         setInArrowZone(false);
+        // Only unlock hover when we're not actively scrolling
+        if (!isHoveringLeft && !isHoveringRight) {
+          setHoverLocked(false);
+        }
         setShowLeftArrow(true);
         setShowRightArrow(true);
       }
@@ -239,13 +261,17 @@ export default function DesktopScene({
   
   // When user stops scrolling, snap to nearest card
   const handleScrollStop = () => {
-    if (active !== null || justExitedActiveViewRef.current) {
+    if (active !== null || justExitedActiveViewRef.current || isActivelyScrolling) {
       justExitedActiveViewRef.current = false;
       return;
     }
 
     // Find the nearest card position to snap to
-    const cardPositions = cardArr.map((_, index) => index * CARD_WIDTH);
+    // Calculate positions relative to the center, not from position 0
+    const centerOffset = ((cardArr.length - 1) / 2) * CARD_WIDTH;
+    const cardPositions = cardArr.map((_, index) => (index - (cardArr.length - 1) / 2) * CARD_WIDTH);
+    
+    // Find the card closest to the current scroll position
     const closestCardIndex = cardPositions.reduce((prevIndex, position, currentIndex) => {
       return Math.abs(position - scrollPosition) < Math.abs(cardPositions[prevIndex] - scrollPosition)
         ? currentIndex
@@ -254,13 +280,19 @@ export default function DesktopScene({
 
     const nearestCardPosition = cardPositions[closestCardIndex];
 
+    // Only snap if we're not already very close to a card position
     if (Math.abs(nearestCardPosition - scrollPosition) > 0.01) {
-      // Snap to nearest card
-      setTargetScrollPosition(Math.min(maxScrollRight, Math.max(maxScrollLeft, nearestCardPosition)));
+      // Create a smoother, more natural animation by using a custom easing
+      // First quickly move close to the target, then slow down for a smooth finish
+      const currentPosition = scrollPosition;
+      const targetPosition = Math.min(maxScrollRight, Math.max(maxScrollLeft, nearestCardPosition));
+      
+      setTargetScrollPosition(targetPosition);
     }
     
     // Immediately unlock hover when scrolling stops
     setHoverLocked(false);
+    setIsActivelyScrolling(false);
   }
   
   return (
