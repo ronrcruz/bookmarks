@@ -13,6 +13,9 @@ interface ExperienceProps {
   active: number | null;
   setActive: Dispatch<SetStateAction<number | null>>;
   isLoaded: boolean;
+  scrollPosition: number;
+  inArrowZone: boolean;
+  hoverLocked: boolean;
 }
 
 export default function Experience({
@@ -20,6 +23,9 @@ export default function Experience({
   active,
   setActive,
   isLoaded,
+  scrollPosition,
+  inArrowZone,
+  hoverLocked,
 }: ExperienceProps) {
   const { scene } = useThree();
   const currentBottomColor = useRef(new THREE.Color("#cccccc"));
@@ -29,6 +35,7 @@ export default function Experience({
   const planeMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
   const targetOpacity = useRef(1);
   const opacityDelay = useRef(0);
+  const directionalLightRef = useRef<THREE.DirectionalLight | null>(null);
 
   useMemo(() => {
     gradientCanvas.current.width = 256;
@@ -50,35 +57,31 @@ export default function Experience({
       easing.damp(ambientLightRef.current, "intensity", targetIntensity, 0.3, delta);
     }
 
+    const lightPositionZ = active !== null ? 8 : 6;
+    if (directionalLightRef.current) {
+      easing.damp3(
+        directionalLightRef.current.position,
+        [10, 6, lightPositionZ],
+        0.3,
+        delta
+      );
+    }
+
     const activeCard = cardArr.find((card) => card.id === active);
     const selectedVariant =
       activeCard && active !== null
         ? activeCard.colorVariations[activeCard.selectedVariantIndex]
         : null;
     const targetBottomColor =
-      active !== null && selectedVariant ? selectedVariant.bgColor : "#bdd7ee";
+      active !== null && selectedVariant ? selectedVariant.bgColor : "#cccccc";
 
     easing.dampC(currentBottomColor.current, targetBottomColor, 0.5, delta);
 
     const ctx = gradientCanvas.current.getContext("2d");
     if (ctx) {
       const gradient = ctx.createLinearGradient(0, 0, 0, gradientCanvas.current.height);
-      
-      // Create a smoother gradient with more color stops
-      if (active !== null && selectedVariant) {
-        // When active, transition between the card color and background
-        gradient.addColorStop(0, "#cccccc");
-        gradient.addColorStop(0.3, "#cccccc");
-        gradient.addColorStop(1.0, currentBottomColor.current.getStyle());
-      } else {
-        // In idle state, create a smooth transition from white to blue
-        gradient.addColorStop(0, "#ffffff");
-        gradient.addColorStop(0.2, "#f3f7fc");
-        gradient.addColorStop(0.4, "#e6eef9");
-        gradient.addColorStop(0.6, "#d9e5f6");
-        gradient.addColorStop(0.8, "#ccddf3");
-        gradient.addColorStop(1.0, "#bdd7ee");
-      }
+      gradient.addColorStop(0, "#cccccc");
+      gradient.addColorStop(0.7, currentBottomColor.current.getStyle());
 
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, gradientCanvas.current.width, gradientCanvas.current.height);
@@ -101,12 +104,13 @@ export default function Experience({
         intensity={1}
         position={[10, 6, 6]}
         shadow-mapSize={[1028, 1028]}
+        ref={directionalLightRef}
       />
 
       <Environment
         environmentIntensity={1}
         preset={"city"}
-        environmentRotation={active ? [Math.PI, -Math.PI / 2, 0] : [0, 0, 0]}
+        environmentRotation={active ? [0, Math.PI / 2, 0] : [0, 0, 0]}
       />
 
       {cardArr.map((card, i) => (
@@ -115,27 +119,28 @@ export default function Experience({
           key={card.id}
           id={card.id}
           cardPos={i - (cardArr.length - 1) / 2}
+          cardIndex={i}
+          cardArr={cardArr}
           active={active}
           setActive={setActive}
           isLoaded={isLoaded}
+          scrollPosition={scrollPosition}
+          inArrowZone={inArrowZone}
+          hoverLocked={hoverLocked}
         />
       ))}
 
-      {!active && (
-        <>
-          <mesh position={[0, -1.75 / 2 + 0.0001, 0]} rotation-x={-Math.PI / 2}>
-            <planeGeometry args={[50, 50]} />
-            <meshBasicMaterial ref={planeMaterialRef} color={"#bdd7ee"} transparent opacity={1} />
-          </mesh>
-          <ContactShadows
-            position={[0, -1.75 / 2, 0]}
-            scale={12}
-            resolution={512}
-            opacity={6}
-            far={1}
-          />
-        </>
-      )}
+      <mesh position={[0, -1.75 / 2 + 0.0001, 0]} rotation-x={-Math.PI / 2}>
+        <planeGeometry args={[50, 50]} />
+        <meshBasicMaterial ref={planeMaterialRef} color={"#e6e6e6"} transparent opacity={1} />
+      </mesh>
+      <ContactShadows
+        position={[0, -1.75 / 2, 0]}
+        scale={12}
+        resolution={512}
+        opacity={6}
+        far={1}
+      />
     </>
   );
 }

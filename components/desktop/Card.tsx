@@ -25,20 +25,31 @@ interface CardProps {
   card: CardType;
   id: number;
   cardPos: number;
+  cardIndex: number;
+  cardArr: CardType[];
   active: number | null;
   setActive: Dispatch<SetStateAction<number | null>>;
   isLoaded: boolean;
+  scrollPosition: number;
+  inArrowZone: boolean;
+  hoverLocked: boolean;
 }
 
 const Card = ({
   card,
   id,
   cardPos,
+  cardIndex,
+  cardArr,
   active,
   setActive,
   isLoaded,
+  scrollPosition,
+  inArrowZone,
+  hoverLocked,
 }: CardProps) => {
   const [hover, setHover] = useState(false);
+  const isPointerOverRef = useRef(false); // Track if pointer is over the card
   const groupRef = useRef<THREE.Group>(null);
   const meshRef = useRef<THREE.Mesh>(null);
   const roundedRectShape = createRoundedRectShape(1.0, 1.75, 0.1);
@@ -51,6 +62,16 @@ const Card = ({
 
   const rotationRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  // Reset hover state when entering arrow zone or when hover is locked during scrolling
+  useEffect(() => {
+    if (inArrowZone || hoverLocked) {
+      setHover(false);
+    } else if (isPointerOverRef.current && !active) {
+      // If hover lock is released and pointer is already over the card, show hover effect
+      setHover(true);
+    }
+  }, [inArrowZone, hoverLocked, active]);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -65,15 +86,24 @@ const Card = ({
 
   const pointerOver = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
-    if (!active) setHover(true);
+    // Always track when pointer is over, even when we can't display hover effect
+    isPointerOverRef.current = true;
+    // Only show hover effect if not locked
+    if (!active && !inArrowZone && !hoverLocked) setHover(true);
   };
   
-  const pointerOut = () => !active && setHover(false);
+  const pointerOut = () => {
+    isPointerOverRef.current = false;
+    if (!active) setHover(false);
+  };
 
   const click = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
-    setActive(id);
-    setHover(false);
+    // Only allow clicks when not scrolling
+    if (!hoverLocked) {
+      setActive(id);
+      setHover(false);
+    }
   };
 
   useEffect(() => {
@@ -96,23 +126,55 @@ const Card = ({
       let intensity: number;
 
       if (active === id) {
-        targetPosition = [0, windowWidth < 780 ? 15 : 16, 0];
+        // Center the selected card at origin (0,0,0) regardless of its original position
+        targetPosition = [0, 1.95, windowWidth < 780 ? 6 : 15];
         smoothTime = 0.4;
         intensity = 0.25;
         const rotationX = mousePos.y * intensity;
         const rotationY = mousePos.x * intensity;
+        
         targetRotation = [
-          Math.PI / 2 - rotationX,
-          card.isFlipped ? Math.PI - rotationY + Math.PI : Math.PI - rotationY,
-          Math.PI,
+          -rotationX,
+          card.isFlipped ? Math.PI - rotationY : -rotationY,
+          0,
         ];
-      } else if (hover) {
-        targetPosition = [groupRef.current.position.x, 0.5, groupRef.current.position.z];
-        smoothTime = 0.1;
-        targetRotation = [0, card.isFlipped ? Math.PI : 0, 0];
       } else {
-        targetPosition = [initialPos.x, initialPos.y, initialPos.z];
-        smoothTime = active === null ? 0.1 : 0.5;
+        // Calculate horizontal position based on scroll position regardless of hover state
+        let xPosition = initialPos.x;
+        const zOffset = active !== null ? -2 : 0;
+        
+        // If a card is active and this card is not active
+        if (active !== null && active !== id) {
+          // Find the index of the active card
+          const activeCardIndex = cardArr.findIndex((c: CardType) => c.id === active);
+          const activeCardPos = activeCardIndex - (cardArr.length - 1) / 2;
+          
+          // Calculate how much the row needs to shift to center the active card's original position
+          const rowOffset = -activeCardPos * 1.2;
+          
+          // Determine which side of the active card this card is on
+          if (cardIndex < activeCardIndex) {
+            // All cards to the left of active card move left
+            xPosition = initialPos.x - 1.8 + rowOffset;
+          } else if (cardIndex > activeCardIndex) {
+            // All cards to the right of active card move right
+            xPosition = initialPos.x + 1.8 + rowOffset;
+          }
+        } else if (active === null) {
+          // Apply scroll offset when in idle view
+          xPosition = initialPos.x - scrollPosition;
+        }
+        
+        // Set y position based on hover state, but always use the calculated x position
+        if (hover) {
+          targetPosition = [xPosition, 0.5, initialPos.z + zOffset];
+          smoothTime = 0.1;
+        } else {
+          targetPosition = [xPosition, initialPos.y, initialPos.z + zOffset];
+          // Adjust smooth time for a more fluid animation when spreading cards
+          smoothTime = active === null ? 0.1 : 0.6;
+        }
+        
         targetRotation = [0, card.isFlipped ? Math.PI : 0, 0];
       }
 
@@ -124,9 +186,10 @@ const Card = ({
         easing.damp3(state.camera.position, [state.camera.position.x, 30, 0], 2.0, delta);
       } else {
         if (active) {
-          easing.damp3(state.camera.position, [state.camera.position.x, 20.5, active ? 0 : 8], 2.0, delta);
+          // Center camera on the origin point (0,0,0) where the active card is positioned
+          easing.damp3(state.camera.position, [0, 2.5, 20], 2.0, delta);
         } else {
-          easing.damp3(state.camera.position, [state.camera.position.x, 2, active ? 0 : 8], 2.0, delta);
+          easing.damp3(state.camera.position, [0, 2, 8], 2.0, delta);
         }
       }
     }
