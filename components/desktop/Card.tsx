@@ -43,13 +43,13 @@ const Card = ({
   const meshRef = useRef<THREE.Mesh>(null);
   const roundedRectShape = createRoundedRectShape(1.0, 1.75, 0.1);
   const geometry = new THREE.ExtrudeGeometry(roundedRectShape, { depth: 0.02, bevelEnabled: false });
-  const initialPos = useMemo(() => new THREE.Vector3(cardPos * 0.4, 0, 0), [cardPos]);
+  const initialPos = useMemo(() => new THREE.Vector3(cardPos * 1.2, 0, 0), [cardPos]);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   const selectedVariant = card.colorVariations[card.selectedVariantIndex];
   const [bookmark] = useTexture(["/bookmark.png"]);
 
-  const rotationRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0.7, 0));
+  const rotationRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   useEffect(() => {
@@ -109,11 +109,11 @@ const Card = ({
       } else if (hover) {
         targetPosition = [groupRef.current.position.x, 0.5, groupRef.current.position.z];
         smoothTime = 0.1;
-        targetRotation = [0, card.isFlipped ? 0.7 + Math.PI : 0.7, 0];
+        targetRotation = [0, card.isFlipped ? Math.PI : 0, 0];
       } else {
         targetPosition = [initialPos.x, initialPos.y, initialPos.z];
         smoothTime = active === null ? 0.1 : 0.5;
-        targetRotation = [0, card.isFlipped ? 0.7 + Math.PI : 0.7, 0];
+        targetRotation = [0, card.isFlipped ? Math.PI : 0, 0];
       }
 
       easing.damp3(groupRef.current.position, targetPosition, smoothTime, delta);
@@ -133,7 +133,7 @@ const Card = ({
   });
 
   return (
-    <group ref={groupRef} position={initialPos} rotation={[0, 0.7, 0]}>
+    <group ref={groupRef} position={initialPos} rotation={[0, 0, 0]}>
       {/* BASE CARD */}
       <mesh
         onPointerOver={pointerOver}
