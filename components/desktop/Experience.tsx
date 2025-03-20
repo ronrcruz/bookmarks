@@ -56,14 +56,14 @@ export default function Experience({
         ? activeCard.colorVariations[activeCard.selectedVariantIndex]
         : null;
     const targetBottomColor =
-      active !== null && selectedVariant ? selectedVariant.bgColor : "#cccccc";
+      active !== null && selectedVariant ? selectedVariant.bgColor : "#bdd7ee";
 
     easing.dampC(currentBottomColor.current, targetBottomColor, 0.5, delta);
 
     const ctx = gradientCanvas.current.getContext("2d");
     if (ctx) {
       const gradient = ctx.createLinearGradient(0, 0, 0, gradientCanvas.current.height);
-      gradient.addColorStop(0, "#cccccc");
+      gradient.addColorStop(0, active !== null ? "#cccccc" : "#ffffff");
       gradient.addColorStop(0.7, currentBottomColor.current.getStyle());
 
       ctx.fillStyle = gradient;
@@ -111,7 +111,7 @@ export default function Experience({
         <>
           <mesh position={[0, -1.75 / 2 + 0.0001, 0]} rotation-x={-Math.PI / 2}>
             <planeGeometry args={[50, 50]} />
-            <meshBasicMaterial ref={planeMaterialRef} color={"#e6e6e6"} transparent opacity={1} />
+            <meshBasicMaterial ref={planeMaterialRef} color={"#bdd7ee"} transparent opacity={1} />
           </mesh>
           <ContactShadows
             position={[0, -1.75 / 2, 0]}
