@@ -33,7 +33,6 @@ export default function DesktopScene({
   const [isHoveringLeft, setIsHoveringLeft] = useState(false);
   const [isHoveringRight, setIsHoveringRight] = useState(false);
   const [inArrowZone, setInArrowZone] = useState(false);
-  const [isScrolling, setIsScrolling] = useState(false);
   const [hoverLocked, setHoverLocked] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   
@@ -53,8 +52,8 @@ export default function DesktopScene({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  // Calculate viewport and scrolling parameters
+  
+  // Calculate visible cards and scroll limits
   const { visibleCards, maxScrollLeft, maxScrollRight } = useMemo(() => {
     // Calculate how many cards can fit in the viewport
     // Use a more conservative estimate - we want to show arrows even if cards technically fit
@@ -84,7 +83,7 @@ export default function DesktopScene({
         maxScrollRight: rightmostPosition
       };
     }
-  }, [cardArr.length, windowWidth, CARD_WIDTH]);
+  }, [cardArr, scrollPosition, windowWidth, CARD_WIDTH]);
   
   // Log values for debugging
   useEffect(() => {
@@ -141,8 +140,6 @@ export default function DesktopScene({
       setIsHoveringLeft(false);
       setIsHoveringRight(false);
       setInArrowZone(false);
-      setIsScrolling(false);
-      setHoverLocked(false);
       
       if (scrollIntervalRef.current) {
         clearInterval(scrollIntervalRef.current);
@@ -151,44 +148,30 @@ export default function DesktopScene({
     }
   }, [isLoaded, active]);
 
-  // Handle continuous scrolling on hover
-  useEffect(() => {
-    if (!isLoaded || active !== null) return;
+  // Define the startScrollInterval function
+  const startScrollInterval = () => {
+    if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
     
-    if (isHoveringLeft || isHoveringRight) {
-      if (scrollIntervalRef.current) {
-        clearInterval(scrollIntervalRef.current);
+    scrollIntervalRef.current = setInterval(() => {
+      if (isHoveringLeft) {
+        setTargetScrollPosition(prev => Math.max(maxScrollLeft, prev - 0.1));
+        setHoverLocked(true); // Lock hover while actively scrolling
+      } else if (isHoveringRight) {
+        setTargetScrollPosition(prev => Math.min(maxScrollRight, prev + 0.1));
+        setHoverLocked(true); // Lock hover while actively scrolling
       }
-      
-      // Set up continuous scrolling
-      scrollIntervalRef.current = setInterval(() => {
-        if (isHoveringLeft) {
-          setTargetScrollPosition(prev => Math.max(maxScrollLeft, prev - 0.1));
-          setIsScrolling(true);
-          setHoverLocked(true); // Only lock hover while actively scrolling
-        } else if (isHoveringRight) {
-          setTargetScrollPosition(prev => Math.min(maxScrollRight, prev + 0.1));
-          setIsScrolling(true);
-          setHoverLocked(true); // Only lock hover while actively scrolling
-        }
-      }, 16); // Approximately 60fps
+    }, 16); // Approximately 60fps
+  };
+
+  // Start/stop scroll interval when hovering over arrows
+  useEffect(() => {
+    if ((isHoveringLeft || isHoveringRight) && !active) {
+      startScrollInterval();
     } else {
-      // Clear interval when not hovering
       if (scrollIntervalRef.current) {
         clearInterval(scrollIntervalRef.current);
         scrollIntervalRef.current = null;
       }
-      
-      // Skip snapping if we just exited active view
-      if (!justExitedActiveViewRef.current) {
-        // Snap to nearest card
-        const nearestCardPosition = Math.round(targetScrollPosition / CARD_WIDTH) * CARD_WIDTH;
-        setTargetScrollPosition(Math.min(maxScrollRight, Math.max(maxScrollLeft, nearestCardPosition)));
-      }
-      
-      // Immediately unlock hover when scrolling stops
-      setIsScrolling(false);
-      setHoverLocked(false);
     }
     
     return () => {
@@ -197,9 +180,9 @@ export default function DesktopScene({
         scrollIntervalRef.current = null;
       }
     };
-  }, [isHoveringLeft, isHoveringRight, isLoaded, active, maxScrollLeft, maxScrollRight, targetScrollPosition, CARD_WIDTH]);
+  }, [isHoveringLeft, isHoveringRight, active, maxScrollLeft, maxScrollRight]);
 
-  // Smooth animation for scrolling
+  // Animation loop for smooth scrolling
   useEffect(() => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -209,6 +192,8 @@ export default function DesktopScene({
       setScrollPosition(prev => {
         const diff = targetScrollPosition - prev;
         if (Math.abs(diff) < 0.005) {
+          // Call handleScrollStop when animation completes
+          setTimeout(handleScrollStop, 0);
           return targetScrollPosition;
         }
         
@@ -251,6 +236,32 @@ export default function DesktopScene({
   
   // Always show arrows if we have more than 3 cards
   const shouldShowArrows = cardArr.length > 3;
+  
+  // When user stops scrolling, snap to nearest card
+  const handleScrollStop = () => {
+    if (active !== null || justExitedActiveViewRef.current) {
+      justExitedActiveViewRef.current = false;
+      return;
+    }
+
+    // Find the nearest card position to snap to
+    const cardPositions = cardArr.map((_, index) => index * CARD_WIDTH);
+    const closestCardIndex = cardPositions.reduce((prevIndex, position, currentIndex) => {
+      return Math.abs(position - scrollPosition) < Math.abs(cardPositions[prevIndex] - scrollPosition)
+        ? currentIndex
+        : prevIndex;
+    }, 0);
+
+    const nearestCardPosition = cardPositions[closestCardIndex];
+
+    if (Math.abs(nearestCardPosition - scrollPosition) > 0.01) {
+      // Snap to nearest card
+      setTargetScrollPosition(Math.min(maxScrollRight, Math.max(maxScrollLeft, nearestCardPosition)));
+    }
+    
+    // Immediately unlock hover when scrolling stops
+    setHoverLocked(false);
+  }
   
   return (
     <div className="h-full w-full relative" 
