@@ -62,7 +62,6 @@ const Card = ({
   
   // Position and color calculations
   const initialPos = useMemo(() => new THREE.Vector3(cardPos * 0.4, 0, 0), [cardPos]);
-  const selected = active === id;
   
   // Create desaturated version of the card color for non-selected state
   const cardColor = new THREE.Color(selectedVariant.cardColor);
