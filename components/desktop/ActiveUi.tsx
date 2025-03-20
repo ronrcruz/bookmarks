@@ -223,6 +223,7 @@ export default function ActiveUi({
                         style={{ backgroundColor: variant.cardColor }}
                         className={`rounded-full border-black/10 border-2 size-6 lg:size-10 ${selectedVariantIndex === index ? "ring-2 ring-black" : ""
                           }`}
+                        aria-label={`${variant.colorName} color${selectedVariant && selectedVariant.colorName === variant.colorName ? ' (selected)' : ''}`}
                       />
                     ))}
                   </li>

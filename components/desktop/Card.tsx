@@ -43,18 +43,6 @@ const Card = ({
   const meshRef = useRef<THREE.Mesh>(null);
   const roundedRectShape = createRoundedRectShape(1.0, 1.75, 0.1);
   const geometry = new THREE.ExtrudeGeometry(roundedRectShape, { depth: 0.02, bevelEnabled: false });
-  const planeGeometry = useMemo(() => {
-    const shape = createRoundedRectShape(1.0, 1.75, 0.1);
-    const geo = new THREE.ShapeGeometry(shape, 32);
-    geo.computeVertexNormals();
-    const uvs = geo.attributes.uv.array;
-    for (let i = 0; i < uvs.length; i += 2) {
-      uvs[i] = (uvs[i] + 0.5) * (1.0 / 1.0);
-      uvs[i + 1] = (uvs[i + 1] + 0.875) * (1.0 / 1.75);
-    }
-    geo.attributes.uv.needsUpdate = true;
-    return geo;
-  }, []);
   const initialPos = useMemo(() => new THREE.Vector3(cardPos * 0.4, 0, 0), [cardPos]);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
