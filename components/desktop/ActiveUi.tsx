@@ -104,9 +104,27 @@ export default function ActiveUi({
       {active !== null && (
         <div
           className="fixed h-full w-full z-30 p-10 lg:p-14 flex"
-          style={{ pointerEvents: active ? "auto" : "none" }}
+          style={{ 
+            pointerEvents: active ? "auto" : "none"
+          }}
           onClick={() => setHasSeenIndicator(true)}
         >
+          {/* Background Gradient */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ 
+              duration: 1.0,
+              exit: { duration: 0.3 }
+            }}
+            className="absolute inset-0"
+            style={{ 
+              background: "linear-gradient(to right, #bdd7ee 27%, transparent 37%)",
+              zIndex: -1
+            }}
+          />
+          
           {/* INDICATOR */}
           {!hasSeenIndicator && (
             <motion.div
@@ -155,21 +173,23 @@ export default function ActiveUi({
               >
                 {activeCard?.info}
               </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ delay: active ? 0.6 : 0, duration: 0.3 }}
-                className="flex gap-2 w-full h-12 items-center"
-              >
-                {[...Array(cardArr.length)].map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handlePage(i + 1)}
-                    className={`border rounded-full size-2 border-black/30 ${activeCard?.id === i + 1 ? "bg-neutral-800" : "bg-none"}`}
-                  />
-                ))}
-              </motion.div>
+            </motion.div>
+            
+            {/* Pagination - Moved to center */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ delay: active ? 0.6 : 0, duration: 0.3 }}
+              className="absolute bottom-10 lg:bottom-14 left-1/2 transform -translate-x-1/2 flex gap-2 items-center"
+            >
+              {[...Array(cardArr.length)].map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => handlePage(i + 1)}
+                  className={`border rounded-full size-2 border-black/30 ${activeCard?.id === i + 1 ? "bg-neutral-800" : "bg-none"}`}
+                />
+              ))}
             </motion.div>
 
             {/* MIDDLE */}

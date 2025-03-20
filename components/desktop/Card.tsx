@@ -171,15 +171,15 @@ const Card = ({
           smoothTime = 0.1;
         } else {
           targetPosition = [xPosition, initialPos.y, initialPos.z + zOffset];
-          // Adjust smooth time for a more fluid animation when spreading cards
-          smoothTime = active === null ? 0.1 : 0.6;
+          // Faster animation when returning to the idle view
+          smoothTime = active === null ? 0.087 : 0.35;
         }
         
         targetRotation = [0, card.isFlipped ? Math.PI : 0, 0];
       }
 
       easing.damp3(groupRef.current.position, targetPosition, smoothTime, delta);
-      easing.damp3(rotationRef.current, targetRotation, active ? 0.5 : 0.175, delta);
+      easing.damp3(rotationRef.current, targetRotation, active ? 0.5 : 0.25, delta);
       groupRef.current.rotation.set(rotationRef.current.x, rotationRef.current.y, rotationRef.current.z);
 
       if (!isLoaded) {
@@ -187,9 +187,10 @@ const Card = ({
       } else {
         if (active) {
           // Center camera on the origin point (0,0,0) where the active card is positioned
-          easing.damp3(state.camera.position, [0, 2.5, 20], 2.0, delta);
+          easing.damp3(state.camera.position, [0, 2.5, 20], 1.5, delta);
         } else {
-          easing.damp3(state.camera.position, [0, 2, 8], 2.0, delta);
+          // Keep camera positioned to have all cards in view, with slower transition
+          easing.damp3(state.camera.position, [0, 2, 8], 1.215, delta);
         }
       }
     }

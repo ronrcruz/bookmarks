@@ -39,6 +39,10 @@ export default function DesktopScene({
   
   // Track the last active card
   const lastActiveCardRef = useRef<number | null>(null);
+  // Track if we just exited active view to prevent snapping
+  const justExitedActiveViewRef = useRef(false);
+  // Track the position where the active card would be in the idle view
+  const activeCardPositionRef = useRef(0);
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const CARD_WIDTH = 1.2; // Width of each card + spacing
@@ -94,34 +98,36 @@ export default function DesktopScene({
     });
   }, [visibleCards, maxScrollLeft, maxScrollRight, cardArr.length, windowWidth]);
   
-  // Track active state changes to capture the card ID when entering active view
+  // Store the active card ID when entering active view or changing between active cards
   useEffect(() => {
     if (active !== null) {
-      // Store the active card when entering active view
+      // Store the active card when entering active view or changing between cards
+      const prevActiveCard = lastActiveCardRef.current;
       lastActiveCardRef.current = active;
-      console.log(`Storing active card ID: ${active}`);
-    }
-  }, [active]);
-  
-  // This effect specifically handles when we exit the active view
-  useEffect(() => {
-    // Only run when transitioning from active to inactive
-    if (active === null && lastActiveCardRef.current !== null) {
-      console.log(`Exiting active view, last card was: ${lastActiveCardRef.current}`);
+      console.log(`Active card changed: ${prevActiveCard} -> ${active}`);
       
-      // Find the index of the previously active card
-      const lastCardIndex = cardArr.findIndex(card => card.id === lastActiveCardRef.current);
-      
-      if (lastCardIndex !== -1) {
-        // Calculate the position that centers this card
-        const centerPosition = (lastCardIndex - (cardArr.length - 1) / 2) * CARD_WIDTH;
-        
-        console.log(`Setting scroll position to center card ${lastCardIndex} at position ${centerPosition}`);
-        
-        // Force both current and target positions to ensure immediate effect
-        setScrollPosition(centerPosition);
-        setTargetScrollPosition(centerPosition);
+      // Calculate and store where this card would be positioned in the idle view
+      const activeCardIndex = cardArr.findIndex(card => card.id === active);
+      if (activeCardIndex !== -1) {
+        // Calculate card's position in the idle row
+        const cardPosition = (activeCardIndex - (cardArr.length - 1) / 2) * CARD_WIDTH;
+        activeCardPositionRef.current = cardPosition;
+        console.log(`Storing active card ${active} position: ${cardPosition}`);
       }
+      
+      justExitedActiveViewRef.current = false;
+    } else if (lastActiveCardRef.current !== null) {
+      // We just exited active view - we'll use the stored position
+      console.log(`Exiting active view, last card was: ${lastActiveCardRef.current} at position ${activeCardPositionRef.current}`);
+      justExitedActiveViewRef.current = true;
+      
+      // Set target scroll position to center on the last active card
+      setTargetScrollPosition(activeCardPositionRef.current);
+      
+      // Reset after a short delay to allow scrolling to settle
+      setTimeout(() => {
+        justExitedActiveViewRef.current = false;
+      }, 400);
     }
   }, [active, cardArr, CARD_WIDTH]);
   
@@ -137,13 +143,6 @@ export default function DesktopScene({
       setInArrowZone(false);
       setIsScrolling(false);
       setHoverLocked(false);
-      
-      // Only reset scroll position when ENTERING active view
-      if (active !== null) {
-        // When entering active view, reset to center
-        setScrollPosition(0);
-        setTargetScrollPosition(0);
-      }
       
       if (scrollIntervalRef.current) {
         clearInterval(scrollIntervalRef.current);
@@ -180,9 +179,12 @@ export default function DesktopScene({
         scrollIntervalRef.current = null;
       }
       
-      // Snap to nearest card
-      const nearestCardPosition = Math.round(targetScrollPosition / CARD_WIDTH) * CARD_WIDTH;
-      setTargetScrollPosition(Math.min(maxScrollRight, Math.max(maxScrollLeft, nearestCardPosition)));
+      // Skip snapping if we just exited active view
+      if (!justExitedActiveViewRef.current) {
+        // Snap to nearest card
+        const nearestCardPosition = Math.round(targetScrollPosition / CARD_WIDTH) * CARD_WIDTH;
+        setTargetScrollPosition(Math.min(maxScrollRight, Math.max(maxScrollLeft, nearestCardPosition)));
+      }
       
       // Immediately unlock hover when scrolling stops
       setIsScrolling(false);
@@ -206,10 +208,13 @@ export default function DesktopScene({
     const animateScroll = () => {
       setScrollPosition(prev => {
         const diff = targetScrollPosition - prev;
-        if (Math.abs(diff) < 0.01) {
+        if (Math.abs(diff) < 0.005) {
           return targetScrollPosition;
         }
-        return prev + diff * 0.1; // Smooth easing
+        
+        // Use different easing rate based on whether we just exited active view
+        const easeFactor = justExitedActiveViewRef.current ? 1.0 : 0.15;
+        return prev + diff * easeFactor; // Smoother easing
       });
       
       animationFrameRef.current = requestAnimationFrame(animateScroll);
