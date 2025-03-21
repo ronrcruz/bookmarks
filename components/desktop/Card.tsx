@@ -61,6 +61,7 @@ const Card = ({
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const { camera } = useThree();
   const lastActiveStateRef = useRef<boolean>(false); // Track if this card was previously active
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const isTransitioningRef = useRef<boolean>(false); // Track if this card is in transition
 
   const selectedVariant = card.colorVariations[card.selectedVariantIndex];
@@ -140,7 +141,7 @@ const Card = ({
     isPointerOverRef.current = isOver;
     setHover(isOver);
     
-  }, [scrollPosition, active, hoverLocked, inArrowZone, cursorPosition]);
+  }, [scrollPosition, active, hoverLocked, inArrowZone, cursorPosition, camera]);
 
   bookmark.minFilter = THREE.LinearFilter;
   bookmark.magFilter = THREE.LinearFilter;

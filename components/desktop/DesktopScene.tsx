@@ -34,8 +34,10 @@ export default function DesktopScene({
   const [isHoveringRight, setIsHoveringRight] = useState(false);
   const [inArrowZone, setInArrowZone] = useState(false);
   const [hoverLocked, setHoverLocked] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isActivelyScrolling, setIsActivelyScrolling] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isWheelScrolling, setIsWheelScrolling] = useState(false);
   // Track cursor position for hover updates during scrolling
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
