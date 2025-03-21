@@ -63,6 +63,8 @@ const Card = ({
   const rotationRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
+  const lastActiveIdRef = useRef<number | null>(null);
+
   // Reset hover state when entering arrow zone or when hover is locked during scrolling
   useEffect(() => {
     if (inArrowZone || hoverLocked) {
@@ -134,6 +136,19 @@ const Card = ({
     return () => window.removeEventListener("mousemove", pointerMove);
   }, [active, id]);
 
+  useEffect(() => {
+    if (active === id) {
+      console.log(`Card ${id} became active`);
+    } else if (active === null && lastActiveIdRef.current === id) {
+      console.log(`Card ${id} became inactive`);
+    }
+    
+    // Store last active ID for this card
+    if (active === id) {
+      lastActiveIdRef.current = id;
+    }
+  }, [active, id]);
+
   useFrame((state, delta) => {
     if (groupRef.current) {
       let targetPosition: [number, number, number];
@@ -154,6 +169,14 @@ const Card = ({
           card.isFlipped ? Math.PI - rotationY : -rotationY,
           0,
         ];
+        
+        // Debug: track this card's active position
+        if (meshRef.current) {
+          console.log(`CARD ${id} (ACTIVE) target position: [${targetPosition}], current: [${groupRef.current.position.x.toFixed(2)}, ${groupRef.current.position.y.toFixed(2)}, ${groupRef.current.position.z.toFixed(2)}]`);
+        }
+        
+        // Update the reference when this card becomes active
+        lastActiveIdRef.current = id;
       } else {
         // Calculate horizontal position based on scroll position regardless of hover state
         let xPosition = initialPos.x;
@@ -176,9 +199,19 @@ const Card = ({
             // All cards to the right of active card move right
             xPosition = initialPos.x + 1.8 + rowOffset;
           }
+          
+          // Debug: track inactive card positions during active mode
+          if (id === lastActiveIdRef.current) {
+            console.log(`CARD ${id} (PREVIOUSLY ACTIVE) target position: [${xPosition}, ${initialPos.y}, ${initialPos.z + zOffset}]`);
+          }
         } else if (active === null) {
           // Apply scroll offset when in idle view
           xPosition = initialPos.x - scrollPosition;
+          
+          // Debug: track card returning to idle position
+          if (id === lastActiveIdRef.current) {
+            console.log(`CARD ${id} (RETURNING TO IDLE) target position: [${xPosition}, ${initialPos.y}, ${initialPos.z}], scroll: ${scrollPosition}`);
+          }
         }
         
         // Set y position based on hover state, but always use the calculated x position
@@ -194,6 +227,7 @@ const Card = ({
         targetRotation = [0, card.isFlipped ? Math.PI : 0, 0];
       }
 
+      // Apply easing with appropriate transition times based on context
       easing.damp3(groupRef.current.position, targetPosition, smoothTime, delta);
       easing.damp3(rotationRef.current, targetRotation, active ? 0.5 : 0.25, delta);
       groupRef.current.rotation.set(rotationRef.current.x, rotationRef.current.y, rotationRef.current.z);
@@ -202,11 +236,19 @@ const Card = ({
         easing.damp3(state.camera.position, [state.camera.position.x, 30, 0], 2.0, delta);
       } else {
         if (active) {
-          // Center camera on the origin point (0,0,0) where the active card is positioned
-          easing.damp3(state.camera.position, [0, 2.5, 20], 1.5, delta);
+          // Debug: track camera position during active mode
+          console.log(`CAMERA (ACTIVE) target: [0, 2.5, 20], current: [${state.camera.position.x.toFixed(2)}, ${state.camera.position.y.toFixed(2)}, ${state.camera.position.z.toFixed(2)}]`);
+          
+          // Use a consistent, slightly faster transition for active view camera
+          // This ensures arrow key navigation feels responsive and doesn't have the jerky transition
+          easing.damp3(state.camera.position, [0, 2.5, 20], 0.65, delta);
         } else {
           // Keep camera positioned to have all cards in view, with slower transition
-          easing.damp3(state.camera.position, [0, 2, 8], 1.215, delta);
+          // Debug: track camera position during return to idle
+          console.log(`CAMERA (IDLE) target: [0, 2, 8], current: [${state.camera.position.x.toFixed(2)}, ${state.camera.position.y.toFixed(2)}, ${state.camera.position.z.toFixed(2)}]`);
+          
+          // Use a smoother transition when returning to idle view to prevent jerking
+          easing.damp3(state.camera.position, [0, 2, 8], 0.95, delta);
         }
       }
     }

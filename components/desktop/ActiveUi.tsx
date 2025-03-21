@@ -52,6 +52,7 @@ export default function ActiveUi({
 
   const handleClose = useCallback(() => {
     if (activeCard) {
+      console.log(`[DESELECT] Closing active view for card ${activeCard.id}`);
       setActive(null);
       flipCard(activeCard.id, false);
     }
@@ -65,13 +66,24 @@ export default function ActiveUi({
 
       if (e.key === "ArrowRight" || e.key === "ArrowUp") {
         const nextActive = active % 11 + 1;
-        setActive(nextActive);
+        console.log(`[KEY NAV] Arrow Right/Up pressed. Changing active card: ${active} -> ${nextActive}`);
+        
+        // First reset the flipped state of the currently active card
         if (activeCard) flipCard(active, false);
+        
+        // Then set the new active card
+        setActive(nextActive);
       } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
         const prevActive = active === 1 ? 11 : active - 1;
-        setActive(prevActive);
+        console.log(`[KEY NAV] Arrow Left/Down pressed. Changing active card: ${active} -> ${prevActive}`);
+        
+        // First reset the flipped state of the currently active card
         if (activeCard) flipCard(active, false);
+        
+        // Then set the new active card
+        setActive(prevActive);
       } else if (e.key === "Escape") {
+        console.log(`[KEY NAV] Escape pressed. Closing active view.`);
         handleClose();
       }
     };
@@ -80,11 +92,12 @@ export default function ActiveUi({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [active, activeCard, flipCard, setActive, handleClose, hasSeenIndicator]);
 
-
-
   const handlePage = (activeId: number) => {
     if (active && activeCard) {
+      // Set the new active card immediately without deactivating first
+      // This prevents the camera from briefly transitioning to default position
       setActive(activeId);
+      // Then reset the flipped state of the previously active card
       flipCard(active, false);
     }
   };
