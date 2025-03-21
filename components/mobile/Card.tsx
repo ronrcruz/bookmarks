@@ -68,7 +68,7 @@ const Card = ({
   const elevationThreshold = 0.4; // Threshold for elevation
   const elevationHeight = 0.7; // Height to elevate the focused card
 
-  const initialPos = useMemo(() => new THREE.Vector3(0, 0, index * dz), [index]);
+  const initialPos = useMemo(() => new THREE.Vector3(0, 0, index * dz), [index, dz]);
 
   const selectedVariant = card.colorVariations[card.selectedVariantIndex];
   const [bookmark, foil, normalMap] = useTexture(["/bookmark.png", "/foil.png", "/NormalMap.png"]);
@@ -150,7 +150,11 @@ const Card = ({
       targetRotation = [0, 0, 0];
     }
 
-    easing.damp3(groupRef.current.position, targetPosition, smoothTime, delta);
+    // Apply easing properly - direct positioning for x to stay in sync with scrolling,
+    // but easing for y and z for smooth vertical and depth transitions
+    groupRef.current.position.x = targetPosition[0]; // Direct x positioning - no easing
+    easing.damp(groupRef.current.position, 'y', targetPosition[1], smoothTime, delta); // Eased y
+    easing.damp(groupRef.current.position, 'z', targetPosition[2], smoothTime, delta); // Eased z
     easing.damp3(rotationRef.current, targetRotation, active ? 0.35 : 0.265, delta);
 
     groupRef.current.rotation.set(rotationRef.current.x, rotationRef.current.y, rotationRef.current.z);

@@ -2,7 +2,7 @@ import { Canvas } from "@react-three/fiber";
 import Experience from "./Experience";
 import LoadingScreen from "./LoadingScreen";
 import ActiveUi from "./ActiveUi";
-import { Dispatch, SetStateAction, useState, useEffect, useRef, useMemo } from "react";
+import { Dispatch, SetStateAction, useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { CardType } from "@/app/definitions";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 
@@ -36,16 +36,31 @@ export default function DesktopScene({
   const [hoverLocked, setHoverLocked] = useState(false);
   const [isActivelyScrolling, setIsActivelyScrolling] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const [isWheelScrolling, setIsWheelScrolling] = useState(false);
+  // Track cursor position for hover updates during scrolling
+  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   
   // Track the last active card
   const lastActiveCardRef = useRef<number | null>(null);
-  // Track if we just exited active view to prevent snapping
-  const justExitedActiveViewRef = useRef(false);
-  // Track the position where the active card would be in the idle view
-  const activeCardPositionRef = useRef(0);
+  // Remove all special position tracking
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const CARD_WIDTH = 1.2; // Width of each card + spacing
+  
+  // Calculate all card positions for wheel scrolling - memoized to avoid recreation
+  const getCardPositions = useCallback(() => {
+    return cardArr.map((_, index) => (index - (cardArr.length - 1) / 2) * CARD_WIDTH);
+  }, [cardArr, CARD_WIDTH]);
+
+  // Get the current card index based on scroll position - memoized to avoid recreation
+  const getCurrentCardIndex = useCallback(() => {
+    const cardPositions = getCardPositions();
+    return cardPositions.reduce((closestIndex, position, currentIndex) => {
+      return Math.abs(position - scrollPosition) < Math.abs(cardPositions[closestIndex] - scrollPosition)
+        ? currentIndex
+        : closestIndex;
+    }, 0);
+  }, [getCardPositions, scrollPosition]);
   
   // Update window size on resize
   useEffect(() => {
@@ -84,7 +99,7 @@ export default function DesktopScene({
         maxScrollRight: rightmostPosition
       };
     }
-  }, [cardArr, scrollPosition, windowWidth, CARD_WIDTH]);
+  }, [cardArr, windowWidth, CARD_WIDTH]);
   
   // Log values for debugging
   useEffect(() => {
@@ -98,45 +113,14 @@ export default function DesktopScene({
     });
   }, [visibleCards, maxScrollLeft, maxScrollRight, cardArr.length, windowWidth]);
   
-  // Store the active card ID when entering active view or changing between active cards
+  // Basic logic to track active card changes
   useEffect(() => {
     if (active !== null) {
-      // Store the active card when entering active view or changing between cards
-      const prevActiveCard = lastActiveCardRef.current;
-      
-      // Update last active card reference
       lastActiveCardRef.current = active;
-      console.log(`Active card changed: ${prevActiveCard} -> ${active}`);
-      
-      // Calculate and store where this card would be positioned in the idle view
-      const activeCardIndex = cardArr.findIndex(card => card.id === active);
-      if (activeCardIndex !== -1) {
-        // Calculate card's position in the idle row
-        const cardPosition = (activeCardIndex - (cardArr.length - 1) / 2) * CARD_WIDTH;
-        
-        // Update the active card position reference to the current card's position
-        activeCardPositionRef.current = cardPosition;
-        console.log(`[POSITION TRACKING] Storing active card ${active} position: ${cardPosition.toFixed(2)}, activeCardIndex: ${activeCardIndex}`);
-      }
-      
-      // Clear the just exited flag to ensure smooth navigation between active cards
-      justExitedActiveViewRef.current = false;
-    } else if (lastActiveCardRef.current !== null) {
-      // We just exited active view - we'll use the stored position
-      console.log(`[POSITION TRACKING] Exiting active view, last card was: ${lastActiveCardRef.current} at stored position ${activeCardPositionRef.current.toFixed(2)}`);
-      justExitedActiveViewRef.current = true;
-      
-      // Set target scroll position to center on the last active card
-      setTargetScrollPosition(activeCardPositionRef.current);
-      console.log(`[POSITION TRACKING] Setting targetScrollPosition to ${activeCardPositionRef.current.toFixed(2)}`);
-      
-      // Reset after a delay to allow scrolling to settle
-      setTimeout(() => {
-        justExitedActiveViewRef.current = false;
-        console.log(`[ANIMATION STATE] Reset justExitedActiveViewRef to false`);
-      }, 400);
+    } else {
+      lastActiveCardRef.current = null;
     }
-  }, [active, cardArr, CARD_WIDTH]);
+  }, [active]);
   
   // Automatically show arrows when idle view is active
   useEffect(() => {
@@ -156,23 +140,95 @@ export default function DesktopScene({
     }
   }, [isLoaded, active]);
 
-  // Define the startScrollInterval function
-  const startScrollInterval = () => {
+  // Define the startScrollInterval function with useCallback - moved after dependencies are defined
+  const startScrollInterval = useCallback(() => {
     if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
     
     // Set scrolling state to prevent snapping during active scrolling
     setIsActivelyScrolling(true);
     
+    // Track current card and time of last scroll
+    let currentCardIndex = getCurrentCardIndex();
+    let lastScrollTime = Date.now();
+    
     scrollIntervalRef.current = setInterval(() => {
+      // Only scroll if enough time has passed since last scroll (throttle)
+      const now = Date.now();
+      if (now - lastScrollTime < 220) return; // Increased from 180ms for smoother scrolling
+      
       if (isHoveringLeft) {
-        setTargetScrollPosition(prev => Math.max(maxScrollLeft, prev - 0.1));
-        setHoverLocked(true); // Lock hover while actively scrolling
+        // Move directly to previous card
+        const nextIndex = Math.max(0, currentCardIndex - 1);
+        if (nextIndex !== currentCardIndex) {
+          const cardPositions = getCardPositions();
+          const targetPosition = cardPositions[nextIndex];
+          setTargetScrollPosition(targetPosition);
+          setHoverLocked(true);
+          currentCardIndex = nextIndex;
+          lastScrollTime = now;
+        }
       } else if (isHoveringRight) {
-        setTargetScrollPosition(prev => Math.min(maxScrollRight, prev + 0.1));
-        setHoverLocked(true); // Lock hover while actively scrolling
+        // Move directly to next card
+        const nextIndex = Math.min(cardArr.length - 1, currentCardIndex + 1);
+        if (nextIndex !== currentCardIndex) {
+          const cardPositions = getCardPositions();
+          const targetPosition = cardPositions[nextIndex];
+          setTargetScrollPosition(targetPosition);
+          setHoverLocked(true);
+          currentCardIndex = nextIndex;
+          lastScrollTime = now;
+        }
       }
-    }, 16); // Approximately 60fps
-  };
+    }, 40); // Increased from 25ms for smoother animation
+  }, [
+    isHoveringLeft, 
+    isHoveringRight, 
+    getCurrentCardIndex, 
+    getCardPositions, 
+    cardArr.length, 
+    setHoverLocked,
+    setTargetScrollPosition,
+    setIsActivelyScrolling
+  ]);
+  
+  // Handle scroll stopping and snapping to the nearest card - memoized to avoid recreation
+  const handleScrollStop = useCallback(() => {
+    // Don't snap when a card is active
+    if (active !== null) {
+      return;
+    }
+    
+    // Find the nearest card position to snap to
+    const cardPositions = getCardPositions();
+    
+    // Find the card closest to the current scroll position
+    const closestCardIndex = cardPositions.reduce((prevIndex, position, currentIndex) => {
+      return Math.abs(position - scrollPosition) < Math.abs(cardPositions[prevIndex] - scrollPosition)
+        ? currentIndex
+        : prevIndex;
+    }, 0);
+
+    const nearestCardPosition = cardPositions[closestCardIndex];
+
+    // Always snap to nearest card position for more predictable navigation
+    const targetPosition = Math.min(maxScrollRight, Math.max(maxScrollLeft, nearestCardPosition));
+    setTargetScrollPosition(targetPosition);
+    
+    // Immediately unlock hover when scrolling stops
+    setHoverLocked(false);
+    setIsActivelyScrolling(false);
+    setIsWheelScrolling(false);
+  }, [
+    active,
+    scrollPosition,
+    getCardPositions,
+    maxScrollRight,
+    maxScrollLeft,
+    setTargetScrollPosition,
+    setHoverLocked,
+    setIsActivelyScrolling,
+    setIsWheelScrolling
+  ]);
 
   // Start/stop scroll interval when hovering over arrows
   useEffect(() => {
@@ -188,11 +244,9 @@ export default function DesktopScene({
         
         // Only trigger snap when user stops hovering over arrows
         if (!isHoveringLeft && !isHoveringRight) {
-          // Slight delay before snapping to make it feel more natural
-          setTimeout(() => {
-            setIsActivelyScrolling(false);
-            handleScrollStop();
-          }, 150);
+          // Trigger snapping immediately for better responsiveness
+          setIsActivelyScrolling(false);
+          handleScrollStop();
         }
       }
     }
@@ -204,7 +258,7 @@ export default function DesktopScene({
         setHoverLocked(false); // Always ensure hover lock is released on cleanup
       }
     };
-  }, [isHoveringLeft, isHoveringRight, active, maxScrollLeft, maxScrollRight]);
+  }, [isHoveringLeft, isHoveringRight, active, handleScrollStop, setHoverLocked, startScrollInterval]);
 
   // Animation loop for smooth scrolling
   useEffect(() => {
@@ -218,14 +272,15 @@ export default function DesktopScene({
         if (Math.abs(diff) < 0.005) {
           // When scrolling stops naturally, ensure we unlock hover
           setHoverLocked(false);
-          console.log(`[ANIMATION COMPLETE] Scroll animation completed at ${targetScrollPosition.toFixed(2)}`);
           return targetScrollPosition;
         }
         
-        // Use different easing rate based on whether we just exited active view
-        // Use a smoother easing factor for better feel
-        const easeFactor = justExitedActiveViewRef.current ? 0.15 : 0.08;
-        console.log(`[ANIMATION] Using easeFactor: ${easeFactor}, justExitedActiveView: ${justExitedActiveViewRef.current}`);
+        // Use a consistent easing factor for all animations
+        const easeFactor = 0.15;
+        
+        // Unlock hover during animations
+        setHoverLocked(false);
+        
         return prev + diff * easeFactor;
       });
       
@@ -248,6 +303,9 @@ export default function DesktopScene({
       const x = e.clientX;
       const width = window.innerWidth;
       
+      // Update cursor position for hover detection
+      setCursorPosition({ x: e.clientX, y: e.clientY });
+      
       // Check if mouse is in left or right arrow zone
       if (x < arrowZoneWidth || x > width - arrowZoneWidth) {
         setInArrowZone(true);
@@ -268,49 +326,79 @@ export default function DesktopScene({
   // Always show arrows if we have more than 3 cards
   const shouldShowArrows = cardArr.length > 3;
   
-  // When user stops scrolling, snap to nearest card
-  const handleScrollStop = () => {
-    if (active !== null || justExitedActiveViewRef.current || isActivelyScrolling) {
-      justExitedActiveViewRef.current = false;
-      return;
-    }
-
-    // Find the nearest card position to snap to
-    // Calculate positions relative to the center, not from position 0
-    const centerOffset = ((cardArr.length - 1) / 2) * CARD_WIDTH;
-    const cardPositions = cardArr.map((_, index) => (index - (cardArr.length - 1) / 2) * CARD_WIDTH);
-    
-    // Find the card closest to the current scroll position
-    const closestCardIndex = cardPositions.reduce((prevIndex, position, currentIndex) => {
-      return Math.abs(position - scrollPosition) < Math.abs(cardPositions[prevIndex] - scrollPosition)
-        ? currentIndex
-        : prevIndex;
-    }, 0);
-
-    const nearestCardPosition = cardPositions[closestCardIndex];
-
-    // Only snap if we're not already very close to a card position
-    if (Math.abs(nearestCardPosition - scrollPosition) > 0.01) {
-      // Create a smoother, more natural animation by using a custom easing
-      // First quickly move close to the target, then slow down for a smooth finish
-      const currentPosition = scrollPosition;
-      const targetPosition = Math.min(maxScrollRight, Math.max(maxScrollLeft, nearestCardPosition));
-      
-      setTargetScrollPosition(targetPosition);
-    }
-    
-    // Immediately unlock hover when scrolling stops
-    setHoverLocked(false);
-    setIsActivelyScrolling(false);
-  }
-  
-  // Add debug for scroll changes
+  // Simple wheel handler with no special cases
   useEffect(() => {
-    console.log(`[SCROLL] Updated scrollPosition: ${scrollPosition.toFixed(2)}, targetScrollPosition: ${targetScrollPosition.toFixed(2)}`);
-  }, [scrollPosition, targetScrollPosition]);
-  
+    const containerRef = document.getElementById('card-container');
+    
+    if (containerRef) {
+      const handleWheelEvent = (e: WheelEvent) => {
+        // Prevent default browser scroll behavior
+        e.preventDefault();
+        
+        // Only handle wheel events when in idle view
+        if (!isLoaded || active !== null) {
+          return;
+        }
+        
+        // Basic wheel navigation
+        const direction = e.deltaY > 0 ? 1 : -1;
+        
+        // Get current position data
+        const cardPositions = getCardPositions();
+        const currentIndex = getCurrentCardIndex();
+        
+        // Calculate target position
+        const targetIndex = Math.max(0, Math.min(cardArr.length - 1, currentIndex + direction));
+        const targetPosition = cardPositions[targetIndex];
+        
+        // Set the target position
+        setTargetScrollPosition(targetPosition);
+      };
+      
+      // Changed to non-passive to allow preventDefault()
+      containerRef.addEventListener('wheel', handleWheelEvent, { passive: false });
+      
+      return () => {
+        containerRef.removeEventListener('wheel', handleWheelEvent);
+      };
+    }
+  }, [
+    isLoaded, 
+    active, 
+    getCardPositions, 
+    getCurrentCardIndex, 
+    cardArr.length,
+    setTargetScrollPosition
+  ]);
+
+  // Cleanup for all scroll-related timers and animations
+  useEffect(() => {
+    return () => {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
+  }, []);
+
+  // In DesktopScene.tsx where active card changes (handleKeyDown or handlePage)
+  useEffect(() => {
+    if (active !== null) {
+      // When active card changes, update scrollPosition to match
+      const activeIndex = cardArr.findIndex(card => card.id === active);
+      const newPosition = (activeIndex - (cardArr.length - 1) / 2) * 1.2;
+      setTargetScrollPosition(newPosition);
+    }
+  }, [active, cardArr]);
+
   return (
-    <div className="h-full w-full relative" 
+    <div 
+      id="card-container"
+      className="h-full w-full relative overflow-hidden" 
       onMouseMove={handleMouseMove}
       onMouseLeave={() => {
         if (active === null) {
@@ -320,7 +408,8 @@ export default function DesktopScene({
           setIsHoveringRight(false);
           setInArrowZone(false);
         }
-      }}>
+      }}
+    >
       <ActiveUi
         active={active}
         setActive={setActive}
@@ -380,7 +469,14 @@ export default function DesktopScene({
         </div>
       )}
 
-      <Canvas className="fixed z-20" shadows flat dpr={[1, 1.5]} camera={{ position: [0, 2, 8], fov: 30, near: 1, far: 30 }}>
+      <Canvas 
+        className="absolute inset-0 z-20" 
+        style={{ position: 'absolute' }} 
+        shadows 
+        flat 
+        dpr={[1, 1.5]} 
+        camera={{ position: [0, 2, 8], fov: 30, near: 1, far: 30 }}
+      >
         <Experience
           cardArr={cardArr}
           active={active}
@@ -389,6 +485,7 @@ export default function DesktopScene({
           scrollPosition={scrollPosition}
           inArrowZone={inArrowZone}
           hoverLocked={hoverLocked}
+          cursorPosition={cursorPosition}
         />
       </Canvas>
     </div>

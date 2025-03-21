@@ -16,6 +16,7 @@ interface ExperienceProps {
   scrollPosition: number;
   inArrowZone: boolean;
   hoverLocked: boolean;
+  cursorPosition: { x: number, y: number };
 }
 
 export default function Experience({
@@ -26,8 +27,9 @@ export default function Experience({
   scrollPosition,
   inArrowZone,
   hoverLocked,
+  cursorPosition,
 }: ExperienceProps) {
-  const { scene } = useThree();
+  const { scene, camera } = useThree();
   const currentBottomColor = useRef(new THREE.Color("#cccccc"));
   const gradientCanvas = useRef(document.createElement("canvas"));
   const gradientTexture = useRef(new THREE.CanvasTexture(gradientCanvas.current));
@@ -65,6 +67,17 @@ export default function Experience({
         0.3,
         delta
       );
+    }
+    
+    // Smooth camera animation for active/inactive states
+    if (!isLoaded) {
+      easing.damp3(camera.position, [camera.position.x, 30, 0], 2.0, delta);
+    } else if (active !== null) {
+      // Smooth camera animation to active view position
+      easing.damp3(camera.position, [0, 2.5, 20], 1.5, delta);
+    } else {
+      // Smooth camera animation to idle view position
+      easing.damp3(camera.position, [0, 2, 8], 0.95, delta);
     }
 
     const activeCard = cardArr.find((card) => card.id === active);
@@ -113,22 +126,27 @@ export default function Experience({
         environmentRotation={active ? [0, Math.PI / 2, 0] : [0, 0, 0]}
       />
 
-      {cardArr.map((card, i) => (
-        <Card
-          card={card}
-          key={card.id}
-          id={card.id}
-          cardPos={i - (cardArr.length - 1) / 2}
-          cardIndex={i}
-          cardArr={cardArr}
-          active={active}
-          setActive={setActive}
-          isLoaded={isLoaded}
-          scrollPosition={scrollPosition}
-          inArrowZone={inArrowZone}
-          hoverLocked={hoverLocked}
-        />
-      ))}
+      <group>
+        {cardArr.map((card, i) => {
+          return (
+            <Card
+              key={card.id}
+              card={card}
+              id={card.id}
+              cardPos={i - (cardArr.length - 1) / 2}
+              cardIndex={i}
+              cardArr={cardArr}
+              active={active}
+              setActive={setActive}
+              isLoaded={isLoaded}
+              scrollPosition={scrollPosition}
+              inArrowZone={inArrowZone}
+              hoverLocked={hoverLocked}
+              cursorPosition={cursorPosition}
+            />
+          );
+        })}
+      </group>
 
       <mesh position={[0, -1.75 / 2 + 0.0001, 0]} rotation-x={-Math.PI / 2}>
         <planeGeometry args={[50, 50]} />

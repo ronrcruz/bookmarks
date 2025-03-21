@@ -113,13 +113,10 @@ export default function ActiveUi({
   };
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="sync">
       {active !== null && (
         <div
-          className="fixed h-full w-full z-30 p-10 lg:p-14 flex"
-          style={{ 
-            pointerEvents: active ? "auto" : "none"
-          }}
+          className="absolute h-full w-full z-30 p-10 lg:p-14 flex pointer-events-auto"
           onClick={() => setHasSeenIndicator(true)}
         >
           {/* Background Gradient */}
@@ -128,8 +125,8 @@ export default function ActiveUi({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ 
-              duration: 1.0,
-              exit: { duration: 0.3 }
+              duration: 0.5,
+              exit: { duration: 0.2 }
             }}
             className="absolute inset-0"
             style={{ 
@@ -161,7 +158,7 @@ export default function ActiveUi({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            transition={{ delay: 0, duration: 0.3 }}
+            transition={{ delay: 0, duration: 0.3, exit: { duration: 0.2, delay: 0 } }}
             className={`${instrument.className} h-full w-full flex justify-between`}
           >
             {/* LEFT */}

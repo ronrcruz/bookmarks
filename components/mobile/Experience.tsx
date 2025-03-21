@@ -64,7 +64,7 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
     if (!isLoaded) {
       easing.damp3(state.camera.position, [state.camera.position.x, 20, 0], 2.0, delta);
     } else if (active) {
-      easing.damp3(state.camera.position, [state.camera.position.x, 9.5, 0], 0.35, delta);
+      easing.damp3(state.camera.position, [state.camera.position.x, 9.5, 0], 1.2, delta);
     } else {
       easing.damp3(state.camera.position, [0, 1.9, 10], 0.15, delta);
     }

@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { easing } from "maath";
 import { useTexture, Decal } from "@react-three/drei";
 import { CardType } from "@/app/definitions";
+import { useThree } from "@react-three/fiber";
 
 const createRoundedRectShape = (width: number, height: number, radius: number): THREE.Shape => {
   const shape = new THREE.Shape();
@@ -33,6 +34,7 @@ interface CardProps {
   scrollPosition: number;
   inArrowZone: boolean;
   hoverLocked: boolean;
+  cursorPosition: { x: number, y: number };
 }
 
 const Card = ({
@@ -47,6 +49,7 @@ const Card = ({
   scrollPosition,
   inArrowZone,
   hoverLocked,
+  cursorPosition,
 }: CardProps) => {
   const [hover, setHover] = useState(false);
   const isPointerOverRef = useRef(false); // Track if pointer is over the card
@@ -56,6 +59,9 @@ const Card = ({
   const geometry = new THREE.ExtrudeGeometry(roundedRectShape, { depth: 0.02, bevelEnabled: false });
   const initialPos = useMemo(() => new THREE.Vector3(cardPos * 1.2, 0, 0), [cardPos]);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const { camera } = useThree();
+  const lastActiveStateRef = useRef<boolean>(false); // Track if this card was previously active
+  const isTransitioningRef = useRef<boolean>(false); // Track if this card is in transition
 
   const selectedVariant = card.colorVariations[card.selectedVariantIndex];
   const [bookmark] = useTexture(["/bookmark.png"]);
@@ -95,6 +101,47 @@ const Card = ({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Update hover state when scrolling changes card positions
+  useEffect(() => {
+    if (active || hoverLocked || inArrowZone) return;
+    
+    // Function to check if cursor is over this card in 3D space
+    const checkCursorOverCard = () => {
+      if (!groupRef.current) return false;
+      
+      // Get card's current world position
+      const cardWorldPos = new THREE.Vector3();
+      groupRef.current.getWorldPosition(cardWorldPos);
+      
+      // Convert from world to screen coordinates
+      const cardScreenPos = cardWorldPos.clone();
+      cardScreenPos.project(camera);
+      
+      // Convert to pixel coordinates
+      const cardX = (cardScreenPos.x + 1) * window.innerWidth / 2;
+      const cardY = (-cardScreenPos.y + 1) * window.innerHeight / 2;
+      
+      // Card dimensions in pixels (approximate based on card size and camera)
+      const cardWidth = 180; // Adjusted for better card size approximation
+      const cardHeight = 315; // Adjusted for better card size approximation
+      
+      // Check if cursor is over this card
+      const isOver = 
+        cursorPosition.x > cardX - cardWidth/2 && 
+        cursorPosition.x < cardX + cardWidth/2 && 
+        cursorPosition.y > cardY - cardHeight/2 && 
+        cursorPosition.y < cardY + cardHeight/2;
+      
+      return isOver;
+    };
+    
+    // Update hover state based on cursor position
+    const isOver = checkCursorOverCard();
+    isPointerOverRef.current = isOver;
+    setHover(isOver);
+    
+  }, [scrollPosition, active, hoverLocked, inArrowZone, cursorPosition]);
+
   bookmark.minFilter = THREE.LinearFilter;
   bookmark.magFilter = THREE.LinearFilter;
   bookmark.anisotropy = 16;
@@ -105,6 +152,7 @@ const Card = ({
     // Always track when pointer is over, even when we can't display hover effect
     isPointerOverRef.current = true;
     // Only show hover effect if not locked and not scrolling
+    // We specifically allow hover when not active (deselected or never selected)
     if (!active && !inArrowZone && !hoverLocked) {
       setHover(true);
     }
@@ -136,18 +184,43 @@ const Card = ({
     return () => window.removeEventListener("mousemove", pointerMove);
   }, [active, id]);
 
+  // Track when card becomes active or inactive for transitions
   useEffect(() => {
-    if (active === id) {
-      console.log(`Card ${id} became active`);
-    } else if (active === null && lastActiveIdRef.current === id) {
-      console.log(`Card ${id} became inactive`);
-    }
+    const isActive = active === id;
+    
+    // IMPORTANT: Force reset hover state on ANY active state change
+    setHover(false);
+    
+    // Update last active state
+    lastActiveStateRef.current = isActive;
     
     // Store last active ID for this card
-    if (active === id) {
+    if (isActive) {
       lastActiveIdRef.current = id;
+    } else if (active === null && lastActiveIdRef.current === id) {
+      // This effect runs when active changes from a value to null (card deselection)
+      // Force reset hover state and pointer tracking when this specific card is deselected
+      setHover(false);
+      isPointerOverRef.current = false;
+      
+      // Log for debugging
+      console.log(`[CARD ${id}] Deselected - reset hover state and pointer tracking`);
     }
   }, [active, id]);
+
+  // Add effect to ensure hover isn't stuck
+  useEffect(() => {
+    if (active !== null) return;
+    
+    // If no card is active, check if we need to reset hover
+    const checkTimer = setTimeout(() => {
+      if (!isPointerOverRef.current) {
+        setHover(false);
+      }
+    }, 100);
+    
+    return () => clearTimeout(checkTimer);
+  }, [active, hover]);
 
   useFrame((state, delta) => {
     if (groupRef.current) {
@@ -217,20 +290,44 @@ const Card = ({
         // Set y position based on hover state, but always use the calculated x position
         if (hover) {
           targetPosition = [xPosition, 0.5, initialPos.z + zOffset];
-          smoothTime = 0.1;
+          smoothTime = 0.1; // Keep hover transition responsive
         } else {
           targetPosition = [xPosition, initialPos.y, initialPos.z + zOffset];
-          // Faster animation when returning to the idle view
-          smoothTime = active === null ? 0.087 : 0.35;
+          // Slightly faster animation for all scrolling motions
+          smoothTime = 0.08; // Reduced from 0.1 for snappier scrolling
         }
         
         targetRotation = [0, card.isFlipped ? Math.PI : 0, 0];
       }
 
-      // Apply easing with appropriate transition times based on context
-      easing.damp3(groupRef.current.position, targetPosition, smoothTime, delta);
-      easing.damp3(rotationRef.current, targetRotation, active ? 0.5 : 0.25, delta);
-      groupRef.current.rotation.set(rotationRef.current.x, rotationRef.current.y, rotationRef.current.z);
+      // Apply direct positioning for normal scroll view, but use smooth transitions for the active card view
+      if (active !== null) {
+        // When any card is active, use smooth animations for all cards
+        // This makes the row shift smoothly when a card is selected
+        easing.damp3(
+          groupRef.current.position,
+          targetPosition,
+          0.4, // Use slightly slower transition for smoother animation
+          delta
+        );
+        
+        // Apply rotation with easing
+        easing.dampE(
+          groupRef.current.rotation,
+          targetRotation,
+          0.35,
+          delta
+        );
+      } else {
+        // ORIGINAL ANIMATION LOGIC FOR IDLE SCROLL VIEW
+        // Direct positioning for x to stay in sync with scrolling,
+        // but easing for y and z for smooth vertical and depth transitions
+        groupRef.current.position.x = targetPosition[0]; // Direct x positioning - no easing
+        easing.damp(groupRef.current.position, 'y', targetPosition[1], smoothTime, delta); // Eased y
+        easing.damp(groupRef.current.position, 'z', targetPosition[2], smoothTime, delta); // Eased z
+        easing.damp3(rotationRef.current, targetRotation, 0.25, delta);
+        groupRef.current.rotation.set(rotationRef.current.x, rotationRef.current.y, rotationRef.current.z);
+      }
 
       if (!isLoaded) {
         easing.damp3(state.camera.position, [state.camera.position.x, 30, 0], 2.0, delta);
@@ -239,9 +336,9 @@ const Card = ({
           // Debug: track camera position during active mode
           console.log(`CAMERA (ACTIVE) target: [0, 2.5, 20], current: [${state.camera.position.x.toFixed(2)}, ${state.camera.position.y.toFixed(2)}, ${state.camera.position.z.toFixed(2)}]`);
           
-          // Use a consistent, slightly faster transition for active view camera
-          // This ensures arrow key navigation feels responsive and doesn't have the jerky transition
-          easing.damp3(state.camera.position, [0, 2.5, 20], 0.65, delta);
+          // Use a slower transition for active view camera (increased from 0.65 to 1.5)
+          // This creates a more cinematic effect when transitioning to the active card view
+          easing.damp3(state.camera.position, [0, 2.5, 20], 1.5, delta);
         } else {
           // Keep camera positioned to have all cards in view, with slower transition
           // Debug: track camera position during return to idle
