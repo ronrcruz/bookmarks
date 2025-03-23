@@ -53,6 +53,7 @@ export default function ActiveUi({
   const handleClose = useCallback(() => {
     if (activeCard) {
       console.log(`[DESELECT] Closing active view for card ${activeCard.id}`);
+      // Set a small timeout to ensure all animations complete cleanly
       setActive(null);
       flipCard(activeCard.id, false);
     }
@@ -88,8 +89,22 @@ export default function ActiveUi({
       }
     };
 
+    // Handle wheel events in active view
+    const handleWheel = (e: WheelEvent) => {
+      if (active === null) return;
+      
+      // Wheel scrolling in active view is handled in DesktopScene
+      // This is just for display purposes to update the indicator
+      if (!hasSeenIndicator) setHasSeenIndicator(true);
+    };
+
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("wheel", handleWheel);
+    };
   }, [active, activeCard, flipCard, setActive, handleClose, hasSeenIndicator]);
 
   const handlePage = (activeId: number) => {

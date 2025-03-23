@@ -337,12 +337,28 @@ export default function DesktopScene({
         // Prevent default browser scroll behavior
         e.preventDefault();
         
-        // Only handle wheel events when in idle view
-        if (!isLoaded || active !== null) {
+        // Handle wheel events based on current view
+        if (!isLoaded) {
           return;
         }
         
-        // Basic wheel navigation
+        // Active view: navigate between cards
+        if (active !== null) {
+          const direction = e.deltaY > 0 ? 1 : -1;
+          const activeIndex = cardArr.findIndex(card => card.id === active);
+          
+          // Calculate the next card index with wrap-around
+          let nextIndex = activeIndex + direction;
+          if (nextIndex < 0) nextIndex = cardArr.length - 1;
+          if (nextIndex >= cardArr.length) nextIndex = 0;
+          
+          // Navigate to the next card
+          console.log(`[WHEEL NAV] Scrolling in active view: ${activeIndex} -> ${nextIndex}`);
+          setActive(cardArr[nextIndex].id);
+          return;
+        }
+        
+        // Idle view: scroll through the row
         const direction = e.deltaY > 0 ? 1 : -1;
         
         // Get current position data
@@ -369,8 +385,69 @@ export default function DesktopScene({
     active, 
     getCardPositions, 
     getCurrentCardIndex, 
-    cardArr.length,
-    setTargetScrollPosition
+    cardArr,
+    setTargetScrollPosition,
+    setActive
+  ]);
+
+  // Add keyboard navigation for inactive view
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle keys in the inactive (idle) view
+      if (!isLoaded || active !== null) {
+        return;
+      }
+      
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        // Prevent default behavior (like page scrolling)
+        e.preventDefault();
+        
+        // Determine direction based on key
+        const direction = e.key === 'ArrowRight' ? 1 : -1;
+        
+        // Get current position data
+        const cardPositions = getCardPositions();
+        const currentIndex = getCurrentCardIndex();
+        
+        // Calculate target position
+        const targetIndex = Math.max(0, Math.min(cardArr.length - 1, currentIndex + direction));
+        const targetPosition = cardPositions[targetIndex];
+        
+        console.log(`[KEY NAV] Arrow ${e.key} pressed. Scrolling from index ${currentIndex} to ${targetIndex}`);
+        
+        // Set the target position
+        setTargetScrollPosition(targetPosition);
+      }
+      // Add Enter key selection
+      else if (e.key === 'Enter') {
+        e.preventDefault();
+        
+        // Get the current centered card
+        const currentIndex = getCurrentCardIndex();
+        const selectedCard = cardArr[currentIndex];
+        
+        if (selectedCard) {
+          console.log(`[KEY NAV] Enter pressed. Selecting card: ${selectedCard.id} (${selectedCard.name})`);
+          setActive(selectedCard.id);
+        }
+      }
+    };
+    
+    // Add event listener for keyboard navigation
+    window.addEventListener('keydown', handleKeyDown);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [
+    isLoaded,
+    active,
+    getCardPositions,
+    getCurrentCardIndex,
+    cardArr,
+    setTargetScrollPosition,
+    setActive
   ]);
 
   // Cleanup for all scroll-related timers and animations
@@ -394,8 +471,22 @@ export default function DesktopScene({
       const activeIndex = cardArr.findIndex(card => card.id === active);
       const newPosition = (activeIndex - (cardArr.length - 1) / 2) * 1.2;
       setTargetScrollPosition(newPosition);
+    } else {
+      // When returning to idle view (active becomes null)
+      // This is where we need to trigger the smooth row animation
+      
+      // We don't need to do anything special here, as each card component
+      // will detect the transition from active to null and set its own
+      // isReturningToIdleRef flag to trigger smooth animation
     }
   }, [active, cardArr]);
+
+  // When active changes to null (card is deselected), unlock hover immediately
+  useEffect(() => {
+    if (active === null) {
+      setHoverLocked(false);
+    }
+  }, [active]);
 
   return (
     <div 

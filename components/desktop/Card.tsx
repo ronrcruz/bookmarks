@@ -61,8 +61,11 @@ const Card = ({
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const { camera } = useThree();
   const lastActiveStateRef = useRef<boolean>(false); // Track if this card was previously active
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const isTransitioningRef = useRef<boolean>(false); // Track if this card is in transition
+  const isReturningToIdleRef = useRef<boolean>(false); // Track if we're returning from active to idle view
+  const lastPositionRef = useRef<THREE.Vector3>(new THREE.Vector3()); // Track last position for velocity
+  const velocityRef = useRef<THREE.Vector3>(new THREE.Vector3()); // Track velocity during transitions
+  const wasScrollingRef = useRef<boolean>(false); // Track if we were scrolling when deselecting
 
   const selectedVariant = card.colorVariations[card.selectedVariantIndex];
   const [bookmark] = useTexture(["/bookmark.png"]);
@@ -70,7 +73,14 @@ const Card = ({
   const rotationRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  const lastActiveIdRef = useRef<number | null>(null);
+  // Track when we have an active card in the scene - shared across instances
+  const [lastActiveRef] = useState(() => {
+    // Use a singleton reference that's shared across all card instances
+    if (!(window as any).__lastActiveCardId) {
+      (window as any).__lastActiveCardId = { current: null };
+    }
+    return (window as any).__lastActiveCardId;
+  });
 
   // Reset hover state when entering arrow zone or when hover is locked during scrolling
   useEffect(() => {
@@ -104,44 +114,49 @@ const Card = ({
 
   // Update hover state when scrolling changes card positions
   useEffect(() => {
-    if (active || hoverLocked || inArrowZone) return;
+    if (active !== null && active !== id) return; // Skip during active view for non-active cards
     
-    // Function to check if cursor is over this card in 3D space
-    const checkCursorOverCard = () => {
-      if (!groupRef.current) return false;
+    // Allow hover checking for ALL cards when returning to idle view
+    if (isReturningToIdleRef.current || !active) {
+      // Function to check if cursor is over this card in 3D space
+      const checkCursorOverCard = () => {
+        if (!groupRef.current) return false;
+        
+        // Get card's current world position
+        const cardWorldPos = new THREE.Vector3();
+        groupRef.current.getWorldPosition(cardWorldPos);
+        
+        // Convert from world to screen coordinates
+        const cardScreenPos = cardWorldPos.clone();
+        cardScreenPos.project(camera);
+        
+        // Convert to pixel coordinates
+        const cardX = (cardScreenPos.x + 1) * window.innerWidth / 2;
+        const cardY = (-cardScreenPos.y + 1) * window.innerHeight / 2;
+        
+        // Card dimensions in pixels (approximate based on card size and camera)
+        const cardWidth = 180; // Adjusted for better card size approximation
+        const cardHeight = 315; // Adjusted for better card size approximation
+        
+        // Check if cursor is over this card
+        const isOver = 
+          cursorPosition.x > cardX - cardWidth/2 && 
+          cursorPosition.x < cardX + cardWidth/2 && 
+          cursorPosition.y > cardY - cardHeight/2 && 
+          cursorPosition.y < cardY + cardHeight/2;
+        
+        return isOver;
+      };
       
-      // Get card's current world position
-      const cardWorldPos = new THREE.Vector3();
-      groupRef.current.getWorldPosition(cardWorldPos);
-      
-      // Convert from world to screen coordinates
-      const cardScreenPos = cardWorldPos.clone();
-      cardScreenPos.project(camera);
-      
-      // Convert to pixel coordinates
-      const cardX = (cardScreenPos.x + 1) * window.innerWidth / 2;
-      const cardY = (-cardScreenPos.y + 1) * window.innerHeight / 2;
-      
-      // Card dimensions in pixels (approximate based on card size and camera)
-      const cardWidth = 180; // Adjusted for better card size approximation
-      const cardHeight = 315; // Adjusted for better card size approximation
-      
-      // Check if cursor is over this card
-      const isOver = 
-        cursorPosition.x > cardX - cardWidth/2 && 
-        cursorPosition.x < cardX + cardWidth/2 && 
-        cursorPosition.y > cardY - cardHeight/2 && 
-        cursorPosition.y < cardY + cardHeight/2;
-      
-      return isOver;
-    };
-    
-    // Update hover state based on cursor position
-    const isOver = checkCursorOverCard();
-    isPointerOverRef.current = isOver;
-    setHover(isOver);
-    
-  }, [scrollPosition, active, hoverLocked, inArrowZone, cursorPosition, camera]);
+      // Update hover state based on cursor position IF NOT LOCKED
+      // CRITICAL CHANGE: Allow hover even during idle transition but respect locks
+      if (!hoverLocked && !inArrowZone) {
+        const isOver = checkCursorOverCard();
+        isPointerOverRef.current = isOver;
+        setHover(isOver);
+      }
+    }  
+  }, [scrollPosition, active, hoverLocked, inArrowZone, cursorPosition, camera, id, isReturningToIdleRef.current]);
 
   bookmark.minFilter = THREE.LinearFilter;
   bookmark.magFilter = THREE.LinearFilter;
@@ -166,8 +181,17 @@ const Card = ({
 
   const click = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
-    // Only allow clicks when not scrolling
-    if (!hoverLocked && !inArrowZone) {
+    
+    // ONLY CHANGE: Make cards immediately clickable after deselection
+    // Allow clicks in ANY of these conditions:
+    // 1. Normal condition (!hoverLocked && !inArrowZone)
+    // 2. During the return-to-idle animation (isReturningToIdleRef.current && active === null)
+    // 3. Immediately after deselection (lastActiveRef.current !== null && active === null)
+    if (
+      (!hoverLocked && !inArrowZone) || 
+      (isReturningToIdleRef.current && active === null) ||
+      (lastActiveRef.current !== null && active === null)
+    ) {
       setActive(id);
       setHover(false);
     }
@@ -188,6 +212,7 @@ const Card = ({
   // Track when card becomes active or inactive for transitions
   useEffect(() => {
     const isActive = active === id;
+    const wasPreviouslyActive = lastActiveStateRef.current;
     
     // IMPORTANT: Force reset hover state on ANY active state change
     setHover(false);
@@ -195,19 +220,61 @@ const Card = ({
     // Update last active state
     lastActiveStateRef.current = isActive;
     
-    // Store last active ID for this card
-    if (isActive) {
-      lastActiveIdRef.current = id;
-    } else if (active === null && lastActiveIdRef.current === id) {
-      // This effect runs when active changes from a value to null (card deselection)
-      // Force reset hover state and pointer tracking when this specific card is deselected
-      setHover(false);
-      isPointerOverRef.current = false;
+    // When ANY card is deselected (active changes from a value to null)
+    // Mark ALL cards for smooth transition back to idle view
+    if (active === null && lastActiveRef.current !== null) {
+      console.log(`[CARD ${id}] Detected row returning to idle, lastActiveId: ${lastActiveRef.current}`);
       
-      // Log for debugging
-      console.log(`[CARD ${id}] Deselected - reset hover state and pointer tracking`);
+      // CRITICAL: Force clear any existing animation timeouts first
+      // This prevents animation conflicts from previous deselection cycles
+      window.clearTimeout((window as any).__cardAnimationTimeout);
+      window.clearTimeout((window as any).__cardHoverEnableTimeout);
+      
+      // Set transition flag for ALL cards
+      isReturningToIdleRef.current = true;
+      
+      // Save current position at deselection time for smoother transitions
+      if (groupRef.current) {
+        lastPositionRef.current.copy(groupRef.current.position);
+      }
+      
+      // Update scrolling state at deselection time
+      wasScrollingRef.current = Math.abs(velocityRef.current.x) > 0.5;
+      
+      // NEW: Enable hover immediately (don't wait for animation to complete)
+      // Store this timeout separately so we can control it independently
+      (window as any).__cardHoverEnableTimeout = setTimeout(() => {
+        // Set __lastDeselectionTime so hover works immediately
+        (window as any).__lastDeselectionTime = Date.now();
+        console.log(`[CARD ${id}] Hover enabled immediately after deselection`);
+      }, 50); // Very short delay to allow initial transition to begin
+      
+      // Use consistent timing for ALL animation operations
+      const ANIMATION_DURATION = 750; // Longer duration to ensure animation completes
+      
+      // Clear transition flag after animation completes
+      // Store the timeout ID globally so we can clear it if needed
+      (window as any).__cardAnimationTimeout = setTimeout(() => {
+        // Only clear flags if we're still in the same animation cycle
+        if (active === null) {
+          isReturningToIdleRef.current = false;
+          wasScrollingRef.current = false;
+          
+          // Also reset the global lastActiveRef
+          lastActiveRef.current = null;
+          
+          console.log(`[CARD ${id}] Animation cycle complete, cleared flags`);
+        }
+      }, ANIMATION_DURATION);
     }
-  }, [active, id]);
+    
+    // Store last active ID globally
+    if (isActive) {
+      lastActiveRef.current = id;
+      // Clear the returning to idle flag if a new card is selected
+      isReturningToIdleRef.current = false;
+    }
+  }, [active, id, lastActiveRef]);
 
   // Add effect to ensure hover isn't stuck
   useEffect(() => {
@@ -225,6 +292,22 @@ const Card = ({
 
   useFrame((state, delta) => {
     if (groupRef.current) {
+      // Store last position to calculate velocity
+      if (lastPositionRef.current.x === 0 && lastPositionRef.current.y === 0 && lastPositionRef.current.z === 0) {
+        lastPositionRef.current.copy(groupRef.current.position);
+      }
+      
+      // Calculate current velocity 
+      velocityRef.current.subVectors(groupRef.current.position, lastPositionRef.current).divideScalar(delta);
+      
+      // Update last position
+      lastPositionRef.current.copy(groupRef.current.position);
+      
+      // Detect if we're scrolling based on velocity
+      if (Math.abs(velocityRef.current.x) > 1.0) {
+        wasScrollingRef.current = true;
+      }
+      
       let targetPosition: [number, number, number];
       let smoothTime: number;
       let targetRotation: [number, number, number];
@@ -244,13 +327,25 @@ const Card = ({
           0,
         ];
         
+        // Original animation for the active card
+        easing.damp3(
+          groupRef.current.position,
+          targetPosition,
+          0.4,
+          delta
+        );
+        
+        easing.dampE(
+          groupRef.current.rotation,
+          targetRotation,
+          0.35,
+          delta
+        );
+        
         // Debug: track this card's active position
         if (meshRef.current) {
           console.log(`CARD ${id} (ACTIVE) target position: [${targetPosition}], current: [${groupRef.current.position.x.toFixed(2)}, ${groupRef.current.position.y.toFixed(2)}, ${groupRef.current.position.z.toFixed(2)}]`);
         }
-        
-        // Update the reference when this card becomes active
-        lastActiveIdRef.current = id;
       } else {
         // Calculate horizontal position based on scroll position regardless of hover state
         let xPosition = initialPos.x;
@@ -275,7 +370,7 @@ const Card = ({
           }
           
           // Debug: track inactive card positions during active mode
-          if (id === lastActiveIdRef.current) {
+          if (id === lastActiveRef.current) {
             console.log(`CARD ${id} (PREVIOUSLY ACTIVE) target position: [${xPosition}, ${initialPos.y}, ${initialPos.z + zOffset}]`);
           }
         } else if (active === null) {
@@ -283,7 +378,7 @@ const Card = ({
           xPosition = initialPos.x - scrollPosition;
           
           // Debug: track card returning to idle position
-          if (id === lastActiveIdRef.current) {
+          if (id === lastActiveRef.current) {
             console.log(`CARD ${id} (RETURNING TO IDLE) target position: [${xPosition}, ${initialPos.y}, ${initialPos.z}], scroll: ${scrollPosition}`);
           }
         }
@@ -299,35 +394,102 @@ const Card = ({
         }
         
         targetRotation = [0, card.isFlipped ? Math.PI : 0, 0];
-      }
-
-      // Apply direct positioning for normal scroll view, but use smooth transitions for the active card view
-      if (active !== null) {
-        // When any card is active, use smooth animations for all cards
-        // This makes the row shift smoothly when a card is selected
-        easing.damp3(
-          groupRef.current.position,
-          targetPosition,
-          0.4, // Use slightly slower transition for smoother animation
-          delta
-        );
         
-        // Apply rotation with easing
-        easing.dampE(
-          groupRef.current.rotation,
-          targetRotation,
-          0.35,
-          delta
-        );
-      } else {
-        // ORIGINAL ANIMATION LOGIC FOR IDLE SCROLL VIEW
-        // Direct positioning for x to stay in sync with scrolling,
-        // but easing for y and z for smooth vertical and depth transitions
-        groupRef.current.position.x = targetPosition[0]; // Direct x positioning - no easing
-        easing.damp(groupRef.current.position, 'y', targetPosition[1], smoothTime, delta); // Eased y
-        easing.damp(groupRef.current.position, 'z', targetPosition[2], smoothTime, delta); // Eased z
-        easing.damp3(rotationRef.current, targetRotation, 0.25, delta);
-        groupRef.current.rotation.set(rotationRef.current.x, rotationRef.current.y, rotationRef.current.z);
+        // Animation logic for unselected cards
+        if (active !== null) {
+          // When a card is active, use smooth animations for the ROW of cards
+          // This is the EXPANSION animation
+          easing.damp3(
+            groupRef.current.position,
+            targetPosition,
+            0.4,
+            delta
+          );
+          
+          easing.dampE(
+            groupRef.current.rotation,
+            targetRotation,
+            0.35,
+            delta
+          );
+        } else if (isReturningToIdleRef.current) {
+          // When returning to idle (after deselection), use smooth animation for the ROW
+          // This is the CONTRACTION animation
+          
+          // CRITICAL FIX: Always ensure we're using the current scroll position
+          // to calculate the correct target position during the transition
+          targetPosition[0] = initialPos.x - scrollPosition;
+          
+          // Calculate distance to travel
+          const currentPos = groupRef.current.position;
+          const distance = Math.sqrt(
+            Math.pow(currentPos.x - targetPosition[0], 2) + 
+            Math.pow(currentPos.y - targetPosition[1], 2) + 
+            Math.pow(currentPos.z - targetPosition[2], 2)
+          );
+          
+          // Get velocity magnitude
+          const velocityMag = Math.abs(velocityRef.current.x);
+          
+          // Calculate adaptive smoothing factor based on distance
+          // CRITICAL: Use more consistent smoothing factors that won't cause jerky animations
+          let adaptiveFactor = 0.12; // Default ease factor - more conservative
+          
+          // Special case for previously active card - smoother transition always
+          if (id === lastActiveRef.current) {
+            adaptiveFactor = 0.10;
+          } 
+          // For other cards, use distance-based adaptive smoothing with a tighter range
+          else if (distance > 3) {
+            // For cards that need to travel further, use smoother animation
+            // but with less adjustment range to prevent inconsistent behaviors
+            adaptiveFactor = Math.max(0.09, 0.12 - (distance * 0.005));
+          }
+          
+          // CRITICAL: Use damp3 for ALL position components during deselection
+          // Never use direct positioning during transitions
+          easing.damp3(
+            groupRef.current.position,
+            targetPosition,
+            adaptiveFactor,
+            delta
+          );
+          
+          easing.dampE(
+            groupRef.current.rotation,
+            targetRotation,
+            0.25,
+            delta
+          );
+        } else {
+          // Normal scrolling behavior
+          
+          // CRITICAL: Check if we just recently finished a deselection animation
+          // to prevent sudden snapping at the end of the animation
+          const timeSinceDeselection = Date.now() - ((window as any).__lastDeselectionTime || 0);
+          
+          if (timeSinceDeselection < 1000) { // Within 1 second of deselection completion
+            // Continue using smooth animation for a brief period after deselection ends
+            easing.damp3(
+              groupRef.current.position,
+              targetPosition,
+              0.15,
+              delta
+            );
+          } else {
+            // Normal scrolling behavior (direct x positioning) after transition period
+            groupRef.current.position.x = targetPosition[0];
+            easing.damp(groupRef.current.position, 'y', targetPosition[1], smoothTime, delta);
+            easing.damp(groupRef.current.position, 'z', targetPosition[2], smoothTime, delta);
+          }
+          
+          easing.dampE(
+            groupRef.current.rotation,
+            targetRotation,
+            0.25,
+            delta
+          );
+        }
       }
 
       if (!isLoaded) {
