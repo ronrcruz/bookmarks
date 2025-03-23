@@ -216,6 +216,13 @@ export default function DesktopScene({
     const targetPosition = Math.min(maxScrollRight, Math.max(maxScrollLeft, nearestCardPosition));
     setTargetScrollPosition(targetPosition);
     
+    // CRITICAL FIX: Signal the snap completion to synchronize all cards
+    // Wait a brief moment to ensure the scroll animation has fully started
+    setTimeout(() => {
+      // Dispatch an event that all cards can listen for to synchronize
+      window.dispatchEvent(new CustomEvent('scroll_snap_complete'));
+    }, 50);
+    
     // Immediately unlock hover when scrolling stops
     setHoverLocked(false);
     setIsActivelyScrolling(false);
@@ -271,14 +278,18 @@ export default function DesktopScene({
     const animateScroll = () => {
       setScrollPosition(prev => {
         const diff = targetScrollPosition - prev;
-        if (Math.abs(diff) < 0.005) {
+        
+        // CRITICAL FIX: More graceful handling of tiny differences
+        // Prevents abrupt stopping that could cause card jumping
+        if (Math.abs(diff) < 0.001) {
           // When scrolling stops naturally, ensure we unlock hover
           setHoverLocked(false);
           return targetScrollPosition;
         }
         
-        // Use a consistent easing factor for all animations
-        const easeFactor = 0.15;
+        // CRITICAL FIX: Use consistent easing for all views and transitions
+        // This prevents jumps when switching between view states
+        const easeFactor = 0.1;
         
         // Unlock hover during animations
         setHoverLocked(false);
@@ -296,7 +307,7 @@ export default function DesktopScene({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [targetScrollPosition]);
+  }, [targetScrollPosition, setHoverLocked]);
   
   // Track mouse position to determine if in arrow zone
   const handleMouseMove = (e: React.MouseEvent) => {
