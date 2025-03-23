@@ -90,7 +90,7 @@ export default function ActiveUi({
     };
 
     // Handle wheel events in active view
-    const handleWheel = (e: WheelEvent) => {
+    const handleWheel = (_e: WheelEvent) => {
       if (active === null) return;
       
       // Wheel scrolling in active view is handled in DesktopScene

@@ -61,6 +61,7 @@ const Card = ({
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const { camera } = useThree();
   const lastActiveStateRef = useRef<boolean>(false); // Track if this card was previously active
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const isTransitioningRef = useRef<boolean>(false); // Track if this card is in transition
   const isReturningToIdleRef = useRef<boolean>(false); // Track if we're returning from active to idle view
   const lastPositionRef = useRef<THREE.Vector3>(new THREE.Vector3()); // Track last position for velocity
@@ -70,16 +71,17 @@ const Card = ({
   const selectedVariant = card.colorVariations[card.selectedVariantIndex];
   const [bookmark] = useTexture(["/bookmark.png"]);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const rotationRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   // Track when we have an active card in the scene - shared across instances
   const [lastActiveRef] = useState(() => {
     // Use a singleton reference that's shared across all card instances
-    if (!(window as any).__lastActiveCardId) {
-      (window as any).__lastActiveCardId = { current: null };
+    if (!(window as any).__lastActiveCardId) { // eslint-disable-line @typescript-eslint/no-explicit-any
+      (window as any).__lastActiveCardId = { current: null }; // eslint-disable-line @typescript-eslint/no-explicit-any
     }
-    return (window as any).__lastActiveCardId;
+    return (window as any).__lastActiveCardId; // eslint-disable-line @typescript-eslint/no-explicit-any
   });
 
   // Reset hover state when entering arrow zone or when hover is locked during scrolling
@@ -156,7 +158,7 @@ const Card = ({
         setHover(isOver);
       }
     }  
-  }, [scrollPosition, active, hoverLocked, inArrowZone, cursorPosition, camera, id, isReturningToIdleRef.current]);
+  }, [scrollPosition, active, hoverLocked, inArrowZone, cursorPosition, camera, id]);
 
   bookmark.minFilter = THREE.LinearFilter;
   bookmark.magFilter = THREE.LinearFilter;
@@ -212,6 +214,7 @@ const Card = ({
   // Track when card becomes active or inactive for transitions
   useEffect(() => {
     const isActive = active === id;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const wasPreviouslyActive = lastActiveStateRef.current;
     
     // IMPORTANT: Force reset hover state on ANY active state change
@@ -227,8 +230,8 @@ const Card = ({
       
       // CRITICAL: Force clear any existing animation timeouts first
       // This prevents animation conflicts from previous deselection cycles
-      window.clearTimeout((window as any).__cardAnimationTimeout);
-      window.clearTimeout((window as any).__cardHoverEnableTimeout);
+      window.clearTimeout((window as any).__cardAnimationTimeout); // eslint-disable-line @typescript-eslint/no-explicit-any
+      window.clearTimeout((window as any).__cardHoverEnableTimeout); // eslint-disable-line @typescript-eslint/no-explicit-any
       
       // Set transition flag for ALL cards
       isReturningToIdleRef.current = true;
@@ -243,9 +246,9 @@ const Card = ({
       
       // NEW: Enable hover immediately (don't wait for animation to complete)
       // Store this timeout separately so we can control it independently
-      (window as any).__cardHoverEnableTimeout = setTimeout(() => {
+      (window as any).__cardHoverEnableTimeout = setTimeout(() => { // eslint-disable-line @typescript-eslint/no-explicit-any
         // Set __lastDeselectionTime so hover works immediately
-        (window as any).__lastDeselectionTime = Date.now();
+        (window as any).__lastDeselectionTime = Date.now(); // eslint-disable-line @typescript-eslint/no-explicit-any
         console.log(`[CARD ${id}] Hover enabled immediately after deselection`);
       }, 50); // Very short delay to allow initial transition to begin
       
@@ -254,7 +257,7 @@ const Card = ({
       
       // Clear transition flag after animation completes
       // Store the timeout ID globally so we can clear it if needed
-      (window as any).__cardAnimationTimeout = setTimeout(() => {
+      (window as any).__cardAnimationTimeout = setTimeout(() => { // eslint-disable-line @typescript-eslint/no-explicit-any
         // Only clear flags if we're still in the same animation cycle
         if (active === null) {
           isReturningToIdleRef.current = false;
@@ -429,6 +432,7 @@ const Card = ({
           );
           
           // Get velocity magnitude
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const velocityMag = Math.abs(velocityRef.current.x);
           
           // Calculate adaptive smoothing factor based on distance
@@ -466,7 +470,7 @@ const Card = ({
           
           // CRITICAL: Check if we just recently finished a deselection animation
           // to prevent sudden snapping at the end of the animation
-          const timeSinceDeselection = Date.now() - ((window as any).__lastDeselectionTime || 0);
+          const timeSinceDeselection = Date.now() - ((window as any).__lastDeselectionTime || 0); // eslint-disable-line @typescript-eslint/no-explicit-any
           
           if (timeSinceDeselection < 1000) { // Within 1 second of deselection completion
             // Continue using smooth animation for a brief period after deselection ends
