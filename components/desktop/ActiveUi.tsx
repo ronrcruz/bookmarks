@@ -90,7 +90,7 @@ export default function ActiveUi({
     };
 
     // Handle wheel events in active view
-    const handleWheel = (_e: WheelEvent) => {
+    const handleWheel = (_e: WheelEvent) => { // eslint-disable-line @typescript-eslint/no-unused-vars
       if (active === null) return;
       
       // Wheel scrolling in active view is handled in DesktopScene
