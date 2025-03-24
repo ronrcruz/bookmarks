@@ -145,7 +145,7 @@ export default function ActiveUi({
             }}
             className="absolute inset-0"
             style={{ 
-              background: "linear-gradient(to right, #bdd7ee 27%, transparent 37%)",
+              background: "linear-gradient(to right, #bdd7ee 27%, transparent 40%)",
               zIndex: -1
             }}
           />
@@ -206,7 +206,7 @@ export default function ActiveUi({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               transition={{ delay: active ? 0.6 : 0, duration: 0.3 }}
-              className="absolute bottom-10 lg:bottom-14 left-1/2 transform -translate-x-1/2 flex gap-2 items-center"
+              className="absolute bottom-10 lg:bottom-14 left-1/2 transform -translate-x-[100%] -ml-20 flex gap-2 items-center"
             >
               {[...Array(cardArr.length)].map((_, i) => (
                 <button
@@ -280,9 +280,13 @@ export default function ActiveUi({
                     </p>
                   </li>
 
-                  <li className="text-3xl lg:text-5xl font-medium flex justify-between w-full items-end p-1">
-                    <NumberFlow value={activeCurrency.value} prefix={activeCurrency.symbol} />
-                    <div className="flex flex-row text-xs lg:text-xl my-1">
+
+
+                  <li className="text-3xl lg:text-5xl font-medium flex justify-between w-full items-end p-1 relative">
+                    <div className="translate-y-20">
+                      <NumberFlow value={activeCurrency.value} prefix={activeCurrency.symbol} />
+                    </div>
+                    <div className="flex flex-row text-xs lg:text-xl my-1 translate-y-16">
                       {currencies.map((currency) => (
                         <button
                           key={currency.name}

@@ -17,18 +17,12 @@ interface ExperienceProps {
 
 export default function Experience({ cardArr, active, setActive, isLoaded }: ExperienceProps) {
   const { scene, camera } = useThree();
-  const currentBottomColor = useRef(new THREE.Color("#cccccc"));
-  const gradientCanvas = useRef(document.createElement("canvas"));
-  const gradientTexture = useRef(new THREE.CanvasTexture(gradientCanvas.current));
+  const currentBottomColor = useRef(new THREE.Color("#bdd7ee"));
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
 
+  // Make the scene transparent
   useMemo(() => {
-    gradientCanvas.current.width = 256;
-    gradientCanvas.current.height = 256;
-    gradientTexture.current = new THREE.CanvasTexture(gradientCanvas.current);
-    gradientTexture.current.minFilter = THREE.LinearFilter;
-    gradientTexture.current.magFilter = THREE.LinearFilter;
-    scene.background = gradientTexture.current;
+    scene.background = null;
   }, [scene]);
 
   useFrame((state, delta) => {
@@ -44,21 +38,9 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
         ? activeCard.colorVariations[activeCard.selectedVariantIndex]
         : null;
     const targetBottomColor =
-      active !== null && selectedVariant ? selectedVariant.bgColor : "#cccccc";
+      active !== null && selectedVariant ? selectedVariant.bgColor : "#bdd7ee";
 
     easing.dampC(currentBottomColor.current, targetBottomColor, 0.5, delta);
-
-    const ctx = gradientCanvas.current.getContext("2d");
-    if (ctx) {
-      const gradient = ctx.createLinearGradient(0, 0, 0, gradientCanvas.current.height);
-      gradient.addColorStop(0, "#cccccc");
-      gradient.addColorStop(0.7, currentBottomColor.current.getStyle());
-
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, gradientCanvas.current.width, gradientCanvas.current.height);
-    }
-
-    gradientTexture.current.needsUpdate = true;
 
     // Camera positioning
     if (!isLoaded) {
@@ -72,7 +54,6 @@ export default function Experience({ cardArr, active, setActive, isLoaded }: Exp
   });
 
   return (
-
     <ScrollControls pages={2} horizontal={false}>
       <ambientLight ref={ambientLightRef} intensity={1} />
       <directionalLight castShadow intensity={1} position={[10, 3, 6]} shadow-mapSize={[1028, 1028]}></directionalLight>

@@ -510,6 +510,18 @@ const Card = ({
           easing.damp3(state.camera.position, [0, 2, 8], 0.95, delta);
         }
       }
+
+      // Add consistent lighting for card in any state
+      if (meshRef.current) {
+        // Ensure consistent material properties regardless of active state
+        if (meshRef.current.material) {
+          // Cast to MeshStandardMaterial to access the properties we need
+          const material = meshRef.current.material as THREE.MeshStandardMaterial;
+          material.roughness = 0.7;
+          material.metalness = 0.0;
+          material.envMapIntensity = 1;
+        }
+      }
     }
   });
 
@@ -529,6 +541,7 @@ const Card = ({
           color={selectedVariant.cardColor} 
           roughness={0.7}
           metalness={0.0}
+          envMapIntensity={1}
         />
 
         {/* FRONT ILLUSTRATION */}

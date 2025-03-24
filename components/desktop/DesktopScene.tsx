@@ -5,6 +5,7 @@ import ActiveUi from "./ActiveUi";
 import { Dispatch, SetStateAction, useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { CardType } from "@/app/definitions";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface DesktopSceneProps {
   cardArr: CardType[];
@@ -41,6 +42,8 @@ export default function DesktopScene({
   const [isWheelScrolling, setIsWheelScrolling] = useState(false);
   // Track cursor position for hover updates during scrolling
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
+  // Store current background color
+  const [bottomColor, setBottomColor] = useState("#bdd7ee");
   
   // Track the last active card
   const lastActiveCardRef = useRef<number | null>(null);
@@ -48,6 +51,9 @@ export default function DesktopScene({
   const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const CARD_WIDTH = 1.2; // Width of each card + spacing
+  
+  // Track selected variant index changes
+  const selectedVariantRef = useRef<number>(0);
   
   // Calculate all card positions for wheel scrolling - memoized to avoid recreation
   const getCardPositions = useCallback(() => {
@@ -499,99 +505,133 @@ export default function DesktopScene({
     }
   }, [active]);
 
+  // Update bottom color based on selected card and its variants
+  useEffect(() => {
+    const activeCard = cardArr.find((card) => card.id === active);
+    if (active !== null && activeCard) {
+      const currentVariantIndex = activeCard.selectedVariantIndex;
+      
+      // Get the variant color
+      const selectedVariant = activeCard.colorVariations[currentVariantIndex];
+      
+      // Update the bottom color with the variant's background color
+      setBottomColor(selectedVariant.bgColor);
+    } else {
+      setBottomColor("#bdd7ee"); // Default blue color
+    }
+  }, [active, cardArr, cardArr.map(card => card.selectedVariantIndex).join(',')]);
+
   return (
-    <div 
-      id="card-container"
-      className="h-full w-full relative overflow-hidden" 
-      onMouseMove={handleMouseMove}
-      onMouseLeave={() => {
-        if (active === null) {
-          setShowLeftArrow(false);
-          setShowRightArrow(false);
-          setIsHoveringLeft(false);
-          setIsHoveringRight(false);
-          setInArrowZone(false);
-        }
-      }}
-    >
-      <ActiveUi
-        active={active}
-        setActive={setActive}
-        cardArr={cardArr}
-        setCardArr={setCardArr}
-        flipCard={flipCard}
-      />
-      {!isLoaded && <LoadingScreen onLoaded={() => setIsLoaded(true)} />}
-
-      {/* Left Arrow */}
-      {showUI && shouldShowArrows && (
-        <div 
-          className={`absolute left-6 top-1/2 -translate-y-1/2 z-30 transition-opacity duration-300 ease-in-out ${
-            showLeftArrow ? 'opacity-80' : 'opacity-0'
-          } ${scrollPosition <= maxScrollLeft + 0.1 ? 'pointer-events-none opacity-30' : 'hover:opacity-100'}`}
-          onMouseEnter={() => {
-            setShowLeftArrow(true);
-            setInArrowZone(true);
-            if (scrollPosition > maxScrollLeft + 0.1) {
-              setIsHoveringLeft(true);
-              setIsHoveringRight(false);
-            }
+    <div className="relative w-full h-full">
+      {/* Framer Motion Gradient Background */}
+      <AnimatePresence>
+        <motion.div 
+          key={bottomColor}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          className="absolute inset-0 z-10"
+          style={{
+            background: `linear-gradient(to bottom, #ffffff 0%, #ffffff 10%, ${bottomColor} 100%)`,
+            pointerEvents: 'none'
           }}
-          onMouseLeave={() => {
+        />
+      </AnimatePresence>
+
+      <div 
+        id="card-container"
+        className="h-full w-full relative overflow-hidden" 
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => {
+          if (active === null) {
             setShowLeftArrow(false);
-            setIsHoveringLeft(false);
-          }}
-        >
-          <div className="flex items-center justify-center w-14 h-14 rounded-full bg-white/80 shadow-lg cursor-pointer backdrop-blur-sm border border-white/20 hover:bg-white/90 transition-all duration-200">
-            <IoIosArrowBack size={28} className="text-gray-700" />
-          </div>
-        </div>
-      )}
-
-      {/* Right Arrow */}
-      {showUI && shouldShowArrows && (
-        <div 
-          className={`absolute right-6 top-1/2 -translate-y-1/2 z-30 transition-opacity duration-300 ease-in-out ${
-            showRightArrow ? 'opacity-80' : 'opacity-0'
-          } ${scrollPosition >= maxScrollRight - 0.1 ? 'pointer-events-none opacity-30' : 'hover:opacity-100'}`}
-          onMouseEnter={() => {
-            setShowRightArrow(true);
-            setInArrowZone(true);
-            if (scrollPosition < maxScrollRight - 0.1) {
-              setIsHoveringRight(true);
-              setIsHoveringLeft(false);
-            }
-          }}
-          onMouseLeave={() => {
             setShowRightArrow(false);
+            setIsHoveringLeft(false);
             setIsHoveringRight(false);
-          }}
-        >
-          <div className="flex items-center justify-center w-14 h-14 rounded-full bg-white/80 shadow-lg cursor-pointer backdrop-blur-sm border border-white/20 hover:bg-white/90 transition-all duration-200">
-            <IoIosArrowForward size={28} className="text-gray-700" />
-          </div>
-        </div>
-      )}
-
-      <Canvas 
-        className="absolute inset-0 z-20" 
-        style={{ position: 'absolute' }} 
-        shadows 
-        flat 
-        dpr={[1, 1.5]} 
-        camera={{ position: [0, 2, 8], fov: 30, near: 1, far: 30 }}
+            setInArrowZone(false);
+          }
+        }}
       >
-        <Experience
-          cardArr={cardArr}
+        <ActiveUi
           active={active}
           setActive={setActive}
-          isLoaded={isLoaded}
-          scrollPosition={scrollPosition}
-          inArrowZone={inArrowZone}
-          hoverLocked={hoverLocked}
-          cursorPosition={cursorPosition}
+          cardArr={cardArr}
+          setCardArr={setCardArr}
+          flipCard={flipCard}
         />
-      </Canvas>
+        {!isLoaded && <LoadingScreen onLoaded={() => setIsLoaded(true)} />}
+
+        {/* Left Arrow */}
+        {showUI && shouldShowArrows && (
+          <div 
+            className={`absolute left-6 top-1/2 -translate-y-1/2 z-30 transition-opacity duration-300 ease-in-out ${
+              showLeftArrow ? 'opacity-80' : 'opacity-0'
+            } ${scrollPosition <= maxScrollLeft + 0.1 ? 'pointer-events-none opacity-30' : 'hover:opacity-100'}`}
+            onMouseEnter={() => {
+              setShowLeftArrow(true);
+              setInArrowZone(true);
+              if (scrollPosition > maxScrollLeft + 0.1) {
+                setIsHoveringLeft(true);
+                setIsHoveringRight(false);
+              }
+            }}
+            onMouseLeave={() => {
+              setShowLeftArrow(false);
+              setIsHoveringLeft(false);
+            }}
+          >
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-white/80 shadow-lg cursor-pointer backdrop-blur-sm border border-white/20 hover:bg-white/90 transition-all duration-200">
+              <IoIosArrowBack size={28} className="text-gray-700" />
+            </div>
+          </div>
+        )}
+
+        {/* Right Arrow */}
+        {showUI && shouldShowArrows && (
+          <div 
+            className={`absolute right-6 top-1/2 -translate-y-1/2 z-30 transition-opacity duration-300 ease-in-out ${
+              showRightArrow ? 'opacity-80' : 'opacity-0'
+            } ${scrollPosition >= maxScrollRight - 0.1 ? 'pointer-events-none opacity-30' : 'hover:opacity-100'}`}
+            onMouseEnter={() => {
+              setShowRightArrow(true);
+              setInArrowZone(true);
+              if (scrollPosition < maxScrollRight - 0.1) {
+                setIsHoveringRight(true);
+                setIsHoveringLeft(false);
+              }
+            }}
+            onMouseLeave={() => {
+              setShowRightArrow(false);
+              setIsHoveringRight(false);
+            }}
+          >
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-white/80 shadow-lg cursor-pointer backdrop-blur-sm border border-white/20 hover:bg-white/90 transition-all duration-200">
+              <IoIosArrowForward size={28} className="text-gray-700" />
+            </div>
+          </div>
+        )}
+
+        <Canvas 
+          className="absolute inset-0 z-20" 
+          style={{ position: 'absolute', background: 'transparent' }} 
+          shadows 
+          flat 
+          dpr={[1, 1.5]} 
+          camera={{ position: [0, 2, 8], fov: 30, near: 1, far: 100 }}
+        >
+          <Experience
+            cardArr={cardArr}
+            active={active}
+            setActive={setActive}
+            isLoaded={isLoaded}
+            scrollPosition={scrollPosition}
+            inArrowZone={inArrowZone}
+            hoverLocked={hoverLocked}
+            cursorPosition={cursorPosition}
+          />
+        </Canvas>
+      </div>
     </div>
   );
 }

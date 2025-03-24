@@ -2,7 +2,7 @@
 
 import { Dispatch, SetStateAction, useEffect, useMemo, useRef } from "react";
 import Card from "./Card";
-import { Environment, OrbitControls, ContactShadows } from "@react-three/drei";
+import { Environment, OrbitControls, ContactShadows, Cylinder, GradientTexture } from "@react-three/drei";
 import { CardType } from "@/app/definitions";
 import { useFrame, useThree } from "@react-three/fiber";
 import { easing } from "maath";
@@ -30,22 +30,15 @@ export default function Experience({
   cursorPosition,
 }: ExperienceProps) {
   const { scene, camera } = useThree();
-  const currentBottomColor = useRef(new THREE.Color("#cccccc"));
-  const gradientCanvas = useRef(document.createElement("canvas"));
-  const gradientTexture = useRef(new THREE.CanvasTexture(gradientCanvas.current));
+  const currentBottomColor = useRef(new THREE.Color("#bdd7ee"));
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
-  const planeMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
   const targetOpacity = useRef(1);
   const opacityDelay = useRef(0);
   const directionalLightRef = useRef<THREE.DirectionalLight | null>(null);
 
+  // Make the scene transparent
   useMemo(() => {
-    gradientCanvas.current.width = 256;
-    gradientCanvas.current.height = 256;
-    gradientTexture.current = new THREE.CanvasTexture(gradientCanvas.current);
-    gradientTexture.current.minFilter = THREE.LinearFilter;
-    gradientTexture.current.magFilter = THREE.LinearFilter;
-    scene.background = gradientTexture.current;
+    scene.background = null;
   }, [scene]);
 
   useEffect(() => {
@@ -54,12 +47,14 @@ export default function Experience({
   }, [active, isLoaded]);
 
   useFrame((state, delta) => {
-    const targetIntensity = active !== null ? 3 : 2;
+    // Keep ambient light intensity consistent between active and inactive views
+    const targetIntensity = 2; // Same intensity regardless of active state
     if (ambientLightRef.current) {
       easing.damp(ambientLightRef.current, "intensity", targetIntensity, 0.3, delta);
     }
 
-    const lightPositionZ = active !== null ? 8 : 6;
+    // Keep directional light position consistent between views
+    const lightPositionZ = 6; // Same position regardless of active state
     if (directionalLightRef.current) {
       easing.damp3(
         directionalLightRef.current.position,
@@ -79,33 +74,18 @@ export default function Experience({
       // Smooth camera animation to idle view position
       easing.damp3(camera.position, [0, 2, 8], 0.95, delta);
     }
-
+    
     const activeCard = cardArr.find((card) => card.id === active);
     const selectedVariant =
       activeCard && active !== null
         ? activeCard.colorVariations[activeCard.selectedVariantIndex]
         : null;
     const targetBottomColor =
-      active !== null && selectedVariant ? selectedVariant.bgColor : "#cccccc";
+      active !== null && selectedVariant ? selectedVariant.bgColor : "#bdd7ee";
 
     easing.dampC(currentBottomColor.current, targetBottomColor, 0.5, delta);
-
-    const ctx = gradientCanvas.current.getContext("2d");
-    if (ctx) {
-      const gradient = ctx.createLinearGradient(0, 0, 0, gradientCanvas.current.height);
-      gradient.addColorStop(0, "#cccccc");
-      gradient.addColorStop(0.7, currentBottomColor.current.getStyle());
-
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, gradientCanvas.current.width, gradientCanvas.current.height);
-    }
-
-    gradientTexture.current.needsUpdate = true;
-
+    
     opacityDelay.current += delta;
-    if (planeMaterialRef.current && opacityDelay.current >= 0.2) {
-      easing.damp(planeMaterialRef.current, "opacity", targetOpacity.current, 1.9, delta);
-    }
   });
 
   return (
@@ -119,11 +99,20 @@ export default function Experience({
         shadow-mapSize={[1028, 1028]}
         ref={directionalLightRef}
       />
-
+      
+      {/* Additional light to ensure consistent illumination in both views */}
+      <directionalLight
+        castShadow
+        intensity={0.7}
+        position={[-5, 5, 5]}
+        shadow-mapSize={[1028, 1028]}
+      />
+      
       <Environment
         environmentIntensity={1}
         preset={"city"}
-        environmentRotation={active ? [0, Math.PI / 2, 0] : [0, 0, 0]}
+        // Keep environment rotation consistent between active and inactive views
+        environmentRotation={[0, 0, 0]}
       />
 
       <group>
@@ -148,16 +137,15 @@ export default function Experience({
         })}
       </group>
 
-      <mesh position={[0, -1.75 / 2 + 0.0001, 0]} rotation-x={-Math.PI / 2}>
-        <planeGeometry args={[50, 50]} />
-        <meshBasicMaterial ref={planeMaterialRef} color={"#e6e6e6"} transparent opacity={1} />
-      </mesh>
+      {/* Contact shadows for the cards */}
       <ContactShadows
         position={[0, -1.75 / 2, 0]}
         scale={12}
         resolution={512}
         opacity={6}
         far={1}
+        // Ensure consistent shadows regardless of active state
+        blur={3}
       />
     </>
   );
