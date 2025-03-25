@@ -17,6 +17,14 @@ export default function Home() {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
+  // Initialize the window.__directFlipCard property
+  useEffect(() => {
+    // Create the property if it doesn't exist
+    if (typeof window !== 'undefined') {
+      window.__directFlipCard = null;
+    }
+  }, []);
+
   const [cardArr, setCardArr] = useState<CardType[]>(
     [
       {
@@ -490,6 +498,7 @@ export default function Home() {
   )
 
   const flipCard = (cardId: number, isFlipped: boolean) => {
+    console.log(`[FLIP CARD] Card ${cardId} flipping to ${isFlipped ? 'back' : 'front'}`);
     setCardArr((prevState: CardType[]) =>
       prevState.map((card) =>
         card.id === cardId ? { ...card, isFlipped } : card

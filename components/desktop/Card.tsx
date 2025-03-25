@@ -35,6 +35,15 @@ interface CardProps {
   inArrowZone: boolean;
   hoverLocked: boolean;
   cursorPosition: { x: number, y: number };
+  flipCard: (id: number, isFlipped: boolean) => void;
+}
+
+// Add typing for the global window object to fix linter error
+declare global {
+  interface Window {
+    // ID of the card that should flip on selection
+    __directFlipCard: number | null;
+  }
 }
 
 const Card = ({
@@ -50,6 +59,7 @@ const Card = ({
   inArrowZone,
   hoverLocked,
   cursorPosition,
+  flipCard,
 }: CardProps) => {
   const [hover, setHover] = useState(false);
   const isPointerOverRef = useRef(false); // Track if pointer is over the card
@@ -67,6 +77,7 @@ const Card = ({
   const lastPositionRef = useRef<THREE.Vector3>(new THREE.Vector3()); // Track last position for velocity
   const velocityRef = useRef<THREE.Vector3>(new THREE.Vector3()); // Track velocity during transitions
   const wasScrollingRef = useRef<boolean>(false); // Track if we were scrolling when deselecting
+  const lastFlipStateRef = useRef<boolean | null>(null); // Track last flip state for debugging
 
   const selectedVariant = card.colorVariations[card.selectedVariantIndex];
   const [bookmark] = useTexture(["/bookmark.png"]);
@@ -195,20 +206,52 @@ const Card = ({
   const click = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
     
-    // CRITICAL FIX: Always allow clicks in inactive view with minimal conditions
-    // This makes clicking work just as responsively as pressing Enter
-    if (active === null) {
-      console.log(`[CARD ${id}] Clicked card`);
-      setActive(id);
-      setHover(false);
-      return;
-    }
+    // Mark this event as handled to prevent the global click handler from running
+    (e as any).__handled = true;
     
-    // For clicking during active view (to select a different card)
-    // still use the normal conditions
-    if (!hoverLocked && !inArrowZone) {
+    // FUNDAMENTAL FIX: Direct handling without relying on timeouts
+    if (active === null) {
+      console.log(`[CARD ${id}] Clicked card (inactive view) - immediate activation with flip`);
+      
+      // Set animation state for smooth transitions
+      const animState = getAnimState();
+      animState.inTransition = false;
+      isReturningToIdleRef.current = false;
+      isTransitioningRef.current = false;
+      
+      // CRITICAL: Set the card to be flipped AND track we're going to flip it
+      // Store both the ID and the target flip state (true for selection)
+      window.__directFlipCard = id;
+      
+      // Then activate the card
       setActive(id);
       setHover(false);
+      
+    } else if (active !== id) {
+      console.log(`[CARD ${id}] Clicked card (active view) - switching cards`);
+      
+      // CRITICAL: Set the card to be flipped
+      window.__directFlipCard = id;
+      
+      // Then switch to this card
+      setActive(id);
+      setHover(false);
+      
+    } else if (active === id) {
+      // CRITICAL: Toggle the card flip directly when clicking the active card
+      console.log(`[CARD ${id}] Clicked active card - flipping directly`);
+      
+      // Initialize the global tracker to null to ensure other handlers don't interfere
+      window.__directFlipCard = null;
+      
+      // Toggle the flip state directly using the parent's flipCard function
+      const flipToState = !card.isFlipped;
+      console.log(`Flipping card ${id} to ${flipToState ? 'back' : 'front'} side`);
+      
+      // Use the parent component's flipCard function directly
+      if (typeof flipCard === 'function') {
+        flipCard(id, flipToState);
+      }
     }
   };
 
@@ -237,6 +280,24 @@ const Card = ({
     // Update last active state
     lastActiveStateRef.current = isActive;
     
+    // When this card becomes active, check if it needs to be flipped
+    if (isActive && window.__directFlipCard === id) {
+      console.log(`[CARD ${id}] Became active with directFlip flag set (isFlipped: ${card.isFlipped})`);
+      
+      // Track our own flip state changes as backup detection
+      if (!card.isFlipped) {
+        // Set a timeout to check if the flip happened from other handlers
+        setTimeout(() => {
+          if (active === id && !card.isFlipped && window.__directFlipCard === id) {
+            console.log(`[CARD ${id}] Card-level failsafe flip triggered`);
+            if (typeof flipCard === 'function') {
+              flipCard(id, true);
+            }
+          }
+        }, 150);
+      }
+    }
+    
     // When ANY card is deselected (active changes from a value to null)
     // Mark ALL cards for smooth transition back to idle view
     if (active === null && lastActiveRef.current !== null) {
@@ -244,17 +305,24 @@ const Card = ({
       
       // CRITICAL: Force clear any existing animation timeouts first
       // This prevents animation conflicts from previous deselection cycles
-      window.clearTimeout((window as any).__cardAnimationTimeout); // eslint-disable-line @typescript-eslint/no-explicit-any
-      window.clearTimeout((window as any).__cardHoverEnableTimeout); // eslint-disable-line @typescript-eslint/no-explicit-any
-      window.clearTimeout((window as any).__cardSyncTimeoutId); // eslint-disable-line @typescript-eslint/no-explicit-any
+      window.clearTimeout((window as any).__cardAnimationTimeout); // eslint-disable-line @typescript-eslint/no-unused-vars
+      window.clearTimeout((window as any).__cardHoverEnableTimeout); // eslint-disable-line @typescript-eslint/no-unused-vars
+      window.clearTimeout((window as any).__cardSyncTimeoutId); // eslint-disable-line @typescript-eslint/no-unused-vars
       
-      // Set global animation state to coordinate all cards
+      // FUNDAMENTAL FIX: Completely separate the animation state from the interaction state
+      // First, make the cards immediately interactive without waiting for any animations
+      isTransitioningRef.current = false; // This card is immediately interactive
+      
+      // Signal globally that all cards should be immediately interactive
+      window.dispatchEvent(new CustomEvent('card_interaction_enabled'));
+      
+      // After making cards interactive, now set up animation states
+      // Note we're explicitly keeping these separate from the interaction state
       animState.isReturningToIdle = true;
-      animState.inTransition = true;
       animState.lastDeselectionTime = Date.now();
       animState.lastTransitionId = lastActiveRef.current;
       
-      // Set transition flag for ALL cards to ensure they move together
+      // Set transition flag for animation only, not to block interactions
       isReturningToIdleRef.current = true;
       
       // Save current position at deselection time for smoother transitions
@@ -264,34 +332,16 @@ const Card = ({
       
       // Update scrolling state at deselection time
       wasScrollingRef.current = Math.abs(velocityRef.current.x) > 0.5;
-      
-      // NEW: Enable hover immediately (don't wait for animation to complete)
-      // Store this timeout separately so we can control it independently
-      (window as any).__cardHoverEnableTimeout = setTimeout(() => { // eslint-disable-line @typescript-eslint/no-explicit-any
-        console.log(`[CARD ${id}] Hover enabled immediately after deselection`);
-      }, 50); // Very short delay to allow initial transition to begin
-      
-      // CRITICAL FIX: Force all cards to synchronize their animation states
-      // This ensures no card gets "stuck" in a transition state
-      // Use a longer transition time to ensure smooth animations
-      (window as any).__cardSyncTimeoutId = setTimeout(() => { // eslint-disable-line @typescript-eslint/no-explicit-any
-        // Force animation state reset for ALL cards
-        console.log(`[GLOBAL SYNC] Forcing all cards to reset animation state`);
-        
-        // Instead of abruptly changing state, signal a gradual transition
+
+      // CRITICAL FIX: Trigger all animation reset events with proper timing
+      (window as any).__cardSyncTimeoutId = setTimeout(() => { // eslint-disable-line @typescript-eslint/no-unused-vars
+        // Once animations are done, clean up animation states (interaction remains enabled)
+        console.log(`[GLOBAL SYNC] Animation cleanup`);
         animState.isReturningToIdle = false;
-        // Keep inTransition true for a bit longer to ensure smooth handoff
         
-        // Broadcast a custom event to prepare cards for state change
-        window.dispatchEvent(new CustomEvent('card_prepare_transition_end'));
-        
-        // After some more time, fully complete the transition
-        setTimeout(() => {
-          animState.inTransition = false;
-          // Now reset individual card states
-          window.dispatchEvent(new CustomEvent('card_animation_reset'));
-        }, 300); // Additional time to ensure smooth handoff
-      }, 1200); // Extended from 800ms to ensure a complete, smooth transition
+        // Broadcast final animation cleanup events
+        window.dispatchEvent(new CustomEvent('card_animation_reset'));
+      }, 800);
     }
     
     // Store last active ID globally
@@ -327,6 +377,78 @@ const Card = ({
       // But we don't reset velocity or position info yet to maintain smooth motion
     };
     
+    // FUNDAMENTAL FIX: Handler to ensure cards are always interactive immediately
+    const enableInteraction = () => {
+      // CRITICAL: Reset ALL interaction-blocking flags immediately
+      isTransitioningRef.current = false;
+      isReturningToIdleRef.current = false;
+      
+      // Force interaction state in the global animation state
+      const animState = getAnimState();
+      animState.inTransition = false;
+      
+      // For proper hover effects, check if cursor is over this card
+      if (!hoverLocked && !inArrowZone && active === null) {
+        if (groupRef.current) {
+          // Simple ray test from cursor to card
+          const cardWorldPos = new THREE.Vector3();
+          groupRef.current.getWorldPosition(cardWorldPos);
+          
+          // Project to screen space
+          const cardScreenPos = cardWorldPos.clone();
+          cardScreenPos.project(camera);
+          
+          // Convert to pixel coordinates
+          const cardX = (cardScreenPos.x + 1) * window.innerWidth / 2;
+          const cardY = (-cardScreenPos.y + 1) * window.innerHeight / 2;
+          
+          // Test with appropriate card dimensions
+          const cardWidth = 180;
+          const cardHeight = 315;
+          
+          // Check if cursor is over this card
+          const isOver = 
+            cursorPosition.x > cardX - cardWidth/2 && 
+            cursorPosition.x < cardX + cardWidth/2 && 
+            cursorPosition.y > cardY - cardHeight/2 && 
+            cursorPosition.y < cardY + cardHeight/2;
+          
+          // Update hover states based on cursor position
+          isPointerOverRef.current = isOver;
+          setHover(isOver);
+        }
+      }
+      
+      // Ensure click interaction takes precedence over all animation states
+      if (meshRef.current) {
+        // Prioritize this mesh for interaction by setting high renderOrder
+        meshRef.current.renderOrder = 1000;
+      }
+    };
+    
+    // CRITICAL FIX: Force raycaster update to ensure ThreeJS registers clicks immediately
+    const forceRaycasterUpdate = () => {
+      // Reset all interaction-blocking flags
+      isTransitioningRef.current = false;
+      isReturningToIdleRef.current = false;
+      
+      // Force ThreeJS to update its raycaster and register this object
+      if (meshRef.current) {
+        // Set extremely high render order to force priority
+        meshRef.current.renderOrder = 2000; 
+        
+        // Force visibility to ensure the raycaster detects it
+        meshRef.current.visible = true;
+        
+        // Force object to be raycast-enabled
+        // Get original raycast method from the prototype without directly using __proto__
+        const originalRaycast = Object.getPrototypeOf(meshRef.current).raycast;
+        if (originalRaycast && typeof originalRaycast === 'function') {
+          meshRef.current.raycast = originalRaycast;
+        }
+      }
+    };
+    
     // IMPROVED: Add handler for scroll snap events to ensure all cards move in sync
     const syncWithScrollPosition = () => {
       if (groupRef.current && active === null) {
@@ -346,14 +468,18 @@ const Card = ({
     
     window.addEventListener('card_prepare_transition_end', prepareTransitionEnd);
     window.addEventListener('card_animation_reset', resetAnimationState);
+    window.addEventListener('card_interaction_enabled', enableInteraction);
+    window.addEventListener('force_raycaster_update', forceRaycasterUpdate);
     window.addEventListener('scroll_snap_complete', syncWithScrollPosition);
     
     return () => {
       window.removeEventListener('card_prepare_transition_end', prepareTransitionEnd);
       window.removeEventListener('card_animation_reset', resetAnimationState);
+      window.removeEventListener('card_interaction_enabled', enableInteraction);
+      window.removeEventListener('force_raycaster_update', forceRaycasterUpdate);
       window.removeEventListener('scroll_snap_complete', syncWithScrollPosition);
     };
-  }, [active, initialPos.x, scrollPosition]);
+  }, [active, initialPos.x, scrollPosition, hoverLocked, inArrowZone, cursorPosition, camera]);
 
   // Add effect to ensure hover isn't stuck
   useEffect(() => {
@@ -407,14 +533,32 @@ const Card = ({
         const rotationX = mousePos.y * intensity;
         const rotationY = mousePos.x * intensity;
         
+        // CRITICAL FIX: Add logging for flip state in active card animations
+        // This helps debug wheel navigation issues
+        const isCurrentlyFlipped = card.isFlipped;
+        if (isCurrentlyFlipped !== lastFlipStateRef?.current) {
+          console.log(`[CARD ${id}] Flip state changed: ${lastFlipStateRef?.current} -> ${isCurrentlyFlipped}`);
+          lastFlipStateRef.current = isCurrentlyFlipped;
+        }
+        
         targetRotation = [
           -rotationX,
           card.isFlipped ? Math.PI - rotationY : -rotationY,
           0,
         ];
+        
+        // CRITICAL: Ensure active card has high render order for raycasting
+        if (meshRef.current) {
+          meshRef.current.renderOrder = 2000;
+        }
       } else {
         // Basic rotation for all non-active cards
         targetRotation = [0, card.isFlipped ? Math.PI : 0, 0];
+        
+        // Reset render order for non-active cards - use cardIndex for consistent ordering
+        if (meshRef.current) {
+          meshRef.current.renderOrder = 1000 + cardIndex;  
+        }
         
         // STEP 2: Determine X position based on view state
         if (active !== null) {
@@ -456,7 +600,7 @@ const Card = ({
       
       // CRITICAL FIX: Use an ease factor that transitions smoothly based on time since deselection
       // This prevents the jump that happens when animation modes change
-      let easeFactor = 0.1; // Default base value
+      let easeFactor = 0.15; // IMPROVED: Increased from 0.1 for more responsive animations
       
       if (active === id) {
         // Active card needs slightly faster response
@@ -466,11 +610,11 @@ const Card = ({
         easeFactor = 0.4;
       } else if (isReturningToIdleRef.current || animState.isReturningToIdle) {
         // Idle transition - use smooth animation
-        easeFactor = 0.12;
+        easeFactor = 0.15; // IMPROVED: Faster transition when returning to idle
         
         // Special case for previously active card - smoother transition
         if (id === lastActiveRef.current || id === animState.lastTransitionId) {
-          easeFactor = 0.1;
+          easeFactor = 0.15; // IMPROVED: Faster transition for previously active card
         }
         
         // Check if we're near the end of the transition
@@ -479,7 +623,7 @@ const Card = ({
           // CRITICAL FIX: Gradually shift ease factor as we approach the end of transition
           // This creates a smooth handoff between animation states
           const ratio = (timeSinceDeselection - 800) / 700; // 0 to 1 as we approach 1500ms
-          easeFactor = 0.12 - (ratio * 0.02); // Smoothly shift from 0.12 to 0.1
+          easeFactor = 0.15 - (ratio * 0.03); // IMPROVED: Smoother transition, but still faster
         }
       } 
       
@@ -496,7 +640,7 @@ const Card = ({
       easing.dampE(
         groupRef.current.rotation,
         targetRotation,
-        active === id ? 0.35 : 0.25,
+        active === id ? 0.35 : 0.3, // IMPROVED: Faster rotation transitions for inactive cards
         delta
       );
 
@@ -536,6 +680,7 @@ const Card = ({
         receiveShadow
         castShadow
         onClick={click}
+        // renderOrder is now set dynamically in useFrame based on card state
       >
         <meshStandardMaterial 
           color={selectedVariant.cardColor} 

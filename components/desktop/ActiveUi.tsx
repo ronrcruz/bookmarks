@@ -53,11 +53,89 @@ export default function ActiveUi({
   const handleClose = useCallback(() => {
     if (activeCard) {
       console.log(`[DESELECT] Closing active view for card ${activeCard.id}`);
-      // Set a small timeout to ensure all animations complete cleanly
-      setActive(null);
-      flipCard(activeCard.id, false);
+      
+      // CRITICAL: Get the overlay element and immediately disable pointer events
+      // This is the key fix - disable pointer events on the container BEFORE any animation starts
+      const overlayElement = document.getElementById('active-ui-overlay');
+      if (overlayElement) {
+        overlayElement.style.pointerEvents = 'none';
+      }
+      
+      // FUNDAMENTAL FIX: Trigger events to ensure interactive state is properly restored
+      // 1. First, immediately enable interaction before any state changes
+      window.dispatchEvent(new CustomEvent('card_interaction_enabled'));
+      
+      // 2. Force the raycaster to update (helps ThreeJS register clicks)
+      window.dispatchEvent(new CustomEvent('force_raycaster_update'));
+      
+      // 3. Then set state changes with zero delay - ALWAYS reset to not flipped
+      // Cards MUST return to front side when deselected for consistency
+      window.requestAnimationFrame(() => {
+        setActive(null);
+        
+        // ALWAYS reset cards to front state when deselecting
+        // This ensures consistent behavior each time a card is selected
+        if (activeCard.isFlipped) {
+          console.log(`[DESELECT] Flipping card ${activeCard.id} back to front`);
+          flipCard(activeCard.id, false);
+        }
+      });
     }
   }, [activeCard, flipCard, setActive]);
+
+  // FUNDAMENTAL FIX: Direct handling of flipping when active card changes
+  useEffect(() => {
+    // Create a tracking variable for this effect instance
+    let isUpdating = false;
+    
+    // This effect runs whenever the active state changes
+    if (active !== null && activeCard) {
+      console.log(`[ACTIVE CHANGE] Card ${active} now active (isFlipped: ${activeCard.isFlipped}, directFlip: ${window.__directFlipCard === active})`);
+      
+      // Check if this activation should trigger a flip (set by wheel navigation, keyboard, or click)
+      if (window.__directFlipCard === active) {
+        console.log(`[DIRECT FLIP] Auto-flipping newly activated card ${active} (isCurrentlyFlipped: ${activeCard.isFlipped})`);
+        isUpdating = true;
+        
+        // CRITICAL FIX: Use nested timeouts to ensure we have multiple chances to apply the flip
+        // This gives us more reliability especially with wheel navigation
+        setTimeout(() => {
+          if (!isUpdating) return; // Check if this effect is still relevant
+          
+          // Double-check the current state to ensure we're still dealing with the right card
+          if (window.__directFlipCard === active && !activeCard.isFlipped) {
+            console.log(`[FLIP-1] Setting card ${active} to flipped state`);
+            flipCard(active, true);
+            
+            // After successful flip, clear the directFlip flag
+            window.__directFlipCard = null;
+          } else {
+            // Give one more chance in case of race condition
+            setTimeout(() => {
+              if (!isUpdating) return;
+              
+              // Final check to catch any missed flips
+              const currentCard = cardArr.find(card => card.id === active);
+              if (currentCard && !currentCard.isFlipped && window.__directFlipCard === active) {
+                console.log(`[FLIP-2] Last chance flip for card ${active}`);
+                flipCard(active, true);
+              }
+              
+              // Always clear the directFlip flag at this point
+              if (window.__directFlipCard === active) {
+                window.__directFlipCard = null;
+              }
+            }, 50);
+          }
+        }, 50);
+      }
+    }
+    
+    // Cleanup function to prevent stale updates
+    return () => {
+      isUpdating = false;
+    };
+  }, [active, activeCard, flipCard, cardArr]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -72,8 +150,12 @@ export default function ActiveUi({
         // First reset the flipped state of the currently active card
         if (activeCard) flipCard(active, false);
         
+        // Set the direct flip flag for the new card
+        window.__directFlipCard = nextActive;
+        
         // Then set the new active card
         setActive(nextActive);
+        
       } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
         const prevActive = active === 1 ? 11 : active - 1;
         console.log(`[KEY NAV] Arrow Left/Down pressed. Changing active card: ${active} -> ${prevActive}`);
@@ -81,12 +163,49 @@ export default function ActiveUi({
         // First reset the flipped state of the currently active card
         if (activeCard) flipCard(active, false);
         
+        // Set the direct flip flag for the new card
+        window.__directFlipCard = prevActive;
+        
         // Then set the new active card
         setActive(prevActive);
+        
       } else if (e.key === "Escape") {
         console.log(`[KEY NAV] Escape pressed. Closing active view.`);
         handleClose();
+      } else if (e.key === "f" || e.key === "F") {
+        // Add keyboard shortcut to flip card
+        console.log(`[KEY NAV] F key pressed. Flipping active card.`);
+        if (activeCard) {
+          flipCard(activeCard.id, !activeCard.isFlipped);
+        }
       }
+    };
+
+    // CRITICAL FIX: Enhanced flip event handler with more reliable processing
+    const handleFlipActiveCard = (e: CustomEvent) => {
+      // Wait until the next frame to ensure the active card has been updated
+      requestAnimationFrame(() => {
+        if (active !== null && activeCard) {
+          console.log(`[FLIP] Flipping active card ${activeCard.id} (fromSelection: ${e.detail?.fromSelection})`);
+          
+          // Check if this flip was triggered as part of a selection
+          const fromSelection = e.detail?.fromSelection;
+          const targetCardId = e.detail?.id;
+          
+          // Ensure we're flipping the correct card (the one that was selected)
+          if (targetCardId && targetCardId === active) {
+            // If this is from a selection, ensure we flip to back side
+            // This creates a consistent flipping effect when selecting cards
+            if (fromSelection) {
+              // Always flip to back side (true) when selecting
+              flipCard(activeCard.id, true);
+            } else {
+              // Normal toggle flip when clicking an already active card
+              flipCard(activeCard.id, !activeCard.isFlipped);
+            }
+          }
+        }
+      });
     };
 
     // Handle wheel events in active view
@@ -100,20 +219,30 @@ export default function ActiveUi({
 
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("wheel", handleWheel, { passive: false });
+    window.addEventListener("flip_active_card", handleFlipActiveCard as EventListener);
     
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("flip_active_card", handleFlipActiveCard as EventListener);
     };
   }, [active, activeCard, flipCard, setActive, handleClose, hasSeenIndicator]);
 
   const handlePage = (activeId: number) => {
     if (active && activeCard) {
+      // First reset the flipped state of the previously active card 
+      // This ensures consistent behavior - cards always start unflipped
+      flipCard(active, false);
+      
+      // Set the direct flip flag for the new card
+      // This will trigger the card to be flipped to back when it becomes active
+      window.__directFlipCard = activeId;
+      
       // Set the new active card immediately without deactivating first
       // This prevents the camera from briefly transitioning to default position
       setActive(activeId);
-      // Then reset the flipped state of the previously active card
-      flipCard(active, false);
+      
+      console.log(`[PAGE] Switched from card ${active} to ${activeId}`);
     }
   };
 
@@ -131,6 +260,7 @@ export default function ActiveUi({
     <AnimatePresence mode="sync">
       {active !== null && (
         <div
+          id="active-ui-overlay"
           className="absolute h-full w-full z-30 p-10 lg:p-14 flex pointer-events-auto"
           onClick={() => setHasSeenIndicator(true)}
         >
@@ -138,7 +268,10 @@ export default function ActiveUi({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={{ 
+              opacity: 0,
+              pointerEvents: "none"
+            }}
             transition={{ 
               duration: 0.5,
               exit: { duration: 0.2 }
@@ -155,7 +288,7 @@ export default function ActiveUi({
             <motion.div
               initial={{ opacity: 0, x: "-50%", y: 20 }}
               animate={{ opacity: 0.5, y: 0 }}
-              exit={{ opacity: 0 }}
+              exit={{ opacity: 0, pointerEvents: "none" }}
               transition={{ duration: 0.3 }}
               className="absolute top-6 left-1/2 border bg-black/90 border-black/20 text-black/40 p-2 rounded-lg shadow-lg flex gap-2 items-center"
             >
@@ -172,9 +305,17 @@ export default function ActiveUi({
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            exit={{ 
+              opacity: 0, 
+              y: -20, 
+              pointerEvents: "none",
+              transition: { duration: 0.2, delay: 0 }
+            }}
             transition={{ delay: 0, duration: 0.3, exit: { duration: 0.2, delay: 0 } }}
             className={`${instrument.className} h-full w-full flex justify-between`}
+            style={{
+              willChange: "transform, opacity",
+            }}
           >
             {/* LEFT */}
             <motion.div className="flex flex-col justify-between h-full w-1/4">
@@ -225,6 +366,10 @@ export default function ActiveUi({
                   flipCard(activeCard.id, !activeCard.isFlipped)
                 }
                 className="h-[32.5rem] w-[18.5rem] rounded-2xl self-center outline-none"
+                style={{ 
+                  pointerEvents: 'auto',  // CRITICAL: Ensure pointer events work properly
+                  cursor: 'pointer' 
+                }}
               />
             )}
 
@@ -279,8 +424,6 @@ export default function ActiveUi({
                       Matte paper
                     </p>
                   </li>
-
-
 
                   <li className="text-3xl lg:text-5xl font-medium flex justify-between w-full items-end p-1 relative">
                     <div className="translate-y-20">

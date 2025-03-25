@@ -25,6 +25,7 @@ interface ExperienceProps {
   inArrowZone: boolean;
   hoverLocked: boolean;
   cursorPosition: { x: number, y: number };
+  flipCard: (id: number, isFlipped: boolean) => void;
 }
 
 export default function Experience({
@@ -36,6 +37,7 @@ export default function Experience({
   inArrowZone,
   hoverLocked,
   cursorPosition,
+  flipCard,
 }: ExperienceProps) {
   const { scene, camera } = useThree();
   const currentBottomColor = useRef(new THREE.Color("#bdd7ee"));
@@ -140,6 +142,7 @@ export default function Experience({
               inArrowZone={inArrowZone}
               hoverLocked={hoverLocked}
               cursorPosition={cursorPosition}
+              flipCard={flipCard}
             />
           );
         })}
