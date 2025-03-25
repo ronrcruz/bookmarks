@@ -166,149 +166,6 @@ export default function DesktopScene({
     }
   }, [isLoaded, active]);
 
-  // Extract complex dependency expression
-  const scrollSnapDependencies = {
-    isHoveringLeft, 
-    isHoveringRight, 
-    getCurrentCardIndex, 
-    getCardPositions, 
-    cardArr, 
-    setHoverLocked,
-    setTargetScrollPosition,
-    setIsActivelyScrolling
-  };
-
-  // Define the startScrollInterval function with useCallback - moved after dependencies are defined
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const startScrollInterval = useCallback(() => {
-    if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
-    
-    // Set scrolling state to prevent snapping during active scrolling
-    setIsActivelyScrolling(true);
-    
-    // Track current card and time of last scroll
-    let currentCardIndex = getCurrentCardIndex();
-    let lastScrollTime = Date.now();
-    
-    scrollIntervalRef.current = setInterval(() => {
-      // Only scroll if enough time has passed since last scroll (throttle)
-      const now = Date.now();
-      // Use a faster scrolling interval when arrow is clicked
-      const scrollThrottle = arrowClicked ? 5 : 15; // Even faster when clicked
-      if (now - lastScrollTime < scrollThrottle) return;
-      
-      if (isHoveringLeft) {
-        // Move directly to previous card
-        const nextIndex = Math.max(0, currentCardIndex - (arrowClicked ? 2 : 1)); // Move 2 cards at once when clicked
-        if (nextIndex !== currentCardIndex) {
-          const cardPositions = getCardPositions();
-          const targetPosition = cardPositions[nextIndex];
-          setTargetScrollPosition(targetPosition);
-          setHoverLocked(true);
-          currentCardIndex = nextIndex;
-          lastScrollTime = now;
-        }
-      } else if (isHoveringRight) {
-        // Move directly to next card
-        const nextIndex = Math.min(cardArr.length - 1, currentCardIndex + (arrowClicked ? 2 : 1)); // Move 2 cards at once when clicked
-        if (nextIndex !== currentCardIndex) {
-          const cardPositions = getCardPositions();
-          const targetPosition = cardPositions[nextIndex];
-          setTargetScrollPosition(targetPosition);
-          setHoverLocked(true);
-          currentCardIndex = nextIndex;
-          lastScrollTime = now;
-        }
-      }
-    }, 25); // IMPROVED: Reduced from 40ms for smoother animation
-  }, [
-    arrowClicked,
-    cardArr,
-    getCurrentCardIndex,
-    getCardPositions,
-    isHoveringLeft,
-    isHoveringRight,
-    setHoverLocked,
-    setIsActivelyScrolling,
-    setTargetScrollPosition
-  ]);
-  
-  // Handle scroll stopping and snapping to the nearest card - memoized to avoid recreation
-  const handleScrollStop = useCallback(() => {
-    // Don't snap when a card is active
-    if (active !== null) {
-      return;
-    }
-    
-    // Find the nearest card position to snap to
-    const cardPositions = getCardPositions();
-    
-    // Find the card closest to the current scroll position
-    const closestCardIndex = cardPositions.reduce((prevIndex, position, currentIndex) => {
-      return Math.abs(position - scrollPosition) < Math.abs(cardPositions[prevIndex] - scrollPosition)
-        ? currentIndex
-        : prevIndex;
-    }, 0);
-
-    const nearestCardPosition = cardPositions[closestCardIndex];
-
-    // Always snap to nearest card position for more predictable navigation
-    const targetPosition = Math.min(maxScrollRight, Math.max(maxScrollLeft, nearestCardPosition));
-    setTargetScrollPosition(targetPosition);
-    
-    // CRITICAL FIX: Signal the snap completion to synchronize all cards
-    // Wait a brief moment to ensure the scroll animation has fully started
-    setTimeout(() => {
-      // Dispatch an event that all cards can listen for to synchronize
-      window.dispatchEvent(new CustomEvent('scroll_snap_complete'));
-    }, 50);
-    
-    // Immediately unlock hover when scrolling stops
-    setHoverLocked(false);
-    setIsActivelyScrolling(false);
-    setIsWheelScrolling(false);
-  }, [
-    active,
-    scrollPosition,
-    getCardPositions,
-    maxScrollRight,
-    maxScrollLeft,
-    setTargetScrollPosition,
-    setHoverLocked,
-    setIsActivelyScrolling,
-    setIsWheelScrolling
-  ]);
-
-  // Start/stop scroll interval when hovering over arrows
-  useEffect(() => {
-    if ((isHoveringLeft || isHoveringRight) && !active) {
-      startScrollInterval();
-    } else {
-      if (scrollIntervalRef.current) {
-        clearInterval(scrollIntervalRef.current);
-        scrollIntervalRef.current = null;
-        
-        // Reset hover lock immediately when not hovering over arrows
-        setHoverLocked(false);
-        
-        // Only trigger snap when user stops hovering over arrows
-        if (!isHoveringLeft && !isHoveringRight) {
-          // Trigger snapping immediately for better responsiveness
-          setIsActivelyScrolling(false);
-          handleScrollStop();
-        }
-      }
-    }
-    
-    return () => {
-      if (scrollIntervalRef.current) {
-        clearInterval(scrollIntervalRef.current);
-        scrollIntervalRef.current = null;
-        setHoverLocked(false); // Always ensure hover lock is released on cleanup
-      }
-    };
-  }, [isHoveringLeft, isHoveringRight, active, handleScrollStop, setHoverLocked, startScrollInterval]);
-
   // Animation loop for smooth scrolling
   useEffect(() => {
     if (animationFrameRef.current) {
@@ -779,6 +636,136 @@ export default function DesktopScene({
       canvas.removeEventListener('click', handleCanvasClick, { capture: true });
     };
   }, [active, isLoaded, isHoveringLeft, isHoveringRight, arrowInteraction]);
+
+  // Define the startScrollInterval function with useCallback
+  const startScrollInterval = useCallback(() => {
+    if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
+    
+    // Set scrolling state to prevent snapping during active scrolling
+    setIsActivelyScrolling(true);
+    
+    // Track current card and time of last scroll
+    let currentCardIndex = getCurrentCardIndex();
+    let lastScrollTime = Date.now();
+    
+    scrollIntervalRef.current = setInterval(() => {
+      // Only scroll if enough time has passed since last scroll (throttle)
+      const now = Date.now();
+      // Use a faster scrolling interval when arrow is clicked
+      const scrollThrottle = arrowClicked ? 5 : 15; // Even faster when clicked
+      if (now - lastScrollTime < scrollThrottle) return;
+      
+      if (isHoveringLeft) {
+        // Move directly to previous card
+        const nextIndex = Math.max(0, currentCardIndex - (arrowClicked ? 2 : 1)); // Move 2 cards at once when clicked
+        if (nextIndex !== currentCardIndex) {
+          const cardPositions = getCardPositions();
+          const targetPosition = cardPositions[nextIndex];
+          setTargetScrollPosition(targetPosition);
+          setHoverLocked(true);
+          currentCardIndex = nextIndex;
+          lastScrollTime = now;
+        }
+      } else if (isHoveringRight) {
+        // Move directly to next card
+        const nextIndex = Math.min(cardArr.length - 1, currentCardIndex + (arrowClicked ? 2 : 1)); // Move 2 cards at once when clicked
+        if (nextIndex !== currentCardIndex) {
+          const cardPositions = getCardPositions();
+          const targetPosition = cardPositions[nextIndex];
+          setTargetScrollPosition(targetPosition);
+          setHoverLocked(true);
+          currentCardIndex = nextIndex;
+          lastScrollTime = now;
+        }
+      }
+    }, 25); // IMPROVED: Reduced from 40ms for smoother animation
+  }, [
+    arrowClicked,
+    cardArr,
+    getCurrentCardIndex,
+    getCardPositions,
+    isHoveringLeft,
+    isHoveringRight,
+    setHoverLocked,
+    setIsActivelyScrolling,
+    setTargetScrollPosition
+  ]);
+  
+  // Handle scroll stopping and snapping to the nearest card - memoized to avoid recreation
+  const handleScrollStop = useCallback(() => {
+    // Don't snap when a card is active
+    if (active !== null) {
+      return;
+    }
+    
+    // Find the nearest card position to snap to
+    const cardPositions = getCardPositions();
+    
+    // Find the card closest to the current scroll position
+    const closestCardIndex = cardPositions.reduce((prevIndex, position, currentIndex) => {
+      return Math.abs(position - scrollPosition) < Math.abs(cardPositions[prevIndex] - scrollPosition)
+        ? currentIndex
+        : prevIndex;
+    }, 0);
+
+    const nearestCardPosition = cardPositions[closestCardIndex];
+
+    // Always snap to nearest card position for more predictable navigation
+    const targetPosition = Math.min(maxScrollRight, Math.max(maxScrollLeft, nearestCardPosition));
+    setTargetScrollPosition(targetPosition);
+    
+    // CRITICAL FIX: Signal the snap completion to synchronize all cards
+    // Wait a brief moment to ensure the scroll animation has fully started
+    setTimeout(() => {
+      // Dispatch an event that all cards can listen for to synchronize
+      window.dispatchEvent(new CustomEvent('scroll_snap_complete'));
+    }, 50);
+    
+    // Immediately unlock hover when scrolling stops
+    setHoverLocked(false);
+    setIsActivelyScrolling(false);
+    setIsWheelScrolling(false);
+  }, [
+    active,
+    scrollPosition,
+    getCardPositions,
+    maxScrollRight,
+    maxScrollLeft,
+    setTargetScrollPosition,
+    setHoverLocked,
+    setIsActivelyScrolling,
+    setIsWheelScrolling
+  ]);
+
+  // Start/stop scroll interval when hovering over arrows
+  useEffect(() => {
+    if ((isHoveringLeft || isHoveringRight) && !active) {
+      startScrollInterval();
+    } else {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+        
+        // Reset hover lock immediately when not hovering over arrows
+        setHoverLocked(false);
+        
+        // Only trigger snap when user stops hovering over arrows
+        if (!isHoveringLeft && !isHoveringRight) {
+          // Trigger snapping immediately for better responsiveness
+          setIsActivelyScrolling(false);
+          handleScrollStop();
+        }
+      }
+    }
+    
+    return () => {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+        setHoverLocked(false); // Always ensure hover lock is released on cleanup
+      }
+    };
+  }, [isHoveringLeft, isHoveringRight, active, handleScrollStop, setHoverLocked, startScrollInterval]);
 
   return (
     <div className="relative w-full h-full">
