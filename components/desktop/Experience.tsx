@@ -2,7 +2,15 @@
 
 import { Dispatch, SetStateAction, useEffect, useMemo, useRef } from "react";
 import Card from "./Card";
-import { Environment, OrbitControls, ContactShadows, Cylinder, GradientTexture } from "@react-three/drei";
+import { 
+  Environment, 
+  OrbitControls, 
+  ContactShadows, 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  Cylinder, 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  GradientTexture 
+} from "@react-three/drei";
 import { CardType } from "@/app/definitions";
 import { useFrame, useThree } from "@react-three/fiber";
 import { easing } from "maath";

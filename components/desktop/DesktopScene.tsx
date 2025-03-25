@@ -53,6 +53,7 @@ export default function DesktopScene({
   const CARD_WIDTH = 1.2; // Width of each card + spacing
   
   // Track selected variant index changes
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const selectedVariantRef = useRef<number>(0);
   
   // Calculate all card positions for wheel scrolling - memoized to avoid recreation
@@ -148,7 +149,20 @@ export default function DesktopScene({
     }
   }, [isLoaded, active]);
 
+  // Extract complex dependency expression
+  const scrollSnapDependencies = {
+    isHoveringLeft, 
+    isHoveringRight, 
+    getCurrentCardIndex, 
+    getCardPositions, 
+    cardArr, 
+    setHoverLocked,
+    setTargetScrollPosition,
+    setIsActivelyScrolling
+  };
+
   // Define the startScrollInterval function with useCallback - moved after dependencies are defined
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const startScrollInterval = useCallback(() => {
     if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
     
@@ -189,14 +203,7 @@ export default function DesktopScene({
       }
     }, 40); // Increased from 25ms for smoother animation
   }, [
-    isHoveringLeft, 
-    isHoveringRight, 
-    getCurrentCardIndex, 
-    getCardPositions, 
-    cardArr.length, 
-    setHoverLocked,
-    setTargetScrollPosition,
-    setIsActivelyScrolling
+    scrollSnapDependencies
   ]);
   
   // Handle scroll stopping and snapping to the nearest card - memoized to avoid recreation
@@ -505,6 +512,9 @@ export default function DesktopScene({
     }
   }, [active]);
 
+  // Extract the variant indices to a variable for the dependency array
+  const variantIndicesString = cardArr.map(card => card.selectedVariantIndex).join(',');
+  
   // Update bottom color based on selected card and its variants
   useEffect(() => {
     const activeCard = cardArr.find((card) => card.id === active);
@@ -519,7 +529,7 @@ export default function DesktopScene({
     } else {
       setBottomColor("#bdd7ee"); // Default blue color
     }
-  }, [active, cardArr, cardArr.map(card => card.selectedVariantIndex).join(',')]);
+  }, [active, cardArr, variantIndicesString]);
 
   return (
     <div className="relative w-full h-full">

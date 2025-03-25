@@ -31,6 +31,8 @@ interface CardProps {
   setActive: Dispatch<SetStateAction<number | null>>;
   isLoaded: boolean;
   cards: CardType[];
+  orientation: { beta: number | null; gamma: number | null };
+  requestPermission: () => Promise<void>;
 }
 
 const Card = ({
@@ -39,8 +41,9 @@ const Card = ({
   index,
   active,
   setActive,
-  // isLoaded,
   cards,
+  orientation,
+  requestPermission
 }: CardProps) => {
   const groupRef = useRef<THREE.Group>(null);
   const meshRef = useRef<THREE.Mesh>(null);
@@ -62,16 +65,64 @@ const Card = ({
   const rotationRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
   const scroll = useScroll();
 
-  // Constants for positioning
-  const dz = 1.75 / 2; // Spacing between cards along z-axis
-  const focusZ = 5; // Z-position of the focused card
-  const elevationThreshold = 0.4; // Threshold for elevation
-  const elevationHeight = 0.7; // Height to elevate the focused card
+  // MOUSE ROTATION
+  useEffect(() => {
+    const pointerMove = (e: MouseEvent) => {
+      if (active === id) {
+        const x = (e.clientX / window.innerWidth) * 2 - 1;
+        const y = -(e.clientY / window.innerHeight) * 2 + 1;
+        setMousePos({ x, y });
+      }
+    };
+    window.addEventListener("mousemove", pointerMove);
+    return () => window.removeEventListener("mousemove", pointerMove);
+  }, [active, id]);
 
-  const initialPos = useMemo(() => new THREE.Vector3(0, 0, index * dz), [index, dz]);
+  // POSITIONING
+  const spacing = 1.75 / 2;
+  const focusZ = 5;
+  const elevationThreshold = 0.6;
+  const elevationHeight = 0.7;
 
+  const initialPos = useMemo(() => new THREE.Vector3(0, 0, index * spacing), [index, spacing]);
+
+  // TEXTURES
   const selectedVariant = card.colorVariations[card.selectedVariantIndex];
-  const [bookmark, foil, normalMap] = useTexture(["/bookmark.png", "/foil.png", "/NormalMap.png"]);
+  const defaultTexturePath = '/bookmark.png';
+
+  const allTexturePaths = [
+    selectedVariant.illustration.front || defaultTexturePath,
+    selectedVariant.illustration.back || defaultTexturePath,
+    card.foil.front || defaultTexturePath,
+    card.foil.back || defaultTexturePath,
+    card.normalMap.front || defaultTexturePath,
+    card.normalMap.back || defaultTexturePath,
+  ];
+
+  const [
+    frontIllustrationTex,
+    backIllustrationTex,
+    frontFoilTex,
+    backFoilTex,
+    frontNormalTex,
+    backNormalTex,
+  ] = useTexture(allTexturePaths);
+
+  [frontIllustrationTex, backIllustrationTex, frontFoilTex, backFoilTex, frontNormalTex, backNormalTex].forEach(tex => {
+    if (tex) {
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.anisotropy = 16;
+      tex.generateMipmaps = true;
+    }
+  });
+
+  const frontIllustration = selectedVariant.illustration.front ? frontIllustrationTex : null;
+  const backIllustration = selectedVariant.illustration.back ? backIllustrationTex : null;
+  const frontFoil = card.foil.front ? frontFoilTex : null;
+  const backFoil = card.foil.back ? backFoilTex : null;
+  const frontNormal = card.normalMap.front ? frontNormalTex : null;
+  const backNormal = card.normalMap.back ? backNormalTex : null;
 
   const goldEnvMap = {
     map: useLoader(RGBELoader, "/pretville_cinema_1k.hdr"),
@@ -86,46 +137,23 @@ const Card = ({
   };
 
   const envMap = selectedVariant.foilColor === "gold" ? goldEnvMap : silverEnvMap;
-
-  bookmark.minFilter = THREE.LinearFilter;
-  bookmark.magFilter = THREE.LinearFilter;
-  bookmark.anisotropy = 16;
-  bookmark.generateMipmaps = true;
-
-  foil.minFilter = THREE.LinearFilter;
-  foil.magFilter = THREE.LinearFilter;
-  foil.anisotropy = 16;
-  foil.generateMipmaps = true;
-
   envMap.map.mapping = THREE.EquirectangularReflectionMapping;
 
-  const click = (e: { stopPropagation: () => void }) => {
+  const click = async (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
-    setActive(id)
+    await requestPermission();
+    setActive(id);
   };
-
-  useEffect(() => {
-    const pointerMove = (e: MouseEvent) => {
-      if (active === id) {
-        const x = (e.clientX / window.innerWidth) * 2 - 1;
-        const y = -(e.clientY / window.innerHeight) * 2 + 1;
-        setMousePos({ x, y });
-      }
-    };
-    window.addEventListener("mousemove", pointerMove);
-    return () => window.removeEventListener("mousemove", pointerMove);
-  }, [active, id]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
 
-    const dz = active ? 20 : 1.75 / 2; // Spacing between cards along z-axis
-
     const N = cards.length;
-    const focusedIndex = scroll.offset * (N - 1); // Maps scroll offset (0 to 1) to card index (0 to N-1)
-    const targetZ = 5 + (index - focusedIndex) * dz; // Position cards relative to focused card at z=5
+    const focusedIndex = scroll.offset * (N - 1);
+    const spacing = active ? 20 : 1.75 / 2;
+    const targetZ = 5 + (index - focusedIndex) * spacing;
     const distanceFromFocus = Math.abs(targetZ - focusZ);
-    const elevationFactor = Math.max(0, 1 - distanceFromFocus / elevationThreshold); // Smooth elevation
+    const elevationFactor = Math.max(0, 1 - distanceFromFocus / elevationThreshold);
     const targetY = elevationHeight * elevationFactor + 0.5;
 
     let targetPosition: [number, number, number];
@@ -133,35 +161,58 @@ const Card = ({
     let targetRotation: [number, number, number];
     let intensity: number;
 
-    if (active === id) {
-      targetPosition = [0, 4.5, -0.055];
-      smoothTime = 0.35;
-      intensity = 0.25;
-      const rotationX = mousePos.y * intensity;
-      const rotationY = mousePos.x * intensity;
-      targetRotation = [
-        -Math.PI / 2 - rotationX,
-        card.isFlipped ? rotationY + Math.PI : rotationY,
-        0,
-      ];
+    if (active !== null) {
+      const activeIndex = cards.findIndex(card => card.id === active);
+
+      if (index === activeIndex) {
+        targetPosition = [0, 4.5, -0.055];
+        smoothTime = 0.35;
+        intensity = 0.25;
+
+        let rotationX, rotationY;
+        if (orientation.beta !== null && orientation.gamma !== null && window.innerWidth < 500) {
+          rotationX = -(orientation.beta - 45) * (Math.PI / 180) * 0.4;
+          rotationY = orientation.gamma * (Math.PI / 180);
+        } else {
+          rotationX = mousePos.y * intensity;
+          rotationY = mousePos.x * intensity;
+        }
+        targetRotation = [
+          -Math.PI / 2 - rotationX,
+          card.isFlipped ? rotationY + Math.PI : rotationY,
+          0,
+        ];
+      } else if (index === activeIndex - 1) {
+        targetPosition = [-5, 4.5, -0.055];
+        smoothTime = 0.35;
+        targetRotation = [0, 0, 0];
+      } else if (index === activeIndex + 1) {
+        targetPosition = [5, 4.5, -0.055];
+        smoothTime = 0.35;
+        targetRotation = [0, 0, 0];
+      } else {
+        targetPosition = [(index - activeIndex) * 5, 4.5, -0.055];
+        smoothTime = 0.15;
+        targetRotation = [0, 0, 0];
+        groupRef.current.visible = false;
+        easing.damp3(groupRef.current.position, targetPosition, smoothTime, delta);
+        return;
+      }
+      groupRef.current.visible = true;
     } else {
       targetPosition = [0, targetY, targetZ];
       smoothTime = 0.15;
       targetRotation = [0, 0, 0];
+      groupRef.current.visible = true;
     }
 
-    // Apply easing properly - direct positioning for x to stay in sync with scrolling,
-    // but easing for y and z for smooth vertical and depth transitions
-    groupRef.current.position.x = targetPosition[0]; // Direct x positioning - no easing
-    easing.damp(groupRef.current.position, 'y', targetPosition[1], smoothTime, delta); // Eased y
-    easing.damp(groupRef.current.position, 'z', targetPosition[2], smoothTime, delta); // Eased z
+    easing.damp3(groupRef.current.position, targetPosition, smoothTime, delta);
     easing.damp3(rotationRef.current, targetRotation, active ? 0.35 : 0.265, delta);
-
     groupRef.current.rotation.set(rotationRef.current.x, rotationRef.current.y, rotationRef.current.z);
   });
 
   return (
-    <group ref={groupRef} position={initialPos}>
+    <group ref={groupRef} position={initialPos} rotation={[0, 0.7, 0]}>
       {/* BASE CARD */}
       <mesh
         ref={meshRef}
@@ -171,67 +222,101 @@ const Card = ({
         onClick={click}
       >
         <meshPhysicalMaterial color={selectedVariant.cardColor} opacity={1} />
+
         {/* FRONT ILLUSTRATION */}
-        <Decal receiveShadow={active ? false : true} position={[0.02, 0, 0]} scale={[1, 1.75, 0.1]}>
-          <meshPhysicalMaterial
-            polygonOffset
-            polygonOffsetFactor={-1}
-            map={bookmark}
-            roughness={0.9}
-            metalness={0.1}
-            side={THREE.DoubleSide}
-          />
-        </Decal>
+        {frontIllustration ? (
+          card.name === "Protagonist/Antagonist" ? (
+            <Decal
+              receiveShadow={active ? false : true}
+              position={[0, 0, 0.1]}
+              scale={[1, 1.75, 0.1]}
+              rotation={[0, 0, Math.PI * 2]}
+            >
+              <meshPhysicalMaterial
+                polygonOffset
+                polygonOffsetFactor={-1}
+                map={frontIllustration}
+                roughness={0.9}
+                metalness={0.1}
+                side={THREE.DoubleSide}
+              />
+            </Decal>
+          ) : (
+            <Decal
+              receiveShadow={active ? false : true}
+              scale={[1, 1.75, 0.1]}
+              rotation={[0, 0, Math.PI * 2]}
+            >
+              <meshPhysicalMaterial
+                polygonOffset
+                polygonOffsetFactor={-1}
+                map={frontIllustration}
+                roughness={0.9}
+                metalness={0.1}
+                side={THREE.DoubleSide}
+              />
+            </Decal>
+          )
+        ) : null}
+
         {/* BACK ILLUSTRATION */}
-        <Decal
-          receiveShadow={active ? false : true}
-          position={[0, 0, -0.04]}
-          scale={[1, 1.75, 0.1]}
-          rotation={[0, Math.PI, 0]}
-        >
-          <meshPhysicalMaterial
-            polygonOffset
-            polygonOffsetFactor={-1}
-            map={bookmark}
-            roughness={0.9}
-            metalness={0.1}
-            side={THREE.DoubleSide}
-          />
-        </Decal>
+        {backIllustration ? (
+          <Decal
+            receiveShadow={active ? false : true}
+            position={[0, 0, -0.04]}
+            scale={[1, 1.75, 0.1]}
+            rotation={[0, Math.PI, 0]}
+          >
+            <meshPhysicalMaterial
+              polygonOffset
+              polygonOffsetFactor={-1}
+              map={backIllustration}
+              roughness={0.9}
+              metalness={0.1}
+              side={THREE.DoubleSide}
+            />
+          </Decal>
+        ) : null}
       </mesh>
+
       {/* FRONT FOIL */}
-      <mesh geometry={planeGeometry} position={[0, 0, 0.03]}>
-        <meshPhysicalMaterial
-          transparent
-          roughness={0.1}
-          metalness={0.8}
-          reflectivity={0.8}
-          sheen={1}
-          map={foil}
-          normalMap={normalMap}
-          normalScale={new THREE.Vector2(0.1, 0.1)}
-          envMap={envMap.map}
-          envMapIntensity={envMap.intensity}
-          envMapRotation={envMap.rotation}
-        />
-      </mesh>
+      {frontFoil ? (
+        <mesh geometry={planeGeometry} position={[0, 0, 0.03]}>
+          <meshPhysicalMaterial
+            transparent
+            roughness={0.1}
+            metalness={0.8}
+            reflectivity={0.8}
+            sheen={1}
+            map={frontFoil}
+            normalMap={frontNormal}
+            normalScale={new THREE.Vector2(0.1, 0.1)}
+            envMap={envMap.map}
+            envMapIntensity={envMap.intensity}
+            envMapRotation={envMap.rotation}
+          />
+        </mesh>
+      ) : null}
+
       {/* BACK FOIL */}
-      <mesh geometry={planeGeometry} rotation={[0, Math.PI, 0]} position={[0, 0, -0.01]}>
-        <meshPhysicalMaterial
-          side={THREE.DoubleSide}
-          transparent
-          roughness={0.1}
-          metalness={0.8}
-          reflectivity={0.8}
-          sheen={1}
-          map={foil}
-          normalMap={normalMap}
-          normalScale={new THREE.Vector2(0.1, 0.1)}
-          envMap={envMap.map}
-          envMapIntensity={envMap.intensity}
-          envMapRotation={envMap.rotation}
-        />
-      </mesh>
+      {backFoil ? (
+        <mesh geometry={planeGeometry} rotation={[0, Math.PI, 0]} position={[0, 0, -0.01]}>
+          <meshPhysicalMaterial
+            side={THREE.DoubleSide}
+            transparent
+            roughness={0.1}
+            metalness={0.8}
+            reflectivity={0.8}
+            sheen={1}
+            map={backFoil}
+            normalMap={backNormal}
+            normalScale={new THREE.Vector2(0.1, 0.1)}
+            envMap={envMap.map}
+            envMapIntensity={envMap.intensity}
+            envMapRotation={envMap.rotation}
+          />
+        </mesh>
+      ) : null}
     </group>
   );
 };
