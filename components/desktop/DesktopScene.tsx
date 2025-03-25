@@ -8,6 +8,15 @@ import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
 
+// Add proper global interface to TypeScript
+declare global {
+  interface Window {
+    __directFlipCard: number | null;
+    __raycasterCleanup?: () => void;
+    __processingWheelEvent?: boolean;
+  }
+}
+
 interface DesktopSceneProps {
   cardArr: CardType[];
   setCardArr: Dispatch<SetStateAction<CardType[]>>
@@ -213,8 +222,15 @@ export default function DesktopScene({
       }
     }, 25); // IMPROVED: Reduced from 40ms for smoother animation
   }, [
-    scrollSnapDependencies,
-    arrowClicked
+    arrowClicked,
+    cardArr,
+    getCurrentCardIndex,
+    getCardPositions,
+    isHoveringLeft,
+    isHoveringRight,
+    setHoverLocked,
+    setIsActivelyScrolling,
+    setTargetScrollPosition
   ]);
   
   // Handle scroll stopping and snapping to the nearest card - memoized to avoid recreation
@@ -381,10 +397,10 @@ export default function DesktopScene({
         if (active !== null) {
           // CRITICAL FIX: Debounce rapid wheel events to prevent race conditions
           // If we're actively processing a wheel event, ignore additional ones
-          if ((window as any).__processingWheelEvent) {
+          if (window.__processingWheelEvent) {
             return;
           }
-          (window as any).__processingWheelEvent = true;
+          window.__processingWheelEvent = true;
           
           const direction = e.deltaY > 0 ? 1 : -1;
           const activeIndex = cardArr.findIndex(card => card.id === active);
@@ -421,7 +437,7 @@ export default function DesktopScene({
             // CRITICAL FIX: Set a timeout to release the wheel event processing lock
             // This gives the system enough time to process the state change
             setTimeout(() => {
-              (window as any).__processingWheelEvent = false;
+              window.__processingWheelEvent = false;
             }, 100);
           });
           
@@ -673,6 +689,11 @@ export default function DesktopScene({
     };
   }, [active, flipCard, cardArr]);
 
+  // Define a proper interface for handled events
+  interface ExtendedEvent extends Event {
+    __handled?: boolean;
+  }
+  
   // CRITICAL BACKUP: Global click handler as a last resort
   useEffect(() => {
     // Only attach global click handler when in inactive view
@@ -682,11 +703,14 @@ export default function DesktopScene({
       // Only process in inactive view
       if (active !== null) return;
       
+      // Cast to extended event type
+      const extendedEvent = e as unknown as ExtendedEvent;
+      
       // CRITICAL FIX: Block selection completely during arrow interactions
       if (isHoveringLeft || isHoveringRight || arrowInteraction) {
         console.log(`[GLOBAL CLICK] Blocked selection during arrow interaction`);
         e.stopPropagation();
-        (e as any).__handled = true;
+        extendedEvent.__handled = true;
         return;
       }
       
@@ -694,7 +718,7 @@ export default function DesktopScene({
       // This global handler should only be a fallback if Three.js fails
       
       // Check if the event has already been processed by a card component
-      if ((e as any).__handled) {
+      if (extendedEvent.__handled) {
         console.log(`[GLOBAL CLICK] Event already handled by a card component`);
         return;
       }
@@ -730,24 +754,29 @@ export default function DesktopScene({
   useEffect(() => {
     if (!canvasRef.current || active !== null || !isLoaded) return;
     
+    // Capture the ref value to use in cleanup
+    const canvas = canvasRef.current;
+    
     // This handler will run before Three.js processes the click
     const handleCanvasClick = (e: MouseEvent) => {
+      // Cast to extended event type
+      const extendedEvent = e as unknown as ExtendedEvent;
+      
       if (isHoveringLeft || isHoveringRight || arrowInteraction) {
         console.log('[CANVAS] Blocked click during arrow interaction');
         e.stopPropagation();
         e.preventDefault();
-        (e as any).__handled = true;
+        extendedEvent.__handled = true;
         return false;
       }
     };
     
     // Add in capture phase to intercept before Three.js
-    canvasRef.current.addEventListener('click', handleCanvasClick, { capture: true });
+    canvas.addEventListener('click', handleCanvasClick, { capture: true });
     
     return () => {
-      if (canvasRef.current) {
-        canvasRef.current.removeEventListener('click', handleCanvasClick, { capture: true });
-      }
+      // Use the captured ref value in cleanup
+      canvas.removeEventListener('click', handleCanvasClick, { capture: true });
     };
   }, [active, isLoaded, isHoveringLeft, isHoveringRight, arrowInteraction]);
 
@@ -874,7 +903,8 @@ export default function DesktopScene({
               e.stopPropagation();
               e.preventDefault();
               // Mark this event as handled to prevent other handlers
-              (e.nativeEvent as any).__handled = true;
+              const nativeEvent = e.nativeEvent as unknown as ExtendedEvent;
+              nativeEvent.__handled = true;
             }}
             style={{ pointerEvents: 'auto' }}
           >
@@ -929,7 +959,8 @@ export default function DesktopScene({
               e.stopPropagation();
               e.preventDefault();
               // Mark this event as handled to prevent other handlers
-              (e.nativeEvent as any).__handled = true;
+              const nativeEvent = e.nativeEvent as unknown as ExtendedEvent;
+              nativeEvent.__handled = true;
             }}
             style={{ pointerEvents: 'auto' }}
           >
@@ -1012,7 +1043,7 @@ export default function DesktopScene({
             };
             
             // Add cleanup function to window for access later
-            (window as any).__raycasterCleanup = cleanup;
+            window.__raycasterCleanup = cleanup;
           }}
         >
           <Experience
