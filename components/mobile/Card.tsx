@@ -8,6 +8,9 @@ import { useTexture, Decal, useScroll } from "@react-three/drei";
 import { RGBELoader } from "three/examples/jsm/Addons.js";
 import { CardType } from "@/app/definitions";
 
+// Re-import ViewState type
+type ViewState = 'initial' | 'cardSelection';
+
 const createRoundedRectShape = (width: number, height: number, radius: number): THREE.Shape => {
   const shape = new THREE.Shape();
   shape.moveTo(-width / 2, -height / 2 + radius);
@@ -33,6 +36,7 @@ interface CardProps {
   cards: CardType[];
   orientation: { beta: number | null; gamma: number | null };
   requestPermission: () => Promise<void>;
+  viewState: ViewState;
 }
 
 const Card = ({
@@ -43,7 +47,8 @@ const Card = ({
   setActive,
   cards,
   orientation,
-  requestPermission
+  requestPermission,
+  viewState,
 }: CardProps) => {
   const groupRef = useRef<THREE.Group>(null);
   const meshRef = useRef<THREE.Mesh>(null);
@@ -212,7 +217,11 @@ const Card = ({
   });
 
   return (
-    <group ref={groupRef} position={initialPos} rotation={[0, 0.7, 0]}>
+    <group 
+      ref={groupRef} 
+      position={initialPos} 
+      rotation={[0, 0.7, 0]}
+    >
       {/* BASE CARD */}
       <mesh
         ref={meshRef}

@@ -7,6 +7,10 @@ import { CardType } from "@/app/definitions";
 import { IoIosArrowBack, IoIosArrowForward } from "react-icons/io";
 import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
+import { useThree, useFrame } from "@react-three/fiber";
+import { easing } from "maath";
+import ExploreButton from "@/components/shared/ExploreButton";
+import { FlyControls } from "@react-three/drei";
 
 // Add proper global interface to TypeScript
 declare global {
@@ -17,6 +21,9 @@ declare global {
   }
 }
 
+// Define possible view states from app/page.tsx
+type ViewState = 'initial' | 'cardSelection';
+
 interface DesktopSceneProps {
   cardArr: CardType[];
   setCardArr: Dispatch<SetStateAction<CardType[]>>
@@ -25,6 +32,8 @@ interface DesktopSceneProps {
   isLoaded: boolean;
   setIsLoaded: Dispatch<SetStateAction<boolean>>;
   flipCard: (cardId: number, isFlipped: boolean) => void;
+  viewState: ViewState;
+  setViewState: Dispatch<SetStateAction<ViewState>>;
 }
 
 export default function DesktopScene({
@@ -35,6 +44,8 @@ export default function DesktopScene({
   isLoaded,
   setIsLoaded,
   flipCard,
+  viewState,
+  setViewState,
 }: DesktopSceneProps) {
   const [scrollPosition, setScrollPosition] = useState(0);
   const [targetScrollPosition, setTargetScrollPosition] = useState(0);
@@ -58,6 +69,11 @@ export default function DesktopScene({
   const [arrowClicked, setArrowClicked] = useState(false);
   // Flag to completely block card selection when interacting with arrows
   const [arrowInteraction, setArrowInteraction] = useState(false);
+  const [isDebugMode, setIsDebugMode] = useState<boolean>(false);
+  // Add state to hold debug info strings
+  const [debugInfo, setDebugInfo] = useState({ position: '', rotation: '' });
+  // Add state to trigger camera Z rotation reset
+  const [resetZRotationTrigger, setResetZRotationTrigger] = useState(0);
   
   // Track the last active card
   const lastActiveCardRef = useRef<number | null>(null);
@@ -208,6 +224,9 @@ export default function DesktopScene({
   
   // Track mouse position to determine if in arrow zone
   const handleMouseMove = (e: React.MouseEvent) => {
+    // Guard: Only track mouse for hover zones in card selection view
+    if (viewState !== 'cardSelection') return;
+
     if (isLoaded && active === null) {
       const arrowZoneWidth = 180; // IMPROVED: Increased from 120px for larger hover areas
       const x = e.clientX;
@@ -245,6 +264,9 @@ export default function DesktopScene({
         // Prevent default browser scroll behavior
         e.preventDefault();
         
+        // Guard: Only allow wheel events in card selection view
+        if (viewState !== 'cardSelection') return;
+
         // Handle wheel events based on current view
         if (!isLoaded) {
           return;
@@ -338,13 +360,20 @@ export default function DesktopScene({
     cardArr,
     setTargetScrollPosition,
     setActive,
-    flipCard
+    flipCard,
+    viewState
   ]);
 
   // Add keyboard navigation for inactive view
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle keys in the inactive (idle) view
+      // Allow Enter key in initial view (handled separately)
+      if (e.key === 'Enter' && viewState === 'initial') return;
+
+      // Guard: Only handle other keys in card selection view
+      if (viewState !== 'cardSelection') return;
+      
+      // Only handle keys in the inactive (idle) view when selecting cards
       if (!isLoaded || active !== null) {
         return;
       }
@@ -560,6 +589,9 @@ export default function DesktopScene({
       // Only process in inactive view
       if (active !== null) return;
       
+      // Guard: Only run this fallback click handler in the card selection view
+      if (viewState !== 'cardSelection') return;
+
       // Cast to extended event type
       const extendedEvent = e as unknown as ExtendedEvent;
       
@@ -767,8 +799,183 @@ export default function DesktopScene({
     };
   }, [isHoveringLeft, isHoveringRight, active, handleScrollStop, setHoverLocked, startScrollInterval]);
 
+  // Toggle Debug Mode with Backtick key
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === '`') {
+        // Use function form to get correct state for logging and update
+        setIsDebugMode((prev: boolean) => {
+          console.log(`Debug mode ${!prev ? 'enabled' : 'disabled'}`);
+          return !prev;
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []); // Empty dependency array
+
+  // Handle Enter key press to transition from initial view
+  useEffect(() => {
+    const handleEnterKey = (event: KeyboardEvent) => {
+      // Only trigger if Enter is pressed and we are in the initial view
+      if (event.key === 'Enter' && viewState === 'initial') {
+        console.log("[KEY NAV] Enter pressed in initial view. Transitioning...");
+        setViewState('cardSelection');
+      }
+    };
+
+    // Add event listener only when the component is mounted and viewState is initial
+    if (viewState === 'initial') {
+      window.addEventListener('keydown', handleEnterKey);
+    }
+
+    // Cleanup function to remove the listener
+    return () => {
+      window.removeEventListener('keydown', handleEnterKey);
+    };
+  }, [viewState, setViewState]); // Re-run effect if viewState changes
+
+  // --- Camera Animation Logic ---
+  const CameraAnimator = () => {
+    const { camera } = useThree();
+    // Define target positions for different states
+    const initialTargetPos = useMemo(() => new THREE.Vector3(-0.05, 9.93, 11.35), []);
+    const cardSelectPos = useMemo(() => new THREE.Vector3(0, 2, 8), []);
+    const activeCardPos = useMemo(() => new THREE.Vector3(0, 2.5, 20), []); // From original Experience logic
+
+    // --- Helper objects (reusable) ---
+    const tempMatrix = useMemo(() => new THREE.Matrix4(), []);
+    const lookAtTarget = useMemo(() => new THREE.Vector3(0, 0, 0), []);
+    const identityQuaternion = useMemo(() => new THREE.Quaternion(), []); // Identity
+    // Add temporary quaternion for per-frame calculation
+    const currentTargetQuat = useMemo(() => new THREE.Quaternion(), []);
+
+    useFrame((state, delta) => {
+      // Only run camera animation logic if NOT in debug mode
+      if (!isDebugMode) {
+        let targetPos: THREE.Vector3;
+        // Use single smoothTime again
+        let smoothTime = 0.5; 
+
+        // Determine target position and smooth time
+        if (viewState === 'initial') {
+          targetPos = initialTargetPos;
+          smoothTime = 0.5;
+        } else { // viewState === 'cardSelection'
+          if (active !== null) { // Active card view
+            targetPos = activeCardPos;
+            smoothTime = 0.3; // Faster transition
+          } else { // Card selection row view (inactive)
+            targetPos = cardSelectPos; 
+            smoothTime = 0.4; // Tuned for snappier transition FROM initial OR active view
+          }
+        }
+
+        // --- Damp Position ---
+        easing.damp3(
+          camera.position, // Target object
+          targetPos,       // Target value (Vector3)
+          smoothTime,      // Use consistent smooth time
+          delta            // Frame delta time
+        );
+
+        // --- Damp Rotation towards PER-FRAME calculated Target Quaternion ---
+        if (viewState === 'initial') {
+          // Damp towards identity (zero rotation)
+          easing.dampQ(
+              camera.quaternion,
+              identityQuaternion,
+              smoothTime, // Use consistent smooth time
+              delta
+          );
+        } else {
+          // Calculate target lookAt rotation based on CURRENT position
+          tempMatrix.lookAt(camera.position, lookAtTarget, camera.up);
+          currentTargetQuat.setFromRotationMatrix(tempMatrix);
+          
+          // Damp towards the calculated rotation
+          easing.dampQ(
+              camera.quaternion, 
+              currentTargetQuat, // Use the quaternion calculated this frame
+              smoothTime, // Use consistent smooth time
+              delta
+          );
+        }
+
+        // No need for manual updateProjectionMatrix with damping
+      }
+    });
+
+    return null; // This component doesn't render anything itself
+  };
+  // --- End Camera Animation Logic ---
+
+  // --- Component to Update Debug Info State from within Canvas ---
+  const DebugInfoUpdater = () => {
+    const { camera } = useThree();
+    const positionRef = useRef('');
+    const rotationRef = useRef('');
+
+    useFrame(() => {
+      const pos = camera.position;
+      const rot = camera.rotation;
+
+      const newPositionStr = `Position: { x: ${pos.x.toFixed(2)}, y: ${pos.y.toFixed(2)}, z: ${pos.z.toFixed(2)} }`;
+      const newRotationStr = `Rotation: { x: ${(rot.x * 180 / Math.PI).toFixed(1)}°, y: ${(rot.y * 180 / Math.PI).toFixed(1)}°, z: ${(rot.z * 180 / Math.PI).toFixed(1)}° }`;
+
+      let changed = false;
+      let newInfo = { position: '', rotation: '' };
+
+      if (newPositionStr !== positionRef.current) {
+        positionRef.current = newPositionStr;
+        newInfo.position = newPositionStr;
+        changed = true;
+      }
+      if (newRotationStr !== rotationRef.current) {
+        rotationRef.current = newRotationStr;
+        newInfo.rotation = newRotationStr;
+        changed = true;
+      }
+
+      if (changed) {
+        // Explicitly type prev
+        setDebugInfo((prev: { position: string; rotation: string }) => ({ 
+          position: newInfo.position || prev.position, 
+          rotation: newInfo.rotation || prev.rotation 
+        }));
+      }
+    });
+
+    return null; // Does not render anything itself
+  };
+  // --- End Debug Info Updater ---
+
+  // --- Component to Reset Camera Z Rotation ---
+  const CameraResetter = ({ trigger }: { trigger: number }) => {
+    const { camera } = useThree();
+
+    useEffect(() => {
+      if (trigger > 0) { // Only run on trigger change, not initial render
+        console.log("[CameraResetter] Resetting camera Z rotation.");
+        camera.rotation.z = 0;
+        // Optionally, update projection matrix if needed, though usually not for just rotation
+        // camera.updateProjectionMatrix(); 
+      }
+    }, [trigger, camera]); // Depend on trigger and camera
+
+    return null; // Does not render anything itself
+  };
+  // --- End Camera Resetter ---
+
   return (
     <div className="relative w-full h-full">
+      {/* ~~ Render Initial View conditionally with exit animation ~~ REMOVED */}
+      {/* <AnimatePresence> */}
+      {/*   {viewState === 'initial' && isLoaded && <InitialView setViewState={setViewState} />} */}
+      {/* </AnimatePresence> */}
+
       {/* Framer Motion Gradient Background */}
       <AnimatePresence>
         <motion.div 
@@ -805,163 +1012,163 @@ export default function DesktopScene({
           }
         }}
       >
-        <ActiveUi
-          active={active}
-          setActive={setActive}
-          cardArr={cardArr}
-          setCardArr={setCardArr}
-          flipCard={flipCard}
-        />
+        {/* Loading screen remains outside animation */}
         {!isLoaded && <LoadingScreen onLoaded={() => setIsLoaded(true)} />}
 
-        {/* Background blocking divs for arrow click zones */}
-        {showUI && shouldShowArrows && (
-          <>
-            {/* Left blocking zone */}
-            <div 
-              className={`absolute left-0 top-0 h-full transition-opacity duration-300 ease-in-out ${
-                isHoveringLeft ? 'opacity-100' : 'opacity-0 pointer-events-none'
-              }`}
-              style={{ 
-                width: '160px', 
-                zIndex: 39, 
-                pointerEvents: isHoveringLeft ? 'auto' : 'none'
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-              }}
-            />
-            
-            {/* Right blocking zone */}
-            <div 
-              className={`absolute right-0 top-0 h-full transition-opacity duration-300 ease-in-out ${
-                isHoveringRight ? 'opacity-100' : 'opacity-0 pointer-events-none'
-              }`}
-              style={{ 
-                width: '160px', 
-                zIndex: 39, 
-                pointerEvents: isHoveringRight ? 'auto' : 'none'
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-              }}
-            />
-          </>
-        )}
-
-        {/* Left Arrow */}
-        {showUI && shouldShowArrows && (
-          <div 
-            className={`absolute left-6 top-1/2 -translate-y-1/2 z-40 transition-opacity duration-300 ease-in-out ${
-              showLeftArrow ? 'opacity-90' : 'opacity-0'
-            } ${scrollPosition <= maxScrollLeft + 0.1 ? 'pointer-events-none opacity-30' : 'hover:opacity-100'}`}
-            onMouseEnter={() => {
-              setShowLeftArrow(true);
-              setInArrowZone(true);
-              setArrowInteraction(true);
-              if (scrollPosition > maxScrollLeft + 0.1) {
-                setIsHoveringLeft(true);
-                setIsHoveringRight(false);
-              }
-            }}
-            onMouseLeave={() => {
-              setShowLeftArrow(false);
-              setIsHoveringLeft(false);
-              setArrowClicked(false);
-              // Add a small delay before allowing card interactions again
-              setTimeout(() => setArrowInteraction(false), 100);
-            }}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              setArrowInteraction(true);
-              if (scrollPosition > maxScrollLeft + 0.1) {
-                setArrowClicked(true);
-              }
-            }}
-            onMouseUp={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              setArrowClicked(false);
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              // Mark this event as handled to prevent other handlers
-              const nativeEvent = e.nativeEvent as unknown as ExtendedEvent;
-              nativeEvent.__handled = true;
-            }}
-            style={{ pointerEvents: 'auto' }}
-          >
-            <div 
-              className="flex items-center justify-center w-16 h-16 rounded-full bg-white/90 shadow-lg cursor-pointer backdrop-blur-sm border border-white/20 hover:bg-white transition-all duration-200"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-              }}
+        {/* Animated container for Card Selection UI elements */}
+        <AnimatePresence>
+          {viewState === 'cardSelection' && (
+            <motion.div
+              key="cardSelectionUI"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { delay: 0.1, duration: 0.5 } }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-30"
+              style={{ pointerEvents: 'none' }}
             >
-              <IoIosArrowBack size={34} className="text-gray-700" />
-            </div>
-          </div>
-        )}
+              {/* Active UI (needs pointer events) */}
+              <div style={{ pointerEvents: 'auto' }}>
+                <ActiveUi
+                  active={active}
+                  setActive={setActive}
+                  cardArr={cardArr}
+                  setCardArr={setCardArr}
+                  flipCard={flipCard}
+                />
+              </div>
 
-        {/* Right Arrow */}
-        {showUI && shouldShowArrows && (
-          <div 
-            className={`absolute right-6 top-1/2 -translate-y-1/2 z-40 transition-opacity duration-300 ease-in-out ${
-              showRightArrow ? 'opacity-90' : 'opacity-0'
-            } ${scrollPosition >= maxScrollRight - 0.1 ? 'pointer-events-none opacity-30' : 'hover:opacity-100'}`}
-            onMouseEnter={() => {
-              setShowRightArrow(true);
-              setInArrowZone(true);
-              setArrowInteraction(true);
-              if (scrollPosition < maxScrollRight - 0.1) {
-                setIsHoveringRight(true);
-                setIsHoveringLeft(false);
-              }
-            }}
-            onMouseLeave={() => {
-              setShowRightArrow(false);
-              setIsHoveringRight(false);
-              setArrowClicked(false);
-              // Add a small delay before allowing card interactions again
-              setTimeout(() => setArrowInteraction(false), 100);
-            }}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              setArrowInteraction(true);
-              if (scrollPosition < maxScrollRight - 0.1) {
-                setArrowClicked(true);
-              }
-            }}
-            onMouseUp={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              setArrowClicked(false);
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              // Mark this event as handled to prevent other handlers
-              const nativeEvent = e.nativeEvent as unknown as ExtendedEvent;
-              nativeEvent.__handled = true;
-            }}
-            style={{ pointerEvents: 'auto' }}
-          >
-            <div 
-              className="flex items-center justify-center w-16 h-16 rounded-full bg-white/90 shadow-lg cursor-pointer backdrop-blur-sm border border-white/20 hover:bg-white transition-all duration-200"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-              }}
-            >
-              <IoIosArrowForward size={34} className="text-gray-700" />
-            </div>
-          </div>
-        )}
+              {/* Conditionally render Arrows and Blocking Divs within the animated container */}
+              {showUI && shouldShowArrows && (
+                <>
+                  {/* Left blocking zone */}
+                  <div 
+                    className={`absolute left-0 top-0 h-full transition-opacity duration-300 ease-in-out ${
+                      isHoveringLeft ? 'opacity-100' : 'opacity-0' // Keep pointer-events logic here
+                    }`}
+                    style={{ 
+                      width: '160px', 
+                      zIndex: 39, 
+                      pointerEvents: isHoveringLeft ? 'auto' : 'none' // Manage pointer events
+                    }}
+                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                  />
+                  {/* Right blocking zone */}
+                  <div 
+                    className={`absolute right-0 top-0 h-full transition-opacity duration-300 ease-in-out ${
+                      isHoveringRight ? 'opacity-100' : 'opacity-0' // Keep pointer-events logic here
+                    }`}
+                    style={{ 
+                      width: '160px', 
+                      zIndex: 39, 
+                      pointerEvents: isHoveringRight ? 'auto' : 'none' // Manage pointer events
+                    }}
+                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                  />
+                  {/* Left Arrow */}
+                  <div 
+                    className={`absolute left-6 top-1/2 -translate-y-1/2 z-40 transition-opacity duration-300 ease-in-out ${
+                      showLeftArrow ? 'opacity-90' : 'opacity-0'
+                    } ${scrollPosition <= maxScrollLeft + 0.1 ? 'pointer-events-none opacity-30' : 'hover:opacity-100'}`}
+                    style={{ pointerEvents: 'auto' }} // Arrows always need pointer events
+                    onMouseEnter={() => {
+                      setShowLeftArrow(true);
+                      setInArrowZone(true);
+                      setArrowInteraction(true);
+                      if (scrollPosition > maxScrollLeft + 0.1) {
+                        setIsHoveringLeft(true);
+                        setIsHoveringRight(false);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      setShowLeftArrow(false);
+                      setIsHoveringLeft(false);
+                      setArrowClicked(false);
+                      // Add a small delay before allowing card interactions again
+                      setTimeout(() => setArrowInteraction(false), 100);
+                    }}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setArrowInteraction(true);
+                      if (scrollPosition > maxScrollLeft + 0.1) {
+                        setArrowClicked(true);
+                      }
+                    }}
+                    onMouseUp={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setArrowClicked(false);
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      // Mark this event as handled to prevent other handlers
+                      const nativeEvent = e.nativeEvent as unknown as ExtendedEvent;
+                      nativeEvent.__handled = true;
+                    }}
+                  >
+                    <div 
+                      className="flex items-center justify-center w-16 h-16 rounded-full bg-white/90 shadow-lg cursor-pointer backdrop-blur-sm border border-white/20 hover:bg-white transition-all duration-200"
+                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                    >
+                      <IoIosArrowBack size={34} className="text-gray-700" />
+                    </div>
+                  </div>
+                  {/* Right Arrow */}
+                  <div 
+                    className={`absolute right-6 top-1/2 -translate-y-1/2 z-40 transition-opacity duration-300 ease-in-out ${
+                      showRightArrow ? 'opacity-90' : 'opacity-0'
+                    } ${scrollPosition >= maxScrollRight - 0.1 ? 'pointer-events-none opacity-30' : 'hover:opacity-100'}`}
+                    style={{ pointerEvents: 'auto' }} // Arrows always need pointer events
+                    onMouseEnter={() => {
+                      setShowRightArrow(true);
+                      setInArrowZone(true);
+                      setArrowInteraction(true);
+                      if (scrollPosition < maxScrollRight - 0.1) {
+                        setIsHoveringRight(true);
+                        setIsHoveringLeft(false);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      setShowRightArrow(false);
+                      setIsHoveringRight(false);
+                      setArrowClicked(false);
+                      // Add a small delay before allowing card interactions again
+                      setTimeout(() => setArrowInteraction(false), 100);
+                    }}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setArrowInteraction(true);
+                      if (scrollPosition < maxScrollRight - 0.1) {
+                        setArrowClicked(true);
+                      }
+                    }}
+                    onMouseUp={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setArrowClicked(false);
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      // Mark this event as handled to prevent other handlers
+                      const nativeEvent = e.nativeEvent as unknown as ExtendedEvent;
+                      nativeEvent.__handled = true;
+                    }}
+                  >
+                    <div 
+                      className="flex items-center justify-center w-16 h-16 rounded-full bg-white/90 shadow-lg cursor-pointer backdrop-blur-sm border border-white/20 hover:bg-white transition-all duration-200"
+                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                    >
+                      <IoIosArrowForward size={34} className="text-gray-700" />
+                    </div>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <Canvas 
           className="absolute inset-0 z-20" 
@@ -977,18 +1184,17 @@ export default function DesktopScene({
           shadows 
           flat 
           dpr={[1, 1.5]} 
-          camera={{ position: [0, 2, 8], fov: 30, near: 1, far: 100 }}
+          camera={{
+            position: [-0.05, 9.93, 11.35], // FINAL Initial Position
+            fov: 30,
+            near: 1,
+            far: 100
+          }}
           // CRITICAL FIX: Add ref to the Canvas element
           ref={canvasRef}
-          // Add capture phase event handler for blocking clicks
-          onClick={(e) => {
-            if ((isHoveringLeft || isHoveringRight || arrowInteraction) && active === null) {
-              e.stopPropagation();
-              e.preventDefault();
-            }
-          }}
           // CRITICAL FIX: Override events behavior to ensure clicks are always prioritized
-          onCreated={(state) => {
+          onCreated={(state: any) => {
+            console.log("[Canvas onCreated] Initializing raycaster etc.");
             // Force raycaster to have a high near value to ensure close objects are prioritized
             if (state.raycaster) {
               state.raycaster.near = 0.1;
@@ -998,7 +1204,7 @@ export default function DesktopScene({
             // Create a blocking mechanism that doesn't require overriding the intersectObjects method
             // Set up an intersect filter that runs before any selection happens
             const originalSetFromCamera = state.raycaster.setFromCamera;
-            state.raycaster.setFromCamera = function(coords, camera) {
+            state.raycaster.setFromCamera = function(coords: THREE.Vector2, camera: THREE.Camera) {
               // First call the original method to set up the raycaster properly
               originalSetFromCamera.call(this, coords, camera);
               
@@ -1033,6 +1239,7 @@ export default function DesktopScene({
             window.__raycasterCleanup = cleanup;
           }}
         >
+          {/* Always render Experience, pass viewState down */}
           <Experience
             cardArr={cardArr}
             active={active}
@@ -1043,8 +1250,79 @@ export default function DesktopScene({
             hoverLocked={hoverLocked}
             cursorPosition={cursorPosition}
             flipCard={flipCard}
+            viewState={viewState}
+            isDebugMode={isDebugMode}
           />
+          {/* Add the camera animator component */}
+          <CameraAnimator />
+          
+          {/* Add the 3D Explore Button - Render ALWAYS */}
+              <ExploreButton 
+                  setViewState={setViewState} 
+                  viewState={viewState} 
+                  position={[0, 10, 0]}
+              />
+          
+
+          {/* Conditionally enable FlyControls for debugging */}
+          {isDebugMode && (
+            <FlyControls
+              movementSpeed={5} // Adjust speed as needed
+              rollSpeed={Math.PI / 24} // Adjust speed as needed
+              autoForward={false}
+              dragToLook={true} // Use mouse drag to look
+            />
+          )}
+
+          {/* Component inside Canvas to update the state */}
+          <DebugInfoUpdater /> 
+
+          {/* Component inside Canvas to reset camera Z rotation */}
+          <CameraResetter trigger={resetZRotationTrigger} />
+
         </Canvas>
+
+        {/* Render Debug Info HTML OUTSIDE the Canvas */}
+        <div style={{
+          position: 'fixed',
+          bottom: '10px',
+          left: '10px',
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          color: 'white',
+          padding: '5px 10px',
+          borderRadius: '5px',
+          fontSize: '12px',
+          fontFamily: 'monospace',
+          zIndex: 1000, 
+          pointerEvents: 'none'
+        }}>
+          <div>{debugInfo.position}</div>
+          <div>{debugInfo.rotation}</div>
+        </div>
+
+        {/* Add Reset Z Rotation Button (only in debug mode) */}
+        {isDebugMode && (
+          <button
+            onClick={() => setResetZRotationTrigger(c => c + 1)}
+            style={{
+              position: 'fixed',
+              bottom: '60px', // Position above debug info
+              left: '10px',
+              backgroundColor: 'rgba(255, 0, 0, 0.7)',
+              color: 'white',
+              border: 'none',
+              padding: '5px 10px',
+              borderRadius: '5px',
+              fontSize: '12px',
+              fontFamily: 'monospace',
+              zIndex: 1000,
+              cursor: 'pointer'
+            }}
+          >
+            Reset Z Rotation
+          </button>
+        )}
+
       </div>
     </div>
   );

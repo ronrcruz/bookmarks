@@ -16,6 +16,9 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { easing } from "maath";
 import * as THREE from "three";
 
+// Re-import ViewState type
+type ViewState = 'initial' | 'cardSelection';
+
 interface ExperienceProps {
   cardArr: CardType[];
   active: number | null;
@@ -26,6 +29,8 @@ interface ExperienceProps {
   hoverLocked: boolean;
   cursorPosition: { x: number, y: number };
   flipCard: (id: number, isFlipped: boolean) => void;
+  viewState: ViewState; // Add viewState prop
+  isDebugMode: boolean; // Add isDebugMode prop
 }
 
 export default function Experience({
@@ -38,6 +43,8 @@ export default function Experience({
   hoverLocked,
   cursorPosition,
   flipCard,
+  viewState, // Destructure viewState
+  isDebugMode, // Destructure isDebugMode
 }: ExperienceProps) {
   const { scene, camera } = useThree();
   const currentBottomColor = useRef(new THREE.Color("#bdd7ee"));
@@ -74,17 +81,6 @@ export default function Experience({
       );
     }
     
-    // Smooth camera animation for active/inactive states
-    if (!isLoaded) {
-      easing.damp3(camera.position, [camera.position.x, 30, 0], 2.0, delta);
-    } else if (active !== null) {
-      // Smooth camera animation to active view position
-      easing.damp3(camera.position, [0, 2.5, 20], 1.5, delta);
-    } else {
-      // Smooth camera animation to idle view position
-      easing.damp3(camera.position, [0, 2, 8], 0.95, delta);
-    }
-    
     const activeCard = cardArr.find((card) => card.id === active);
     const selectedVariant =
       activeCard && active !== null
@@ -99,65 +95,67 @@ export default function Experience({
   });
 
   return (
-    <>
-      <OrbitControls enableRotate={false} enableZoom={false} enablePan={false} />
-      <ambientLight ref={ambientLightRef} intensity={0} />
-      <directionalLight
-        castShadow
-        intensity={1}
-        position={[10, 6, 6]}
-        shadow-mapSize={[1028, 1028]}
-        ref={directionalLightRef}
-      />
-      
-      {/* Additional light to ensure consistent illumination in both views */}
-      <directionalLight
-        castShadow
-        intensity={0.7}
-        position={[-5, 5, 5]}
-        shadow-mapSize={[1028, 1028]}
-      />
-      
-      <Environment
-        environmentIntensity={1}
-        preset={"city"}
-        // Keep environment rotation consistent between active and inactive views
-        environmentRotation={[0, 0, 0]}
-      />
+    <group /* visible={viewState === 'cardSelection'} - REMOVED */ >
+       {/* Conditionally render OrbitControls */}
+       {/* {!isDebugMode && <OrbitControls enableRotate={false} enableZoom={false} enablePan={false} />} */ /* Temporarily disable OrbitControls for debugging initial rotation */}
+       <ambientLight ref={ambientLightRef} intensity={0} />
+       <directionalLight
+         castShadow
+         intensity={1}
+         position={[10, 6, 6]}
+         shadow-mapSize={[1028, 1028]}
+         ref={directionalLightRef}
+       />
+       
+       {/* Additional light to ensure consistent illumination in both views */}
+       <directionalLight
+         castShadow
+         intensity={0.7}
+         position={[-5, 5, 5]}
+         shadow-mapSize={[1028, 1028]}
+       />
+       
+       <Environment
+         environmentIntensity={1}
+         preset={"city"}
+         // Keep environment rotation consistent between active and inactive views
+         environmentRotation={[0, 0, 0]}
+       />
 
-      <group>
-        {cardArr.map((card, i) => {
-          return (
-            <Card
-              key={card.id}
-              card={card}
-              id={card.id}
-              cardPos={i - (cardArr.length - 1) / 2}
-              cardIndex={i}
-              cardArr={cardArr}
-              active={active}
-              setActive={setActive}
-              isLoaded={isLoaded}
-              scrollPosition={scrollPosition}
-              inArrowZone={inArrowZone}
-              hoverLocked={hoverLocked}
-              cursorPosition={cursorPosition}
-              flipCard={flipCard}
-            />
-          );
-        })}
-      </group>
+       <group>
+         {cardArr.map((card, i) => {
+           return (
+             <Card
+               key={card.id}
+               card={card}
+               id={card.id}
+               cardPos={i - (cardArr.length - 1) / 2}
+               cardIndex={i}
+               cardArr={cardArr}
+               active={active}
+               setActive={setActive}
+               isLoaded={isLoaded}
+               scrollPosition={scrollPosition}
+               inArrowZone={inArrowZone}
+               hoverLocked={hoverLocked}
+               cursorPosition={cursorPosition}
+               flipCard={flipCard}
+               viewState={viewState} // Pass viewState down to Card
+             />
+           );
+         })}
+       </group>
 
-      {/* Contact shadows for the cards */}
-      <ContactShadows
-        position={[0, -1.75 / 2, 0]}
-        scale={12}
-        resolution={512}
-        opacity={6}
-        far={1}
-        // Ensure consistent shadows regardless of active state
-        blur={3}
-      />
-    </>
-  );
-}
+       {/* Contact shadows for the cards */}
+       <ContactShadows
+         position={[0, -1.75 / 2, 0]}
+         scale={12}
+         resolution={512}
+         opacity={6}
+         far={1}
+         // Ensure consistent shadows regardless of active state
+         blur={3}
+       />
+     </group>
+   );
+ }

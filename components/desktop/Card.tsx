@@ -8,6 +8,9 @@ import { useTexture, Decal } from "@react-three/drei";
 import { CardType } from "@/app/definitions";
 import { useThree } from "@react-three/fiber";
 
+// Re-import ViewState type
+type ViewState = 'initial' | 'cardSelection';
+
 const createRoundedRectShape = (width: number, height: number, radius: number): THREE.Shape => {
   const shape = new THREE.Shape();
   shape.moveTo(-width / 2, -height / 2 + radius);
@@ -36,6 +39,7 @@ interface CardProps {
   hoverLocked: boolean;
   cursorPosition: { x: number, y: number };
   flipCard: (id: number, isFlipped: boolean) => void;
+  viewState: ViewState;
 }
 
 // Add typing for the global window object to fix linter error
@@ -79,6 +83,7 @@ const Card = ({
   hoverLocked,
   cursorPosition,
   flipCard,
+  viewState,
 }: CardProps) => {
   const [hover, setHover] = useState(false);
   const isPointerOverRef = useRef(false); // Track if pointer is over the card
@@ -208,6 +213,9 @@ const Card = ({
 
   const pointerOver = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
+    // Guard: No hover effects in initial view
+    if (viewState !== 'cardSelection') return;
+
     // Always track when pointer is over, even when we can't display hover effect
     isPointerOverRef.current = true;
     // Only show hover effect if not locked and not scrolling
@@ -218,12 +226,16 @@ const Card = ({
   };
   
   const pointerOut = () => {
+    // Guard: No hover effects in initial view (technically redundant with pointerOver guard, but good practice)
+    if (viewState !== 'cardSelection') return;
     isPointerOverRef.current = false;
     if (!active) setHover(false);
   };
 
   const click = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
+    // Guard: No clicks allowed in initial view
+    if (viewState !== 'cardSelection') return;
     
     // Mark this event as handled to prevent the global click handler from running
     (e as unknown as ExtendedEvent).__handled = true;
@@ -545,17 +557,6 @@ const Card = ({
         delta
       );
 
-      // Handle camera position based on view state
-      if (!isLoaded) {
-        easing.damp3(state.camera.position, [state.camera.position.x, 30, 0], 2.0, delta);
-      } else {
-        if (active) {
-          easing.damp3(state.camera.position, [0, 2.5, 20], 1.5, delta);
-        } else {
-          easing.damp3(state.camera.position, [0, 2, 8], 0.95, delta);
-        }
-      }
-
       // Add consistent lighting for card in any state
       if (meshRef.current) {
         // Ensure consistent material properties regardless of active state
@@ -585,7 +586,10 @@ const Card = ({
   }, [active, hover]);
 
   return (
-    <group ref={groupRef} position={initialPos} rotation={[0, 0, 0]}>
+    <group 
+      ref={groupRef} 
+      position={initialPos}
+    >
       {/* BASE CARD */}
       <mesh
         onPointerOver={pointerOver}

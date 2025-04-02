@@ -5,10 +5,15 @@ import { CardType } from "./definitions"
 import DesktopScene from "@/components/desktop/DesktopScene"
 import MobileScene from "@/components/mobile/MobileScene"
 
+// Define possible view states
+type ViewState = 'initial' | 'cardSelection';
+
 export default function Home() {
   const [active, setActive] = useState<number | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  // Add state to track the current view
+  const [viewState, setViewState] = useState<ViewState>('initial');
 
   useEffect(() => {
     const checkScreenSize = () => setIsMobile(window.innerWidth <= 599);
@@ -517,6 +522,8 @@ export default function Home() {
           isLoaded={isLoaded}
           setIsLoaded={setIsLoaded}
           flipCard={flipCard}
+          viewState={viewState}
+          setViewState={setViewState}
         />
       ) : (
         <DesktopScene
@@ -527,6 +534,8 @@ export default function Home() {
           isLoaded={isLoaded}
           setIsLoaded={setIsLoaded}
           flipCard={flipCard}
+          viewState={viewState}
+          setViewState={setViewState}
         />
       )}
     </div>
