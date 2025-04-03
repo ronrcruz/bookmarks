@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Dispatch, SetStateAction, useRef } from 'react';
+import React, { Dispatch, SetStateAction, useRef, useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { ThreeEvent, useFrame, useThree } from '@react-three/fiber';
@@ -36,6 +36,10 @@ interface GltfExploreButtonProps {
   normalizedMousePosition: { x: number; y: number };
   // Add prop for debug mode
   isDebugMode: boolean;
+  // Add viewState prop
+  viewState: ViewState;
+  // Add prop to toggle beat animation
+  isBeatAnimationEnabled: boolean;
 }
 
 // Preload the model for better performance
@@ -59,28 +63,84 @@ export default function GltfExploreButton({
   // Destructure the normalized mouse position
   normalizedMousePosition,
   // Destructure debug mode
-  isDebugMode
+  isDebugMode,
+  // Destructure viewState
+  viewState,
+  // Destructure animation toggle
+  isBeatAnimationEnabled
 }: GltfExploreButtonProps) {
   
   const { scene } = useGLTF('/object.gltf');
   const groupRef = useRef<THREE.Group>(null!); // Ref for the main group for context menu logic
   const animationGroupRef = useRef<THREE.Group>(null!); // Ref for the inner group to apply animations
   const { clock } = useThree(); // Get clock for bobbing animation
+  // Store default scale and position for smooth transitions
+  const defaultScale = useMemo(() => new THREE.Vector3(1, 1, 1), []);
+  const defaultPosition = useMemo(() => new THREE.Vector3(0, 0, 0), []);
+  // Temporary vectors for calculations
+  const targetPosition = useMemo(() => new THREE.Vector3(), []);
+  const targetScaleVec = useMemo(() => new THREE.Vector3(), []);
 
   // Animation and rotation logic within useFrame
   useFrame((state, delta) => {
     if (!animationGroupRef.current) return;
 
-    // Subtle bobbing animation
+    // Initialize damping factors with default
+    let currentPositionDamp = 0.15;
+    let currentScaleDamp = 0.15;
+
+    // --- Base Bobbing Animation ---
     const bobFrequency = 1.5;
     const bobAmplitude = 0.05;
-    animationGroupRef.current.position.y = Math.sin(clock.elapsedTime * bobFrequency) * bobAmplitude;
+    const currentBobY = Math.sin(clock.elapsedTime * bobFrequency) * bobAmplitude;
 
-    // Smooth rotation based on normalized mouse position
+    // --- Beat Animation (only in initial view) ---
+    let beatScaleMultiplier = 1;
+    let beatZOffset = 0;
+
+    if (viewState === 'initial' && isBeatAnimationEnabled) {
+      const bpm = 120;
+      const beatPeriod = 60 / bpm; // Seconds per beat
+      const beatFrequencyRad = (Math.PI * 2) / beatPeriod; // Radians per second
+
+      // Use cosine for a peak at the start of the cycle, map to 0-1 range
+      const beatPhase = (clock.elapsedTime % beatPeriod) * beatFrequencyRad;
+      const pulse = (Math.cos(beatPhase) + 1) / 2; // Maps -1 to 1 range -> 0 to 1 range
+
+      // Apply easing to the pulse for a sharper beat
+      // Use the mathematical formula for easeOutExpo directly
+      const easedPulse = pulse === 1 ? 1 : 1 - Math.pow(2, -10 * pulse);
+
+      beatScaleMultiplier = 1 + easedPulse * 0.25; // INCREASED Scale bumps up by 25%
+      beatZOffset = easedPulse * 0.5; // INCREASED Moves forward more
+
+      // --- Determine Damping based on Phase ---
+      // Use faster damping when returning (second half of the cycle)
+      const expandDamp = 0.2;  // Slightly slower expansion
+      const contractDamp = 0.08; // Much faster contraction
+      currentPositionDamp = beatPhase >= Math.PI ? contractDamp : expandDamp;
+      currentScaleDamp = beatPhase >= Math.PI ? contractDamp : expandDamp;
+
+    }
+
+    // --- Combine Animations ---
+    // Set target position including bobbing and beat offset
+    targetPosition.set(0, currentBobY, beatZOffset);
+    // Set target scale based on beat
+    targetScaleVec.set(beatScaleMultiplier, beatScaleMultiplier, beatScaleMultiplier);
+
+    // --- Smooth Rotation (always active) ---
     const targetRotationX = normalizedMousePosition.y * 0.2; // Rotate around X based on mouse Y
     const targetRotationY = normalizedMousePosition.x * 0.2; // Rotate around Y based on mouse X
 
-    // Damp rotation towards target
+    // --- Apply Damping ---
+    // Damp position towards target (bob + beat offset)
+    easing.damp3(animationGroupRef.current.position, targetPosition, currentPositionDamp, delta);
+
+    // Damp scale towards target (beat scale or default 1)
+    easing.damp3(animationGroupRef.current.scale, targetScaleVec, currentScaleDamp, delta);
+
+    // Damp rotation towards target (mouse look)
     easing.dampE(
       animationGroupRef.current.rotation,
       [targetRotationX, targetRotationY, 0], // Target Euler rotation

@@ -15,6 +15,7 @@ import DebugKeyboardControls from "@/components/debug/DebugKeyboardControls";
 import DebugStateBridge from "@/components/debug/DebugStateBridge";
 import { DebugMenu } from "@/components/debug/DebugMenu";
 import { SpawnedGltf } from "@/components/shared/SpawnedGltf";
+import AnimationToggle from "@/components/shared/AnimationToggle";
 
 // Add proper global interface to TypeScript
 declare global {
@@ -90,6 +91,8 @@ export default function DesktopScene({
   const [isLightPlacementMode, setIsLightPlacementMode] = useState<boolean>(false);
   const [placedLights, setPlacedLights] = useState<PlacedLight[]>([]);
   const nextLightId = useRef(1); // To generate unique IDs
+  // State for beat animation toggle
+  const [isBeatAnimationEnabled, setIsBeatAnimationEnabled] = useState<boolean>(true);
   
   // Track the last active card
   const lastActiveCardRef = useRef<number | null>(null);
@@ -1376,6 +1379,10 @@ export default function DesktopScene({
               setIsInspectMode={setIsInspectMode}
               // Pass debug mode state
               isDebugMode={isDebugMode}
+              // Pass viewState
+              viewState={viewState}
+              // Pass animation toggle state
+              isBeatAnimationEnabled={isBeatAnimationEnabled}
           />
           
           {/* Conditionally render Debug Wall */}
@@ -1454,6 +1461,12 @@ export default function DesktopScene({
           setPlacedLightColor={setPlacedLightColor}
           removePlacedLight={removePlacedLight} // Pass remove function
           spawnGltf={spawnGltf} // Pass spawn function
+        />
+
+        {/* Add the Animation Toggle UI */} 
+        <AnimationToggle 
+          isEnabled={isBeatAnimationEnabled} 
+          setIsEnabled={setIsBeatAnimationEnabled} 
         />
 
       </div>
