@@ -29,6 +29,7 @@ interface DebugMenuProps {
   setPlacedLightColor: Dispatch<SetStateAction<string>>
   removePlacedLight: (id: number) => void
   spawnGltf: (url: string) => void // Function to spawn a GLTF
+  applyBumpMapToFirstIphone: () => void // Function to apply bump map
 }
 
 // Simple styles for debug UI (can be replaced with Tailwind later)
@@ -146,6 +147,7 @@ export function DebugMenu({
   setPlacedLightColor,
   removePlacedLight,
   spawnGltf, // Receive the spawn function
+  applyBumpMapToFirstIphone, // Receive the bump map function
 }: DebugMenuProps): JSX.Element | null {
   if (!isDebugMode) return null
 
@@ -282,6 +284,12 @@ export function DebugMenu({
           style={debugStyles.button}
         >
           Spawn iPhone 11
+        </button>
+        <button
+          onClick={applyBumpMapToFirstIphone} // Call the passed function
+          style={debugStyles.button}
+        >
+          Apply Scratch Bump to iPhone Screen
         </button>
         {/* Add more spawn buttons here if needed */}
         {/* Maybe add a list of spawned objects later */}

@@ -10,12 +10,13 @@ import * as THREE from "three";
 import { useThree, useFrame } from "@react-three/fiber";
 import { easing } from "maath";
 import GltfExploreButton from "@/components/shared/GltfExploreButton";
-import { TransformControls } from "@react-three/drei";
+import { TransformControls, SpotLight } from "@react-three/drei";
 import DebugKeyboardControls from "@/components/debug/DebugKeyboardControls";
 import DebugStateBridge from "@/components/debug/DebugStateBridge";
 import { DebugMenu } from "@/components/debug/DebugMenu";
 import { SpawnedGltf } from "@/components/shared/SpawnedGltf";
-import AnimationToggle from "@/components/shared/AnimationToggle";
+import MusicToggle from "@/components/shared/MusicToggle";
+import BeatToggle from "@/components/shared/BeatToggle";
 
 // Add proper global interface to TypeScript
 declare global {
@@ -45,6 +46,21 @@ interface DesktopSceneProps {
 export interface PlacedLight {
   id: number;
   position: [number, number, number];
+}
+
+// Define the BumpMapConfig interface here or import from SpawnedGltf if shared
+interface BumpMapConfig {
+  textureUrl: string
+  materialName: string
+  bumpScale?: number
+}
+
+// Update state for spawned GLTF objects
+interface SpawnedObject {
+  id: number;
+  url: string;
+  position?: [number, number, number]; // Add position
+  bumpMapConfig?: BumpMapConfig; // Add optional bump map config
 }
 
 export default function DesktopScene({
@@ -93,6 +109,10 @@ export default function DesktopScene({
   const nextLightId = useRef(1); // To generate unique IDs
   // State for beat animation toggle
   const [isBeatAnimationEnabled, setIsBeatAnimationEnabled] = useState<boolean>(true);
+  // State for music playback
+  const [isMusicPlaying, setIsMusicPlaying] = useState<boolean>(false);
+  // Ref for the audio element
+  const audioRef = useRef<HTMLAudioElement>(null);
   
   // Track the last active card
   const lastActiveCardRef = useRef<number | null>(null);
@@ -131,14 +151,19 @@ export default function DesktopScene({
   const [isInspectMode, setIsInspectMode] = useState<boolean>(false);
   const [inspectedPartInfo, setInspectedPartInfo] = useState<object | string | null>(null);
 
-  // Add state for spawned GLTF objects
-  interface SpawnedObject {
-    id: number;
-    url: string;
-    // Add position, rotation, scale later if needed
-  }
+  // Update state for spawned GLTF objects
   const [spawnedObjects, setSpawnedObjects] = useState<SpawnedObject[]>([]);
   const nextSpawnedObjectId = useRef(1);
+
+  // --- Web Audio API State ---
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
+  const [audioSourceNode, setAudioSourceNode] = useState<AudioBufferSourceNode | null>(null);
+  const [isAudioLoading, setIsAudioLoading] = useState<boolean>(false);
+  const [audioStartTime, setAudioStartTime] = useState<number | null>(null); // Start time within AudioContext timeline
+  const audioLoadCalled = useRef(false); // Ensure load is called only once
+
+  // --- End Web Audio API State ---
 
   // Calculate all card positions for wheel scrolling - memoized to avoid recreation
   const getCardPositions = useCallback(() => {
@@ -897,6 +922,151 @@ export default function DesktopScene({
     };
   }, [viewState, setViewState]); // Re-run effect if viewState changes
 
+  // Function to initialize AudioContext (must be called after user interaction)
+  const initAudioContext = useCallback(() => {
+    if (!audioContext) {
+      try {
+        const newContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        setAudioContext(newContext);
+        console.log("AudioContext created.");
+        return newContext; // Return the new context for immediate use
+      } catch (e) {
+        console.error("Web Audio API is not supported in this browser", e);
+        return null;
+      }
+    }
+    // If context exists but is suspended, resume it
+    if (audioContext.state === 'suspended') {
+        audioContext.resume().then(() => {
+            console.log("AudioContext resumed.");
+        }).catch(err => console.error("Failed to resume AudioContext:", err));
+    }
+    return audioContext;
+  }, [audioContext]);
+
+  // Function to load audio data
+  const loadAudio = useCallback(async (context: AudioContext) => {
+    if (!context || audioBuffer || isAudioLoading || audioLoadCalled.current) return;
+
+    console.log("Starting audio load...");
+    setIsAudioLoading(true);
+    audioLoadCalled.current = true; // Mark as called
+
+    try {
+      const response = await fetch('/Deep in It.mp3');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      const decodedBuffer = await context.decodeAudioData(arrayBuffer);
+      setAudioBuffer(decodedBuffer);
+      console.log("Audio loaded and decoded successfully.");
+    } catch (error) {
+      console.error('Error loading or decoding audio file:', error);
+      audioLoadCalled.current = false; // Allow retry if failed
+    } finally {
+      setIsAudioLoading(false);
+    }
+  }, [audioBuffer, isAudioLoading]);
+
+  // Effect to start/stop audio playback using Web Audio API
+  useEffect(() => {
+    if (!isMusicPlaying) {
+      // Stop playing
+      if (audioSourceNode) {
+        try {
+            audioSourceNode.stop();
+            console.log("Audio stopped.");
+        } catch (e) {
+            console.warn("Audio node likely already stopped:", e);
+        }
+        setAudioSourceNode(null);
+        setAudioStartTime(null); // Reset start time
+      }
+      return;
+    }
+
+    // --- Start playing ---
+    if (isMusicPlaying && audioContext && audioBuffer && !audioSourceNode) {
+      // Ensure context is running
+      if (audioContext.state === 'suspended') {
+        console.log("Attempting to resume suspended AudioContext before playing...");
+        audioContext.resume().then(() => {
+          console.log("Resumed context, now playing...");
+          playAudio(audioContext, audioBuffer);
+        }).catch(err => console.error("Failed to resume AudioContext for playback:", err));
+        return; // Wait for resume before playing
+      }
+
+      // Context is running, play now
+      playAudio(audioContext, audioBuffer);
+    }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMusicPlaying, audioContext, audioBuffer, audioSourceNode]); // Keep playAudio out of deps
+
+  // Helper function to encapsulate playback logic
+  const playAudio = useCallback((context: AudioContext, buffer: AudioBuffer) => {
+    if (!context || !buffer) return;
+    console.log("playAudio called");
+
+    // Stop existing source if any (shouldn't happen with current logic, but safe)
+    if (audioSourceNode) {
+        try { audioSourceNode.stop(); } catch(e) {/* ignore */}
+    }
+
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.connect(context.destination);
+    source.loop = true;
+
+    // Record start time *immediately* before starting
+    const startTime = context.currentTime;
+    setAudioStartTime(startTime);
+
+    source.start(0); // Start immediately
+    setAudioSourceNode(source);
+    console.log(`Audio started at context time: ${startTime}`);
+
+    source.onended = () => {
+      // Clean up if stopped externally (e.g., by setting isMusicPlaying=false)
+      // Checking isMusicPlaying prevents state update if we *manually* stopped it
+      if (isMusicPlaying) {
+        console.log("Audio source ended unexpectedly (might be due to manual stop)");
+        setAudioSourceNode(null);
+        setAudioStartTime(null);
+      }
+    };
+  // Keep deps minimal, state setters don't need to be deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMusicPlaying]); // Only depend on isMusicPlaying to check state in onended
+
+  // Effect to link music state to beat state (no change needed here)
+  useEffect(() => {
+    if (!isMusicPlaying) {
+      setIsBeatAnimationEnabled(false); // Turn off beat if music is off
+    } else {
+      setIsBeatAnimationEnabled(true); // Turn ON beat if music is on
+    }
+  }, [isMusicPlaying]);
+
+  // Cleanup effect for audio context and source node
+  useEffect(() => {
+    // Return a cleanup function
+    return () => {
+      console.log("Cleaning up audio context and source...");
+      if (audioSourceNode) {
+        try { audioSourceNode.stop(); } catch(e) {/* ignore */}
+        setAudioSourceNode(null);
+      }
+      if (audioContext && audioContext.state !== 'closed') {
+        audioContext.close().then(() => console.log("AudioContext closed."))
+          .catch(err => console.error("Failed to close AudioContext:", err));
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only on unmount
+
   // Function to add a placed light (passed down to GltfExploreButton)
   const addPlacedLight = useCallback((localPosition: [number, number, number]) => {
     setPlacedLights(prev => [
@@ -1063,14 +1233,74 @@ export default function DesktopScene({
     console.log(`[Debug] Removed light with id: ${idToRemove}`);
   }, []);
 
-  // --- Function to spawn a GLTF ---
-  const spawnGltf = useCallback((url: string) => {
-    setSpawnedObjects(prev => [
-      ...prev,
-      { id: nextSpawnedObjectId.current++, url: url }
-    ]);
-    console.log(`[Debug] Spawned GLTF from: ${url}`);
-  }, []);
+  // Function to spawn a GLTF object
+  const spawnGltf = (url: string, position?: [number, number, number]) => {
+    const newObject: SpawnedObject = {
+      id: nextSpawnedObjectId.current++,
+      url,
+      position: position ?? [0, 1.5, 0], // Default spawn position slightly above ground
+      // No bump map initially
+    };
+    setSpawnedObjects((prev) => [...prev, newObject]);
+  };
+
+  // Function to apply bump map to the FIRST spawned iPhone 11
+  const applyBumpMapToFirstIphone = () => {
+    setSpawnedObjects((prevObjects) =>
+      prevObjects.map((obj) => {
+        // Find the first object matching the iPhone URL that doesn't already have the config
+        if (obj.url === '/iphone11.glb' && !obj.bumpMapConfig) {
+          console.log(`Applying bump map config to spawned object ID: ${obj.id}`);
+          return {
+            ...obj,
+            bumpMapConfig: {
+              textureUrl: '/scratch_mask.png', // Texture path in public folder
+              materialName: 'ScreenMaterial', // The name you set in Blender
+              bumpScale: 0.05, // Adjust bump intensity as needed
+            },
+          };
+        } // IMPORTANT: Check if it's the first one FOUND in this map iteration
+          // This needs correction - we should only modify the *first* one overall.
+        return obj; // Return unmodified objects
+      })
+    );
+    // Corrected logic: Find the first iPhone and update only that one.
+    setSpawnedObjects(prevObjects => {
+      let updated = false;
+      return prevObjects.map(obj => {
+        if (!updated && obj.url === '/iphone11.glb') {
+          updated = true; // Mark as updated so we only target the first
+          console.log(`Applying bump map config to spawned object ID: ${obj.id}`);
+          return {
+            ...obj,
+            bumpMapConfig: {
+              textureUrl: '/scratch_mask.png',
+              materialName: 'ScreenMaterial',
+              bumpScale: 0.05,
+            },
+          };
+        }
+        return obj;
+      });
+    });
+  };
+
+  const handleMusicToggleClick = useCallback(() => {
+      // Initialize context and load audio ON FIRST CLICK if needed
+      let currentContext = audioContext;
+      if (!currentContext) {
+          currentContext = initAudioContext();
+      }
+      if (currentContext && !audioBuffer && !audioLoadCalled.current) {
+          loadAudio(currentContext);
+      } else if (currentContext && currentContext.state === 'suspended') {
+          // Attempt resume if suspended
+          currentContext.resume().catch(err => console.error("Resume failed on toggle:", err));
+      }
+
+      // Toggle playing state
+      setIsMusicPlaying(prev => !prev);
+  }, [audioContext, initAudioContext, audioBuffer, loadAudio]);
 
   return (
     <div className="relative w-full h-full">
@@ -1355,6 +1585,9 @@ export default function DesktopScene({
             flipCard={flipCard}
             viewState={viewState}
             isDebugMode={isDebugMode}
+            // Pass audio timing info
+            audioContext={audioContext}
+            audioStartTime={audioStartTime}
           />
           {/* Add the camera animator component */}
           <CameraAnimator />
@@ -1383,6 +1616,9 @@ export default function DesktopScene({
               viewState={viewState}
               // Pass animation toggle state
               isBeatAnimationEnabled={isBeatAnimationEnabled}
+              // Pass audio timing info
+              audioContext={audioContext}
+              audioStartTime={audioStartTime}
           />
           
           {/* Conditionally render Debug Wall */}
@@ -1431,9 +1667,25 @@ export default function DesktopScene({
           />
 
           {/* Render spawned GLTF objects inside Canvas */}
-          {isDebugMode && spawnedObjects.map(obj => (
-            <SpawnedGltf key={obj.id} url={obj.url} />
+          {isDebugMode && spawnedObjects.map((obj) => (
+            <SpawnedGltf
+              key={obj.id}
+              url={obj.url}
+              position={obj.position}
+              bumpMapConfig={obj.bumpMapConfig}
+            />
           ))}
+
+          {/* Add the new SpotLight */}
+          <SpotLight
+            position={[8.94, 9.93, 8.13]}
+            rotation={[0, 26.6 * (Math.PI / 180), 0]} // Convert Y rotation to radians
+            angle={Math.PI / 4} // 45 degrees angle
+            intensity={1000} // Bright intensity
+            penumbra={0.5} // Soft edges
+            castShadow
+            // target={/* optional: point to a specific object or position */}
+          />
 
         </Canvas>
 
@@ -1459,15 +1711,42 @@ export default function DesktopScene({
           setPlacedLightDistance={setPlacedLightDistance}
           placedLightColor={placedLightColor}
           setPlacedLightColor={setPlacedLightColor}
-          removePlacedLight={removePlacedLight} // Pass remove function
-          spawnGltf={spawnGltf} // Pass spawn function
+          removePlacedLight={removePlacedLight}
+          spawnGltf={spawnGltf}
+          applyBumpMapToFirstIphone={applyBumpMapToFirstIphone}
+          isBeatAnimationEnabled={isBeatAnimationEnabled}
+          setIsBeatAnimationEnabled={setIsBeatAnimationEnabled}
+          isMusicPlaying={isMusicPlaying}
+          toggleMusic={handleMusicToggleClick}
         />
 
-        {/* Add the Animation Toggle UI */} 
-        <AnimationToggle 
-          isEnabled={isBeatAnimationEnabled} 
-          setIsEnabled={setIsBeatAnimationEnabled} 
-        />
+        {/* Container for UI Toggles in Top Left */} 
+        <div className="absolute top-4 left-4 z-50 flex items-center space-x-1">
+          <MusicToggle
+            isMusicPlaying={isMusicPlaying}
+            onToggleClick={handleMusicToggleClick}
+          />
+          <AnimatePresence>
+            {isMusicPlaying && (
+              <motion.div
+                // Start further left, no width animation
+                initial={{ opacity: 0, x: -44 }}
+                // Animate to final position
+                animate={{ opacity: 1, x: 0 }}
+                // Exit back to the left, no width animation
+                exit={{ opacity: 0, x: -44 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }} // Smooth animation
+                // Keep overflow hidden to prevent weirdness during fast state changes
+                style={{ overflow: 'hidden' }} 
+              >
+                <BeatToggle
+                  isBeatEnabled={isBeatAnimationEnabled}
+                  setIsBeatEnabled={setIsBeatAnimationEnabled}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
       </div>
     </div>

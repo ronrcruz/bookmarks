@@ -15,6 +15,7 @@ import { CardType } from "@/app/definitions";
 import { useFrame, useThree } from "@react-three/fiber";
 import { easing } from "maath";
 import * as THREE from "three";
+import { Group } from "three";
 
 // Re-import ViewState type
 type ViewState = 'initial' | 'cardSelection';
@@ -29,8 +30,10 @@ interface ExperienceProps {
   hoverLocked: boolean;
   cursorPosition: { x: number, y: number };
   flipCard: (id: number, isFlipped: boolean) => void;
-  viewState: ViewState; // Add viewState prop
-  isDebugMode: boolean; // Add isDebugMode prop
+  viewState: ViewState;
+  isDebugMode?: boolean;
+  audioContext: AudioContext | null;
+  audioStartTime: number | null;
 }
 
 export default function Experience({
@@ -43,10 +46,13 @@ export default function Experience({
   hoverLocked,
   cursorPosition,
   flipCard,
-  viewState, // Destructure viewState
-  isDebugMode, // Destructure isDebugMode
+  viewState,
+  isDebugMode = false,
+  audioContext,
+  audioStartTime
 }: ExperienceProps) {
-  const { scene, camera } = useThree();
+  const groupRef = useRef<Group>(null!);
+  const { scene, camera, size } = useThree();
   const currentBottomColor = useRef(new THREE.Color("#bdd7ee"));
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
   const targetOpacity = useRef(1);

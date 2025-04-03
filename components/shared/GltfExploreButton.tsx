@@ -40,6 +40,14 @@ interface GltfExploreButtonProps {
   viewState: ViewState;
   // Add prop to toggle beat animation
   isBeatAnimationEnabled: boolean;
+  // Add Web Audio API props
+  audioContext: AudioContext | null;
+  audioStartTime: number | null;
+}
+
+// Helper easing function
+function easeInOutCubic(x: number): number {
+  return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 }
 
 // Preload the model for better performance
@@ -67,19 +75,33 @@ export default function GltfExploreButton({
   // Destructure viewState
   viewState,
   // Destructure animation toggle
-  isBeatAnimationEnabled
+  isBeatAnimationEnabled,
+  // Destructure Web Audio props
+  audioContext,
+  audioStartTime
 }: GltfExploreButtonProps) {
   
   const { scene } = useGLTF('/object.gltf');
   const groupRef = useRef<THREE.Group>(null!); // Ref for the main group for context menu logic
   const animationGroupRef = useRef<THREE.Group>(null!); // Ref for the inner group to apply animations
-  const { clock } = useThree(); // Get clock for bobbing animation
+  // Get clock from useThree as a fallback or for other animations if needed
+  const { clock } = useThree(); 
+
   // Store default scale and position for smooth transitions
   const defaultScale = useMemo(() => new THREE.Vector3(1, 1, 1), []);
   const defaultPosition = useMemo(() => new THREE.Vector3(0, 0, 0), []);
   // Temporary vectors for calculations
   const targetPosition = useMemo(() => new THREE.Vector3(), []);
   const targetScaleVec = useMemo(() => new THREE.Vector3(), []);
+
+  // --- Refs for Spin Animation State ---
+  const spinTriggerTimeRef = useRef<number | null>(null);
+  const spinStartRotationYRef = useRef<number>(0);
+  const spinDuration = useRef<number>(0.4); // Duration of the spin (adjust as needed)
+  const spinChance = 0.25; // 25% chance to spin on 4th beat
+  // Ref to track the time of the last successful spin trigger for cooldown
+  const lastSpinTriggerTimeRef = useRef<number | null>(null);
+  const spinCooldown = 5; // Minimum seconds between spins
 
   // Animation and rotation logic within useFrame
   useFrame((state, delta) => {
@@ -88,65 +110,132 @@ export default function GltfExploreButton({
     // Initialize damping factors with default
     let currentPositionDamp = 0.15;
     let currentScaleDamp = 0.15;
+    let rotationDampFactor = 0.25; // Default damping for mouse-look rotation
 
-    // --- Base Bobbing Animation ---
+    // --- Base Bobbing Animation (using three clock again) ---
     const bobFrequency = 1.5;
     const bobAmplitude = 0.05;
     const currentBobY = Math.sin(clock.elapsedTime * bobFrequency) * bobAmplitude;
 
-    // --- Beat Animation (only in initial view) ---
+    // --- Target Rotation Initialization ---
+    const targetRotationX = normalizedMousePosition.y * 0.2; // X rotation is always based on mouse Y
+    // Initialize with current rotation as default
+    let finalTargetRotationY: number = animationGroupRef.current.rotation.y;
+
+    // --- Beat/Spin Calculation (only if audio is ready and animation enabled) ---
     let beatScaleMultiplier = 1;
     let beatZOffset = 0;
+    let isSpinning = false; // Flag to check if currently spinning
 
-    if (viewState === 'initial' && isBeatAnimationEnabled) {
-      const bpm = 120;
-      const beatPeriod = 60 / bpm; // Seconds per beat
-      const beatFrequencyRad = (Math.PI * 2) / beatPeriod; // Radians per second
+    // Check if a spin is currently in progress
+    if (spinTriggerTimeRef.current !== null && audioContext) {
+      isSpinning = true;
+      const currentAudioTime = audioContext.currentTime;
+      const elapsedSpinTime = currentAudioTime - spinTriggerTimeRef.current;
+      let spinProgress = Math.min(1, elapsedSpinTime / spinDuration.current);
+      
+      // Apply easing to spin
+      const easedSpinProgress = easeInOutCubic(spinProgress);
+      
+      // Calculate target rotation based on spin progress
+      const spinTargetY = spinStartRotationYRef.current + easedSpinProgress * (Math.PI * 2);
+      finalTargetRotationY = spinTargetY; // Spin takes priority
+      rotationDampFactor = 0.1; // Use faster damping during spin
 
-      // Use cosine for a peak at the start of the cycle, map to 0-1 range
-      const beatPhase = (clock.elapsedTime % beatPeriod) * beatFrequencyRad;
-      const pulse = (Math.cos(beatPhase) + 1) / 2; // Maps -1 to 1 range -> 0 to 1 range
-
-      // Apply easing to the pulse for a sharper beat
-      // Use the mathematical formula for easeOutExpo directly
-      const easedPulse = pulse === 1 ? 1 : 1 - Math.pow(2, -10 * pulse);
-
-      beatScaleMultiplier = 1 + easedPulse * 0.25; // INCREASED Scale bumps up by 25%
-      beatZOffset = easedPulse * 0.5; // INCREASED Moves forward more
-
-      // --- Determine Damping based on Phase ---
-      // Use faster damping when returning (second half of the cycle)
-      const expandDamp = 0.2;  // Slightly slower expansion
-      const contractDamp = 0.08; // Much faster contraction
-      currentPositionDamp = beatPhase >= Math.PI ? contractDamp : expandDamp;
-      currentScaleDamp = beatPhase >= Math.PI ? contractDamp : expandDamp;
-
+      // Reset trigger when spin is complete
+      if (spinProgress >= 1) {
+        spinTriggerTimeRef.current = null;
+      }
     }
 
-    // --- Combine Animations ---
-    // Set target position including bobbing and beat offset
-    targetPosition.set(0, currentBobY, beatZOffset);
-    // Set target scale based on beat
+    // --- Normal Beat & Mouse Look Logic (only if NOT spinning) ---
+    let targetMouseLookY = 0; // Initialize mouse look Y
+    if (!isSpinning) {
+        // Calculate mouse-look Y rotation only when not spinning
+        targetMouseLookY = normalizedMousePosition.x * 0.2;
+        finalTargetRotationY = targetMouseLookY; // Set final target to mouse look
+
+        // --- Normal Beat Logic (Scale/Offset/Damping) ---
+        if (viewState === 'initial' && isBeatAnimationEnabled && audioContext && audioStartTime !== null) {
+          const bpm = 122;
+          const beatPeriod = 60 / bpm;
+          spinDuration.current = beatPeriod * 0.85; // Make spin duration related to beat period
+          const beatFrequencyRad = (Math.PI * 2) / beatPeriod;
+
+          const currentAudioTime = audioContext.currentTime;
+          const elapsedAudioTime = currentAudioTime - audioStartTime;
+          const beatCount = Math.floor(elapsedAudioTime / beatPeriod);
+
+          // --- Check for 4th Beat Spin Trigger ---
+          // Check beat count > 0 to avoid triggering on the very first frame if random hits
+          if (beatCount > 0 && beatCount % 4 === 3 && Math.random() < spinChance) {
+            // --- Add Cooldown Check ---
+            if (lastSpinTriggerTimeRef.current === null || currentAudioTime - lastSpinTriggerTimeRef.current >= spinCooldown) {
+              // Trigger spin! (Cooldown passed)
+              spinTriggerTimeRef.current = currentAudioTime;
+              spinStartRotationYRef.current = animationGroupRef.current.rotation.y; // Store current Y rotation
+              // Update the last successful trigger time for cooldown
+              lastSpinTriggerTimeRef.current = currentAudioTime;
+            }
+            // Don't calculate beat scale/offset when triggering a spin or during cooldown
+          } else {
+            // --- Calculate Normal Beat Animation (Scale/Offset) ---
+            const beatPhase = (elapsedAudioTime % beatPeriod) * beatFrequencyRad;
+            const pulse = (Math.cos(beatPhase) + 1) / 2;
+            const easedPulse = pulse === 1 ? 1 : 1 - Math.pow(2, -10 * pulse);
+
+            beatScaleMultiplier = 1 + easedPulse * 0.25;
+            beatZOffset = easedPulse * 0.5;
+
+            // Determine Damping for normal beat
+            const expandDamp = 0.2;
+            const contractDamp = 0.08;
+            currentPositionDamp = beatPhase >= Math.PI ? contractDamp : expandDamp;
+            currentScaleDamp = beatPhase >= Math.PI ? contractDamp : expandDamp;
+          }
+        }
+    } // End of !isSpinning block
+
+    // --- Combine Target Position (Bobbing + Beat Offset) ---
+    targetPosition.set(0, currentBobY + beatZOffset, 0); // Apply bobbing and Z offset if any
+    // Note: The beat Z offset happens along the local Z axis relative to rotation.
+    // If we want it world Z, we need more complex vector math.
+    // Let's apply Z offset *before* rotation damping for simplicity for now.
+    // Update: Applying Z offset to the position directly might be less intuitive than
+    // moving the group along its local Z. Let's revert position Z offset and apply later if needed.
+    targetPosition.set(0, currentBobY, 0); // Only bobbing for now
+
+    // --- Combine Target Scale ---
     targetScaleVec.set(beatScaleMultiplier, beatScaleMultiplier, beatScaleMultiplier);
 
-    // --- Smooth Rotation (always active) ---
-    const targetRotationX = normalizedMousePosition.y * 0.2; // Rotate around X based on mouse Y
-    const targetRotationY = normalizedMousePosition.x * 0.2; // Rotate around Y based on mouse X
-
     // --- Apply Damping ---
-    // Damp position towards target (bob + beat offset)
+    // Damp position towards target (bobbing only for now)
     easing.damp3(animationGroupRef.current.position, targetPosition, currentPositionDamp, delta);
 
     // Damp scale towards target (beat scale or default 1)
     easing.damp3(animationGroupRef.current.scale, targetScaleVec, currentScaleDamp, delta);
 
-    // Damp rotation towards target (mouse look)
+    // Damp rotation towards target (mouse look OR spin)
     easing.dampE(
       animationGroupRef.current.rotation,
-      [targetRotationX, targetRotationY, 0], // Target Euler rotation
-      0.25, // Smoothing factor
+      [targetRotationX, finalTargetRotationY, 0], // Use the final calculated Y target
+      rotationDampFactor, // Use conditional damping factor
       delta // Frame delta time
     );
+
+    // --- Apply Z offset translation *after* rotation ---
+    // This makes the object move along its current facing direction (local Z)
+    if (!isSpinning && beatZOffset !== 0) {
+      const localZVector = new THREE.Vector3(0, 0, 1);
+      localZVector.applyQuaternion(animationGroupRef.current.quaternion); // Get world direction of local Z
+      localZVector.multiplyScalar(beatZOffset * 0.1); // Scale offset amount (reduce effect)
+      // Damp this translation separately? Or just add? Let's try adding for now.
+      // This direct addition isn't ideal, damping would be better.
+      // For a quick effect, let's try a small direct nudge (may look jittery)
+      // animationGroupRef.current.position.add(localZVector.multiplyScalar(delta)); // Needs refinement
+      // Let's omit the Z offset for now to keep spin clean.
+    }
+
   });
 
   const handleClick = (event: ThreeEvent<MouseEvent>) => {
