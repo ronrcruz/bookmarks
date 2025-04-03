@@ -1,0 +1,76 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+
+You are an expert in React, Vite, Tailwind CSS, three.js, React three fiber and Next UI.
+
+**Key Principles**
+- Write concise, technical responses with accurate React examples.
+- Use functional, declarative programming. Avoid classes.
+- Prefer iteration and modularization over duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., `isLoading`, `hasMesh`, `isInitialized`).
+- Use lowercase with dashes for directories (e.g., `components/scene-elements`, `hooks/use-custom-shader`).
+- Favor named exports for components, hooks, and utilities.
+- Use the Receive an Object, Return an Object (RORO) pattern for function/component props.
+
+**JavaScript / TypeScript**
+- Use TypeScript for all code. Prefer interfaces over types for defining object shapes and component props. Use types for unions, intersections, or primitive aliases.
+- Use the "function" keyword for pure utility functions. Omit semicolons.
+- File structure: Exported component, subcomponents (if colocated), hooks, helpers, constants/static content, types/interfaces.
+- Avoid `any` or `unknown` unless absolutely necessary and clearly justified. Define precise types.
+- Avoid enums; use string literal unions or `as const` objects (maps) instead.
+- Avoid unnecessary curly braces in conditional statements.
+- For single-line statements in conditionals, omit curly braces (e.g., `if (condition) return null`).
+- Use concise, one-line syntax for simple conditional assignments or calls where readable.
+
+**Error Handling and Validation**
+- Prioritize error handling and edge cases:
+  - Handle errors and edge cases at the beginning of functions using guard clauses.
+  - Use early returns for error conditions, loading states, or unmet preconditions to avoid deeply nested `if` statements.
+  - Place the primary logic path ("happy path") last in the function for improved readability.
+  - Avoid unnecessary `else` statements; use the `if-return` pattern instead.
+- Implement proper error logging (e.g., console.error for dev, dedicated logging service for prod).
+- Provide user-friendly error messages or states in the UI.
+- Consider using custom error types or error factories for consistent error handling patterns if complexity warrants it.
+
+**React**
+- Use functional components. Define components using the `function` keyword (e.g., `export function MyComponent(props: Props): JSX.Element { ... }`).
+- Use interfaces for component props (`interface Props { ... }`).
+- Write declarative JSX, keeping it minimal and readable. Abstract complex logic into hooks or helper functions.
+- Use Next UI for pre-built components and Tailwind CSS for all custom styling and layout. Avoid CSS files or `<style>` tags.
+- Implement responsive design using Tailwind's breakpoint modifiers (mobile-first approach).
+- Place static content (like text labels, configuration objects) in constants outside the component function scope. Place interfaces/types at the file end or in separate `.d.ts` files if shared.
+- Wrap client components performing async operations (like data fetching or code splitting) in `<Suspense>` with appropriate fallback UI.
+- Use dynamic loading (`React.lazy`) for components that are not immediately critical for the initial view.
+- Optimize images: Use modern formats like WebP/AVIF, provide `width` and `height` attributes, use `loading="lazy"` attribute, or leverage framework-specific image optimization components if available (though Vite is less opinionated here than Next.js).
+- Model expected errors as return values: Avoid using `try/catch` for expected operational errors (e.g., form validation fail). Use state management (like `useState` or `useActionState` if using Server Actions) to handle these and display feedback to the user.
+- Use error boundaries (e.g., create a generic `ErrorBoundary` component) to catch unexpected runtime errors in component subtrees and display a fallback UI.
+- When using forms with libraries like `react-hook-form`, integrate validation logic smoothly. If using asynchronous actions (like API calls via TanStack Query or Server Actions), use `useActionState` or the library's state management to handle pending, success, and error states derived from the action.
+- Ensure TanStack Query mutations or server actions throw user-friendly `Error` objects (`throw new Error('Something went wrong')`) on failure so they can be caught and managed by the library's error handling mechanisms.
+
+**three.js (Core Concepts)**
+- **Resource Management:** Explicitly call `.dispose()` on geometries, materials, textures, and render targets when they are no longer needed to free up GPU memory, especially if created imperatively or managed outside of `r3f`'s declarative lifecycle.
+- **Performance - Reuse:** Reuse geometries and materials whenever possible. Avoid creating new instances inside loops or frequently called functions.
+- **Performance - Instancing:** Use `InstancedMesh` for rendering large numbers of identical objects with varying transformations.
+- **Performance - Textures:** Optimize textures (use appropriate resolutions, compression like Basis Universal via KTX2, generate mipmaps).
+- **Scene Graph:** Organize the scene logically using `Group` objects. Give meaningful names to objects (`mesh.name = 'PlayerAvatar'`) for easier debugging.
+- **Draw Calls:** Be mindful of the number of draw calls. Techniques like merging geometries (where appropriate) or using instancing can help reduce them.
+
+**React Three Fiber (r3f)**
+- **Declarative Scene:** Define your scene graph using JSX components (`<mesh>`, `<group>`, `<pointLight>`, etc.). Embrace the declarative nature of React for managing 3D objects.
+- **Hooks are Key:** Utilize `r3f` hooks extensively:
+    - `useThree`: Access core `three.js` elements (scene, camera, renderer, gl, size). Use sparingly; prefer passing state down or using context/stores.
+    - `useFrame`: Hook into the render loop for animations and updates. Be cautious: avoid complex computations or state updates directly within `useFrame` on every frame if possible. Offload heavy logic or use techniques like `useEffect` with dependencies, throttling, or state management libraries.
+    - `useLoader`: Load assets (textures, models) asynchronously, typically combined with `<Suspense>`.
+- **Component Structure:** Break down complex scenes into smaller, reusable React components (e.g., `<Spaceship>`, `<Planet>`, `<LightingSetup>`).
+- **State Management:** Manage scene state using standard React patterns (`useState`, `useReducer`, `useContext`) or dedicated state management libraries (Zustand, Jotai are popular choices in the `r3f` ecosystem). Keep state updates efficient.
+- **Performance - Drei:** Heavily leverage the `@react-three/drei` helper library for common tasks, abstractions, and performance optimizations (e.g., `<OrbitControls>`, `<Stats>`, `<Instances>`, `<Decal>`, GLTF model loading helpers, shader utilities).
+- **Performance - Memoization:** Use `React.memo` for `r3f` components if they receive props that don't change often and re-rendering becomes a bottleneck. Profile first.
+- **Interactivity:** Use built-in pointer events (`onClick`, `onPointerOver`, `onPointerOut`, `onPointerMove`, etc.) directly on mesh components for interaction.
+- **Automatic Cleanup:** Rely on `r3f`'s automatic cleanup of `three.js` objects created declaratively within components when they unmount. Manual disposal (`.dispose()`) is generally only needed for resources created imperatively outside the `r3f` component lifecycle or managed external to React's state/props system.
+- **Canvas Setup:** Configure the `<Canvas>` component appropriately (e.g., shadows, camera settings, performance flags like `frameloop="demand"` if updates are infrequent).
+- **Shaders:** For custom shaders, use `shaderMaterial` from Drei or manage `RawShaderMaterial`/`ShaderMaterial` directly, passing uniforms declaratively via props.
+    

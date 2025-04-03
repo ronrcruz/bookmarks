@@ -9,8 +9,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import * as THREE from "three";
 import { useThree, useFrame } from "@react-three/fiber";
 import { easing } from "maath";
-import ExploreButton from "@/components/shared/ExploreButton";
-import { FlyControls } from "@react-three/drei";
+import GltfExploreButton from "@/components/shared/GltfExploreButton";
+import { TransformControls } from "@react-three/drei";
+import DebugKeyboardControls from "@/components/debug/DebugKeyboardControls";
+import DebugStateBridge from "@/components/debug/DebugStateBridge";
 
 // Add proper global interface to TypeScript
 declare global {
@@ -34,6 +36,12 @@ interface DesktopSceneProps {
   flipCard: (cardId: number, isFlipped: boolean) => void;
   viewState: ViewState;
   setViewState: Dispatch<SetStateAction<ViewState>>;
+}
+
+// Add type for placed lights
+interface PlacedLight {
+  id: number;
+  position: [number, number, number];
 }
 
 export default function DesktopScene({
@@ -72,8 +80,14 @@ export default function DesktopScene({
   const [isDebugMode, setIsDebugMode] = useState<boolean>(false);
   // Add state to hold debug info strings
   const [debugInfo, setDebugInfo] = useState({ position: '', rotation: '' });
+  // Add state for normalized mouse position for the initial button interaction
+  const [normalizedMousePosition, setNormalizedMousePosition] = useState({ x: 0, y: 0 });
   // Add state to trigger camera Z rotation reset
   const [resetZRotationTrigger, setResetZRotationTrigger] = useState(0);
+  // Add state for light placement mode and placed lights
+  const [isLightPlacementMode, setIsLightPlacementMode] = useState<boolean>(false);
+  const [placedLights, setPlacedLights] = useState<PlacedLight[]>([]);
+  const nextLightId = useRef(1); // To generate unique IDs
   
   // Track the last active card
   const lastActiveCardRef = useRef<number | null>(null);
@@ -88,6 +102,29 @@ export default function DesktopScene({
   
   // Ref to Canvas element for direct DOM manipulation
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  
+  // Add state for debug wall
+  const [showDebugWall, setShowDebugWall] = useState<boolean>(false);
+  const debugWallRef = useRef<THREE.Mesh>(null); // Ref for the wall mesh
+  
+  // Add state for placed light controls
+  const [placedLightIntensity, setPlacedLightIntensity] = useState<number>(2);
+  const [placedLightDistance, setPlacedLightDistance] = useState<number>(1);
+  const [placedLightColor, setPlacedLightColor] = useState<string>("#ffffff");
+
+  // Add state for camera save/recall
+  const [savedCameraPos1, setSavedCameraPos1] = useState<THREE.Vector3 | null>(null);
+  const [savedCameraQuat1, setSavedCameraQuat1] = useState<THREE.Quaternion | null>(null);
+  const [savedCameraPos2, setSavedCameraPos2] = useState<THREE.Vector3 | null>(null);
+  const [savedCameraQuat2, setSavedCameraQuat2] = useState<THREE.Quaternion | null>(null);
+  const [saveCameraTrigger, setSaveCameraTrigger] = useState(0);
+  const [saveSlotTarget, setSaveSlotTarget] = useState<1 | 2>(1);
+  const [recallCameraTrigger, setRecallCameraTrigger] = useState(0);
+  const [recallSlotTarget, setRecallSlotTarget] = useState<1 | 2>(1);
+  
+  // Add state for inspect mode
+  const [isInspectMode, setIsInspectMode] = useState<boolean>(false);
+  const [inspectedPartInfo, setInspectedPartInfo] = useState<object | string | null>(null);
   
   // Calculate all card positions for wheel scrolling - memoized to avoid recreation
   const getCardPositions = useCallback(() => {
@@ -222,27 +259,36 @@ export default function DesktopScene({
     };
   }, [targetScrollPosition, setHoverLocked, active]);
   
-  // Track mouse position to determine if in arrow zone
+  // Track mouse position to determine if in arrow zone or for initial button interaction
   const handleMouseMove = (e: React.MouseEvent) => {
-    // Guard: Only track mouse for hover zones in card selection view
-    if (viewState !== 'cardSelection') return;
+    // Update cursor position state used by raycaster updater
+    setCursorPosition({ x: e.clientX, y: e.clientY });
 
-    if (isLoaded && active === null) {
-      const arrowZoneWidth = 180; // IMPROVED: Increased from 120px for larger hover areas
+    if (viewState === 'initial') {
+      // Normalize mouse coordinates for button interaction
+      const normX = (e.clientX / window.innerWidth) * 2 - 1;
+      const normY = -(e.clientY / window.innerHeight) * 2 + 1; // Invert Y
+      setNormalizedMousePosition({ x: normX, y: normY });
+      // Reset arrow/scroll related states if moving mouse in initial view
+      setShowLeftArrow(false);
+      setShowRightArrow(false);
+      setInArrowZone(false);
+      setIsHoveringLeft(false);
+      setIsHoveringRight(false);
+      setHoverLocked(false);
+
+    } else if (viewState === 'cardSelection' && isLoaded && active === null) {
+      // Existing logic for card selection arrow zones
+      const arrowZoneWidth = 180; 
       const x = e.clientX;
       const width = window.innerWidth;
       
-      // Update cursor position for hover detection
-      setCursorPosition({ x: e.clientX, y: e.clientY });
-      
-      // Check if mouse is in left or right arrow zone
       if (x < arrowZoneWidth || x > width - arrowZoneWidth) {
         setInArrowZone(true);
         setShowLeftArrow(true);
         setShowRightArrow(true);
       } else {
         setInArrowZone(false);
-        // Only unlock hover when we're not actively scrolling
         if (!isHoveringLeft && !isHoveringRight) {
           setHoverLocked(false);
         }
@@ -837,8 +883,39 @@ export default function DesktopScene({
     };
   }, [viewState, setViewState]); // Re-run effect if viewState changes
 
+  // Function to add a placed light (passed down to GltfExploreButton)
+  const addPlacedLight = useCallback((localPosition: [number, number, number]) => {
+    setPlacedLights(prevLights => [
+      ...prevLights,
+      { id: nextLightId.current++, position: localPosition }
+    ]);
+    console.log("Added light at local position:", localPosition);
+  }, []);
+
+  // Define GLTF button position for reference
+  const gltfButtonPosition: [number, number, number] = [0, 10.26, -9.34];
+
+  // Handlers for UI buttons
+  const handleSaveCamera = (slot: 1 | 2) => {
+    setSaveSlotTarget(slot);
+    setSaveCameraTrigger(c => c + 1); // Increment trigger
+    console.log(`Requesting save for camera slot ${slot}`);
+  };
+
+  const handleRecallCamera = (slot: 1 | 2) => {
+    setRecallSlotTarget(slot);
+    setRecallCameraTrigger(c => c + 1); // Increment trigger
+    console.log(`Requesting recall for camera slot ${slot}`);
+  };
+
   // --- Camera Animation Logic ---
   const CameraAnimator = () => {
+    // --- Exit early if in Debug Mode ---
+    if (isDebugMode) {
+      return null; // Don't run any camera animation logic if debug controls are active
+    }
+    // --- End Exit Early ---
+
     const { camera } = useThree();
     // Define target positions for different states
     const initialTargetPos = useMemo(() => new THREE.Vector3(-0.05, 9.93, 11.35), []);
@@ -853,59 +930,56 @@ export default function DesktopScene({
     const currentTargetQuat = useMemo(() => new THREE.Quaternion(), []);
 
     useFrame((state, delta) => {
-      // Only run camera animation logic if NOT in debug mode
-      if (!isDebugMode) {
-        let targetPos: THREE.Vector3;
-        // Use single smoothTime again
-        let smoothTime = 0.5; 
+      let targetPos: THREE.Vector3;
+      // Use single smoothTime again
+      let smoothTime = 0.5; 
 
-        // Determine target position and smooth time
-        if (viewState === 'initial') {
-          targetPos = initialTargetPos;
-          smoothTime = 0.5;
-        } else { // viewState === 'cardSelection'
-          if (active !== null) { // Active card view
-            targetPos = activeCardPos;
-            smoothTime = 0.3; // Faster transition
-          } else { // Card selection row view (inactive)
-            targetPos = cardSelectPos; 
-            smoothTime = 0.4; // Tuned for snappier transition FROM initial OR active view
-          }
+      // Determine target position and smooth time
+      if (viewState === 'initial') {
+        targetPos = initialTargetPos;
+        smoothTime = 0.5;
+      } else { // viewState === 'cardSelection'
+        if (active !== null) { // Active card view
+          targetPos = activeCardPos;
+          smoothTime = 0.3; // Faster transition
+        } else { // Card selection row view (inactive)
+          targetPos = cardSelectPos; 
+          smoothTime = 0.4; // Tuned for snappier transition FROM initial OR active view
         }
-
-        // --- Damp Position ---
-        easing.damp3(
-          camera.position, // Target object
-          targetPos,       // Target value (Vector3)
-          smoothTime,      // Use consistent smooth time
-          delta            // Frame delta time
-        );
-
-        // --- Damp Rotation towards PER-FRAME calculated Target Quaternion ---
-        if (viewState === 'initial') {
-          // Damp towards identity (zero rotation)
-          easing.dampQ(
-              camera.quaternion,
-              identityQuaternion,
-              smoothTime, // Use consistent smooth time
-              delta
-          );
-        } else {
-          // Calculate target lookAt rotation based on CURRENT position
-          tempMatrix.lookAt(camera.position, lookAtTarget, camera.up);
-          currentTargetQuat.setFromRotationMatrix(tempMatrix);
-          
-          // Damp towards the calculated rotation
-          easing.dampQ(
-              camera.quaternion, 
-              currentTargetQuat, // Use the quaternion calculated this frame
-              smoothTime, // Use consistent smooth time
-              delta
-          );
-        }
-
-        // No need for manual updateProjectionMatrix with damping
       }
+
+      // --- Damp Position ---
+      easing.damp3(
+        camera.position, // Target object
+        targetPos,       // Target value (Vector3)
+        smoothTime,      // Use consistent smooth time
+        delta            // Frame delta time
+      );
+
+      // --- Damp Rotation towards PER-FRAME calculated Target Quaternion ---
+      if (viewState === 'initial') {
+        // Damp towards identity (zero rotation)
+        easing.dampQ(
+            camera.quaternion,
+            identityQuaternion,
+            smoothTime, // Use consistent smooth time
+            delta
+        );
+      } else {
+        // Calculate target lookAt rotation based on CURRENT position
+        tempMatrix.lookAt(camera.position, lookAtTarget, camera.up);
+        currentTargetQuat.setFromRotationMatrix(tempMatrix);
+        
+        // Damp towards the calculated rotation
+        easing.dampQ(
+            camera.quaternion, 
+            currentTargetQuat, // Use the quaternion calculated this frame
+            smoothTime, // Use consistent smooth time
+            delta
+        );
+      }
+
+      // No need for manual updateProjectionMatrix with damping
     });
 
     return null; // This component doesn't render anything itself
@@ -1256,23 +1330,49 @@ export default function DesktopScene({
           {/* Add the camera animator component */}
           <CameraAnimator />
           
-          {/* Add the 3D Explore Button - Render ALWAYS */}
-              <ExploreButton 
-                  setViewState={setViewState} 
-                  viewState={viewState} 
-                  position={[0, 10, 0]}
-              />
+          {/* Replace ExploreButton with GltfExploreButton */}
+          <GltfExploreButton 
+              setViewState={setViewState} 
+              position={gltfButtonPosition} 
+              isLightPlacementMode={isLightPlacementMode} 
+              addPlacedLight={addPlacedLight}
+              placedLights={placedLights}
+              // Pass light control props
+              lightIntensity={placedLightIntensity}
+              lightDistance={placedLightDistance}
+              lightColor={placedLightColor}
+              // Pass inspect mode props
+              isInspectMode={isInspectMode}
+              setInspectedPartInfo={setInspectedPartInfo}
+              // Pass normalized mouse position for initial view interaction
+              normalizedMousePosition={normalizedMousePosition}
+              // Ensure setIsInspectMode is passed
+              setIsInspectMode={setIsInspectMode}
+              // Pass debug mode state
+              isDebugMode={isDebugMode}
+          />
           
+          {/* Conditionally render Debug Wall */}
+          {showDebugWall && (
+            <mesh 
+              ref={debugWallRef} 
+              position={[gltfButtonPosition[0], gltfButtonPosition[1], gltfButtonPosition[2] + 1.5]} // Place 1.5 units in front of button
+            >
+              <boxGeometry args={[5, 5, 0.2]} /> {/* Example size */} 
+              <meshStandardMaterial color="#cccccc" side={THREE.DoubleSide} />
+            </mesh>
+          )}
 
-          {/* Conditionally enable FlyControls for debugging */}
-          {isDebugMode && (
-            <FlyControls
-              movementSpeed={5} // Adjust speed as needed
-              rollSpeed={Math.PI / 24} // Adjust speed as needed
-              autoForward={false}
-              dragToLook={true} // Use mouse drag to look
+          {/* Conditionally render TransformControls */}
+          {showDebugWall && debugWallRef.current && (
+            <TransformControls 
+              object={debugWallRef.current} 
+              mode="translate" // Allow translation only
             />
           )}
+
+          {/* Conditionally enable NEW DebugKeyboardControls */}
+          {isDebugMode && <DebugKeyboardControls />}
 
           {/* Component inside Canvas to update the state */}
           <DebugInfoUpdater /> 
@@ -1280,50 +1380,198 @@ export default function DesktopScene({
           {/* Component inside Canvas to reset camera Z rotation */}
           <CameraResetter trigger={resetZRotationTrigger} />
 
+          {/* Add the DebugStateBridge inside Canvas */}
+          <DebugStateBridge
+            isDebugMode={isDebugMode}
+            saveCameraTrigger={saveCameraTrigger}
+            saveSlotTarget={saveSlotTarget}
+            recallCameraTrigger={recallCameraTrigger}
+            recallSlotTarget={recallSlotTarget}
+            setSavedCameraPos1={setSavedCameraPos1}
+            setSavedCameraQuat1={setSavedCameraQuat1}
+            setSavedCameraPos2={setSavedCameraPos2}
+            setSavedCameraQuat2={setSavedCameraQuat2}
+            savedCameraPos1={savedCameraPos1}
+            savedCameraQuat1={savedCameraQuat1}
+            savedCameraPos2={savedCameraPos2}
+            savedCameraQuat2={savedCameraQuat2}
+          />
+
         </Canvas>
 
         {/* Render Debug Info HTML OUTSIDE the Canvas */}
-        <div style={{
-          position: 'fixed',
-          bottom: '10px',
-          left: '10px',
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          color: 'white',
-          padding: '5px 10px',
-          borderRadius: '5px',
-          fontSize: '12px',
-          fontFamily: 'monospace',
-          zIndex: 1000, 
-          pointerEvents: 'none'
-        }}>
-          <div>{debugInfo.position}</div>
-          <div>{debugInfo.rotation}</div>
-        </div>
-
-        {/* Add Reset Z Rotation Button (only in debug mode) */}
         {isDebugMode && (
-          <button
-            onClick={() => setResetZRotationTrigger(c => c + 1)}
-            style={{
-              position: 'fixed',
-              bottom: '60px', // Position above debug info
-              left: '10px',
-              backgroundColor: 'rgba(255, 0, 0, 0.7)',
-              color: 'white',
-              border: 'none',
-              padding: '5px 10px',
-              borderRadius: '5px',
-              fontSize: '12px',
-              fontFamily: 'monospace',
-              zIndex: 1000,
-              cursor: 'pointer'
-            }}
-          >
-            Reset Z Rotation
-          </button>
+          <div style={debugStyles.container}>
+            <div>{debugInfo.position}</div>
+            <div>{debugInfo.rotation}</div>
+          </div>
+        )}
+
+        {/* Add Debug Mode UI Elements */}
+        {isDebugMode && (
+          <>
+            {/* Reset Z Rotation Button */}
+            <button
+              onClick={() => setResetZRotationTrigger(c => c + 1)}
+              style={{...debugStyles.button, bottom: '60px', backgroundColor: 'rgba(255, 0, 0, 0.7)'}}
+            >
+              Reset Z Rotation
+            </button>
+            {/* Toggle Light Placement Mode Button */}
+            <button
+              onClick={() => setIsLightPlacementMode(prev => !prev)}
+              style={{...debugStyles.button, bottom: '90px', backgroundColor: isLightPlacementMode ? 'rgba(0, 255, 0, 0.7)' : 'rgba(0, 0, 255, 0.7)'}}
+            >
+              Toggle Light Placement (Right-Click GLTF)
+            </button>
+            {/* Toggle Debug Wall Button */}
+            <button
+              onClick={() => setShowDebugWall(prev => !prev)}
+              style={{...debugStyles.button, bottom: '120px', backgroundColor: showDebugWall ? 'rgba(255, 165, 0, 0.7)' : 'rgba(128, 128, 128, 0.7)'}}
+            >
+              Toggle Debug Wall
+            </button>
+            {/* Save/Recall Buttons */}
+            <button
+              onClick={() => handleSaveCamera(1)}
+              style={{...debugStyles.button, bottom: '150px', backgroundColor: 'rgba(0, 150, 150, 0.7)'}}
+            >
+              Save Cam 1
+            </button>
+            <button
+              onClick={() => handleRecallCamera(1)}
+              disabled={!savedCameraPos1} // Disable if not saved
+              style={{
+                ...debugStyles.button,
+                bottom: '180px',
+                backgroundColor: 'rgba(0, 100, 100, 0.7)',
+                cursor: savedCameraPos1 ? 'pointer' : 'not-allowed',
+                opacity: savedCameraPos1 ? 1 : 0.5
+              }}
+            >
+              Recall Cam 1
+            </button>
+            <button
+              onClick={() => handleSaveCamera(2)}
+              style={{...debugStyles.button, bottom: '210px', backgroundColor: 'rgba(150, 150, 0, 0.7)'}}
+            >
+              Save Cam 2
+            </button>
+            <button
+              onClick={() => handleRecallCamera(2)}
+              disabled={!savedCameraPos2} // Disable if not saved
+              style={{
+                ...debugStyles.button,
+                bottom: '240px',
+                backgroundColor: 'rgba(100, 100, 0, 0.7)',
+                cursor: savedCameraPos2 ? 'pointer' : 'not-allowed',
+                opacity: savedCameraPos2 ? 1 : 0.5
+              }}
+            >
+              Recall Cam 2
+            </button>
+            {/* Toggle Inspect Mode Button */}
+            <button
+              onClick={() => setIsInspectMode(prev => !prev)}
+              style={{...debugStyles.button, bottom: '270px', backgroundColor: isInspectMode ? 'rgba(255, 0, 255, 0.7)' : 'rgba(128, 0, 128, 0.7)'}}
+            >
+              Toggle Inspect Mode (Click GLTF)
+            </button>
+            {/* Display Placed Lights Info & CONTROLS */}
+            <div style={{...debugStyles.container, top: '10px', bottom: 'auto', maxHeight: '400px' /* Increase height */, overflowY: 'auto', pointerEvents: 'auto' /* Allow interaction */}}>
+              <strong>Placed Lights Controls:</strong>
+              {/* Intensity Slider */}
+              <div style={{ marginTop: '5px' }}>
+                <label htmlFor="lightIntensity">Intensity: {placedLightIntensity.toFixed(1)}</label><br/>
+                <input 
+                  type="range" 
+                  id="lightIntensity" 
+                  min="0" 
+                  max="10" 
+                  step="0.1" 
+                  value={placedLightIntensity} 
+                  onChange={(e) => setPlacedLightIntensity(parseFloat(e.target.value))} 
+                  style={{ width: '90%' }}
+                />
+              </div>
+              {/* Distance Slider */}
+              <div style={{ marginTop: '5px' }}>
+                <label htmlFor="lightDistance">Distance: {placedLightDistance.toFixed(1)}</label><br/>
+                <input 
+                  type="range" 
+                  id="lightDistance" 
+                  min="0" 
+                  max="5" 
+                  step="0.1" 
+                  value={placedLightDistance} 
+                  onChange={(e) => setPlacedLightDistance(parseFloat(e.target.value))} 
+                  style={{ width: '90%' }}
+                />
+              </div>
+              {/* Color Picker */}
+              <div style={{ marginTop: '5px' }}>
+                <label htmlFor="lightColor">Color: </label>
+                <input 
+                  type="color" 
+                  id="lightColor" 
+                  value={placedLightColor} 
+                  onChange={(e) => setPlacedLightColor(e.target.value)} 
+                />
+              </div>
+              <hr style={{ margin: '10px 0' }}/>
+              <strong>Placed Lights List ({placedLights.length}):</strong>
+              {placedLights.length === 0 && <div>None</div>}
+              {placedLights.map(light => (
+                <div key={light.id}>
+                  ID: {light.id}, Pos: [
+                  {light.position[0].toFixed(2)}, {' '}
+                  {light.position[1].toFixed(2)}, {' '}
+                  {light.position[2].toFixed(2)}]
+                </div>
+              ))}
+              <hr style={{ margin: '10px 0' }}/>
+              {/* Display Inspected Part Info */}
+              <strong>Inspected Part:</strong>
+              <div style={{ wordBreak: 'break-all' /* Prevent long names overflowing */ }}>
+                {inspectedPartInfo ? 
+                  (typeof inspectedPartInfo === 'string' ? inspectedPartInfo : JSON.stringify(inspectedPartInfo)) 
+                  : 'None (Click model in Inspect Mode)'}
+               </div>
+            </div>
+          </>
         )}
 
       </div>
     </div>
   );
 }
+
+// Simple styles for debug UI
+const debugStyles: { [key: string]: React.CSSProperties } = {
+  container: {
+    position: 'fixed',
+    bottom: '10px',
+    left: '10px',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    color: 'white',
+    padding: '5px 10px',
+    borderRadius: '5px',
+    fontSize: '12px',
+    fontFamily: 'monospace',
+    zIndex: 1000, 
+    pointerEvents: 'none'
+  },
+  button: {
+    position: 'fixed',
+    left: '10px',
+    color: 'white',
+    border: 'none',
+    padding: '5px 10px',
+    borderRadius: '5px',
+    fontSize: '12px',
+    fontFamily: 'monospace',
+    zIndex: 1000,
+    cursor: 'pointer',
+    pointerEvents: 'auto' // Buttons need pointer events
+  }
+};
