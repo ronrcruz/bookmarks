@@ -13,6 +13,8 @@ import GltfExploreButton from "@/components/shared/GltfExploreButton";
 import { TransformControls } from "@react-three/drei";
 import DebugKeyboardControls from "@/components/debug/DebugKeyboardControls";
 import DebugStateBridge from "@/components/debug/DebugStateBridge";
+import { DebugMenu } from "@/components/debug/DebugMenu";
+import { SpawnedGltf } from "@/components/shared/SpawnedGltf";
 
 // Add proper global interface to TypeScript
 declare global {
@@ -38,8 +40,8 @@ interface DesktopSceneProps {
   setViewState: Dispatch<SetStateAction<ViewState>>;
 }
 
-// Add type for placed lights
-interface PlacedLight {
+// Export the PlacedLight interface
+export interface PlacedLight {
   id: number;
   position: [number, number, number];
 }
@@ -125,7 +127,16 @@ export default function DesktopScene({
   // Add state for inspect mode
   const [isInspectMode, setIsInspectMode] = useState<boolean>(false);
   const [inspectedPartInfo, setInspectedPartInfo] = useState<object | string | null>(null);
-  
+
+  // Add state for spawned GLTF objects
+  interface SpawnedObject {
+    id: number;
+    url: string;
+    // Add position, rotation, scale later if needed
+  }
+  const [spawnedObjects, setSpawnedObjects] = useState<SpawnedObject[]>([]);
+  const nextSpawnedObjectId = useRef(1);
+
   // Calculate all card positions for wheel scrolling - memoized to avoid recreation
   const getCardPositions = useCallback(() => {
     return cardArr.map((_, index) => (index - (cardArr.length - 1) / 2) * CARD_WIDTH);
@@ -885,11 +896,11 @@ export default function DesktopScene({
 
   // Function to add a placed light (passed down to GltfExploreButton)
   const addPlacedLight = useCallback((localPosition: [number, number, number]) => {
-    setPlacedLights(prevLights => [
-      ...prevLights,
+    setPlacedLights(prev => [
+      ...prev,
       { id: nextLightId.current++, position: localPosition }
     ]);
-    console.log("Added light at local position:", localPosition);
+    console.log("[Debug] Added light at local position:", localPosition);
   }, []);
 
   // Define GLTF button position for reference
@@ -1042,6 +1053,21 @@ export default function DesktopScene({
     return null; // Does not render anything itself
   };
   // --- End Camera Resetter ---
+
+  // --- Function to remove a placed light ---
+  const removePlacedLight = useCallback((idToRemove: number) => {
+    setPlacedLights(prev => prev.filter(light => light.id !== idToRemove));
+    console.log(`[Debug] Removed light with id: ${idToRemove}`);
+  }, []);
+
+  // --- Function to spawn a GLTF ---
+  const spawnGltf = useCallback((url: string) => {
+    setSpawnedObjects(prev => [
+      ...prev,
+      { id: nextSpawnedObjectId.current++, url: url }
+    ]);
+    console.log(`[Debug] Spawned GLTF from: ${url}`);
+  }, []);
 
   return (
     <div className="relative w-full h-full">
@@ -1397,181 +1423,40 @@ export default function DesktopScene({
             savedCameraQuat2={savedCameraQuat2}
           />
 
+          {/* Render spawned GLTF objects inside Canvas */}
+          {isDebugMode && spawnedObjects.map(obj => (
+            <SpawnedGltf key={obj.id} url={obj.url} />
+          ))}
+
         </Canvas>
 
-        {/* Render Debug Info HTML OUTSIDE the Canvas */}
-        {isDebugMode && (
-          <div style={debugStyles.container}>
-            <div>{debugInfo.position}</div>
-            <div>{debugInfo.rotation}</div>
-          </div>
-        )}
-
-        {/* Add Debug Mode UI Elements */}
-        {isDebugMode && (
-          <>
-            {/* Reset Z Rotation Button */}
-            <button
-              onClick={() => setResetZRotationTrigger(c => c + 1)}
-              style={{...debugStyles.button, bottom: '60px', backgroundColor: 'rgba(255, 0, 0, 0.7)'}}
-            >
-              Reset Z Rotation
-            </button>
-            {/* Toggle Light Placement Mode Button */}
-            <button
-              onClick={() => setIsLightPlacementMode(prev => !prev)}
-              style={{...debugStyles.button, bottom: '90px', backgroundColor: isLightPlacementMode ? 'rgba(0, 255, 0, 0.7)' : 'rgba(0, 0, 255, 0.7)'}}
-            >
-              Toggle Light Placement (Right-Click GLTF)
-            </button>
-            {/* Toggle Debug Wall Button */}
-            <button
-              onClick={() => setShowDebugWall(prev => !prev)}
-              style={{...debugStyles.button, bottom: '120px', backgroundColor: showDebugWall ? 'rgba(255, 165, 0, 0.7)' : 'rgba(128, 128, 128, 0.7)'}}
-            >
-              Toggle Debug Wall
-            </button>
-            {/* Save/Recall Buttons */}
-            <button
-              onClick={() => handleSaveCamera(1)}
-              style={{...debugStyles.button, bottom: '150px', backgroundColor: 'rgba(0, 150, 150, 0.7)'}}
-            >
-              Save Cam 1
-            </button>
-            <button
-              onClick={() => handleRecallCamera(1)}
-              disabled={!savedCameraPos1} // Disable if not saved
-              style={{
-                ...debugStyles.button,
-                bottom: '180px',
-                backgroundColor: 'rgba(0, 100, 100, 0.7)',
-                cursor: savedCameraPos1 ? 'pointer' : 'not-allowed',
-                opacity: savedCameraPos1 ? 1 : 0.5
-              }}
-            >
-              Recall Cam 1
-            </button>
-            <button
-              onClick={() => handleSaveCamera(2)}
-              style={{...debugStyles.button, bottom: '210px', backgroundColor: 'rgba(150, 150, 0, 0.7)'}}
-            >
-              Save Cam 2
-            </button>
-            <button
-              onClick={() => handleRecallCamera(2)}
-              disabled={!savedCameraPos2} // Disable if not saved
-              style={{
-                ...debugStyles.button,
-                bottom: '240px',
-                backgroundColor: 'rgba(100, 100, 0, 0.7)',
-                cursor: savedCameraPos2 ? 'pointer' : 'not-allowed',
-                opacity: savedCameraPos2 ? 1 : 0.5
-              }}
-            >
-              Recall Cam 2
-            </button>
-            {/* Toggle Inspect Mode Button */}
-            <button
-              onClick={() => setIsInspectMode(prev => !prev)}
-              style={{...debugStyles.button, bottom: '270px', backgroundColor: isInspectMode ? 'rgba(255, 0, 255, 0.7)' : 'rgba(128, 0, 128, 0.7)'}}
-            >
-              Toggle Inspect Mode (Click GLTF)
-            </button>
-            {/* Display Placed Lights Info & CONTROLS */}
-            <div style={{...debugStyles.container, top: '10px', bottom: 'auto', maxHeight: '400px' /* Increase height */, overflowY: 'auto', pointerEvents: 'auto' /* Allow interaction */}}>
-              <strong>Placed Lights Controls:</strong>
-              {/* Intensity Slider */}
-              <div style={{ marginTop: '5px' }}>
-                <label htmlFor="lightIntensity">Intensity: {placedLightIntensity.toFixed(1)}</label><br/>
-                <input 
-                  type="range" 
-                  id="lightIntensity" 
-                  min="0" 
-                  max="10" 
-                  step="0.1" 
-                  value={placedLightIntensity} 
-                  onChange={(e) => setPlacedLightIntensity(parseFloat(e.target.value))} 
-                  style={{ width: '90%' }}
-                />
-              </div>
-              {/* Distance Slider */}
-              <div style={{ marginTop: '5px' }}>
-                <label htmlFor="lightDistance">Distance: {placedLightDistance.toFixed(1)}</label><br/>
-                <input 
-                  type="range" 
-                  id="lightDistance" 
-                  min="0" 
-                  max="5" 
-                  step="0.1" 
-                  value={placedLightDistance} 
-                  onChange={(e) => setPlacedLightDistance(parseFloat(e.target.value))} 
-                  style={{ width: '90%' }}
-                />
-              </div>
-              {/* Color Picker */}
-              <div style={{ marginTop: '5px' }}>
-                <label htmlFor="lightColor">Color: </label>
-                <input 
-                  type="color" 
-                  id="lightColor" 
-                  value={placedLightColor} 
-                  onChange={(e) => setPlacedLightColor(e.target.value)} 
-                />
-              </div>
-              <hr style={{ margin: '10px 0' }}/>
-              <strong>Placed Lights List ({placedLights.length}):</strong>
-              {placedLights.length === 0 && <div>None</div>}
-              {placedLights.map(light => (
-                <div key={light.id}>
-                  ID: {light.id}, Pos: [
-                  {light.position[0].toFixed(2)}, {' '}
-                  {light.position[1].toFixed(2)}, {' '}
-                  {light.position[2].toFixed(2)}]
-                </div>
-              ))}
-              <hr style={{ margin: '10px 0' }}/>
-              {/* Display Inspected Part Info */}
-              <strong>Inspected Part:</strong>
-              <div style={{ wordBreak: 'break-all' /* Prevent long names overflowing */ }}>
-                {inspectedPartInfo ? 
-                  (typeof inspectedPartInfo === 'string' ? inspectedPartInfo : JSON.stringify(inspectedPartInfo)) 
-                  : 'None (Click model in Inspect Mode)'}
-               </div>
-            </div>
-          </>
-        )}
+        {/* Render the NEW Debug Menu OUTSIDE the Canvas */}
+        <DebugMenu
+          isDebugMode={isDebugMode}
+          debugInfo={debugInfo}
+          setResetZRotationTrigger={setResetZRotationTrigger}
+          isLightPlacementMode={isLightPlacementMode}
+          setIsLightPlacementMode={setIsLightPlacementMode}
+          showDebugWall={showDebugWall}
+          setShowDebugWall={setShowDebugWall}
+          handleSaveCamera={handleSaveCamera}
+          handleRecallCamera={handleRecallCamera}
+          savedCameraPos1={savedCameraPos1}
+          savedCameraPos2={savedCameraPos2}
+          isInspectMode={isInspectMode}
+          setIsInspectMode={setIsInspectMode}
+          placedLights={placedLights}
+          placedLightIntensity={placedLightIntensity}
+          setPlacedLightIntensity={setPlacedLightIntensity}
+          placedLightDistance={placedLightDistance}
+          setPlacedLightDistance={setPlacedLightDistance}
+          placedLightColor={placedLightColor}
+          setPlacedLightColor={setPlacedLightColor}
+          removePlacedLight={removePlacedLight} // Pass remove function
+          spawnGltf={spawnGltf} // Pass spawn function
+        />
 
       </div>
     </div>
   );
 }
-
-// Simple styles for debug UI
-const debugStyles: { [key: string]: React.CSSProperties } = {
-  container: {
-    position: 'fixed',
-    bottom: '10px',
-    left: '10px',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    color: 'white',
-    padding: '5px 10px',
-    borderRadius: '5px',
-    fontSize: '12px',
-    fontFamily: 'monospace',
-    zIndex: 1000, 
-    pointerEvents: 'none'
-  },
-  button: {
-    position: 'fixed',
-    left: '10px',
-    color: 'white',
-    border: 'none',
-    padding: '5px 10px',
-    borderRadius: '5px',
-    fontSize: '12px',
-    fontFamily: 'monospace',
-    zIndex: 1000,
-    cursor: 'pointer',
-    pointerEvents: 'auto' // Buttons need pointer events
-  }
-};
