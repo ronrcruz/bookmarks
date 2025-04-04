@@ -17,6 +17,14 @@ import { DebugMenu } from "@/components/debug/DebugMenu";
 import { SpawnedGltf } from "@/components/shared/SpawnedGltf";
 import MusicToggle from "@/components/shared/MusicToggle";
 import BeatToggle from "@/components/shared/BeatToggle";
+import { InspectInfoDisplay } from "@/components/debug/InspectInfoDisplay";
+import { MouseLightControls } from "@/components/debug/MouseLightControls";
+// Import React for React.memo
+import React from "react";
+// Import the new component
+import { SelectedLightEditor } from "@/components/debug/SelectedLightEditor";
+// Import the shared interface
+import { BumpMapConfig } from "@/components/shared/SpawnedGltf"; 
 
 // Add proper global interface to TypeScript
 declare global {
@@ -46,22 +54,162 @@ interface DesktopSceneProps {
 export interface PlacedLight {
   id: number;
   position: [number, number, number];
+  // Add type property
+  type: 'point' | 'spot' | 'directional';
+  // Core properties (some might not apply to all types, but keep for simplicity)
+  intensity: number;
+  distance: number; // Less relevant for directional
+  color: string;
+  // SpotLight specific (optional)
+  angle?: number;
+  penumbra?: number;
+  // DirectionalLight uses rotation (handled by TransformControls) 
+  // Target might be needed for SpotLight if not aiming at origin
+  // targetPosition?: [number, number, number]; // Add later if needed
 }
 
-// Define the BumpMapConfig interface here or import from SpawnedGltf if shared
-interface BumpMapConfig {
-  textureUrl: string
-  materialName: string
-  bumpScale?: number
+// --- Define PlacedLightController OUTSIDE DesktopScene ---
+interface PlacedLightControllerProps {
+  lights: PlacedLight[];
+  selectedId: number | null;
+  onLightMove: (id: number, newPosition: THREE.Vector3) => void;
+  // Add transformMode prop
+  transformMode: 'translate' | 'rotate';
 }
 
-// Update state for spawned GLTF objects
+const PlacedLightController = React.memo(({ 
+  lights, 
+  selectedId, 
+  onLightMove,
+  transformMode, // Destructure transformMode
+}: PlacedLightControllerProps) => {
+  // console.log("[PlacedLightController] Rendering/Re-rendering..."); // Keep commented
+  const lightRefs = useRef<Map<number, THREE.Light>>(new Map());
+  const transformControlsRef = useRef<any>(null); 
+  
+  // Effect to attach/detach TransformControls
+  useEffect(() => {
+      const controls = transformControlsRef.current;
+      // Calculate selectedLightObject INSIDE the effect
+      const selectedLightObject = selectedId === null ? null : lightRefs.current.get(selectedId) ?? null;
+      
+      console.log("[Effect] Running Attach/Detach. Selected ID:", selectedId, "Found Object:", selectedLightObject);
+
+      if (controls) {
+          if (selectedLightObject) {
+              // Check if controls are already attached to the correct object
+              if (controls.object !== selectedLightObject) {
+                  console.log("[PlacedLightController] Attaching TransformControls to light:", selectedId);
+                  controls.attach(selectedLightObject);
+              }
+              controls.visible = true; // Ensure visible if attached
+          } else {
+              if (controls.object) {
+                  console.log("[PlacedLightController] Detaching TransformControls.");
+                  controls.detach();
+              }
+              controls.visible = false;
+          }
+      } else {
+           console.warn("[PlacedLightController Attach Effect] transformControlsRef.current is null.");
+      }
+  // Depend on selectedId AND lights array
+  }, [selectedId, lights]); 
+
+  const handleDragChange = useCallback(() => {
+    if (transformControlsRef.current && transformControlsRef.current.object) {
+      const light = transformControlsRef.current.object as THREE.Light;
+      const lightId = lights.find(l => lightRefs.current.get(l.id) === light)?.id;
+      if (lightId !== undefined) {
+         onLightMove(lightId, light.position.clone());
+      }
+    }
+  }, [lights, onLightMove]); 
+
+  return (
+    <>
+      {lights.map(light => {
+        // Render correct light type based on light.type
+        switch (light.type) {
+          case 'spot':
+            return (
+              <spotLight
+                key={light.id}
+                // Cast ref callback element type if needed, though usually inferred
+                ref={(el: THREE.SpotLight | null) => { 
+                    if (el) lightRefs.current.set(light.id, el);
+                    else if (lightRefs.current.has(light.id)) lightRefs.current.delete(light.id);
+                }}
+                position={light.position}
+                intensity={light.intensity} 
+                distance={light.distance}   
+                color={light.color}
+                angle={light.angle ?? Math.PI / 4} // Use saved or default
+                penumbra={light.penumbra ?? 0.1} // Use saved or default
+                decay={2}
+                castShadow // Spotlights should cast shadow
+                // target might need setting if rotation is used via transformControls
+              />
+            );
+          case 'directional':
+            return (
+              <directionalLight
+                key={light.id}
+                // Cast ref callback element type if needed
+                ref={(el: THREE.DirectionalLight | null) => { 
+                    if (el) lightRefs.current.set(light.id, el);
+                    else if (lightRefs.current.has(light.id)) lightRefs.current.delete(light.id);
+                }}
+                position={light.position}
+                intensity={light.intensity}
+                color={light.color}
+                castShadow // Directional lights cast shadow
+                // Rotation will be controlled by TransformControls
+              />
+            );
+          case 'point': // Fallback to point light
+          default:
+            return (
+              <pointLight
+                key={light.id}
+                // Cast ref callback element type if needed
+                ref={(el: THREE.PointLight | null) => { 
+                    if (el) lightRefs.current.set(light.id, el);
+                    else if (lightRefs.current.has(light.id)) lightRefs.current.delete(light.id);
+                }}
+                position={light.position}
+                intensity={light.intensity} 
+                distance={light.distance}   
+                color={light.color}         
+                decay={2}
+              />
+            );
+        }
+      })}
+      
+      {/* TransformControls attaches to Object3D, so base Light type is fine */}
+      <TransformControls 
+          ref={transformControlsRef}
+          mode={transformMode} 
+          onObjectChange={handleDragChange}
+          visible={false} 
+          enabled={selectedId !== null} 
+      />
+    </>
+  );
+}); 
+
+PlacedLightController.displayName = 'PlacedLightController';
+// --- End Placed Light Controller Definition ---
+
+// --- Re-add SpawnedObject interface definition ---
 interface SpawnedObject {
   id: number;
   url: string;
-  position?: [number, number, number]; // Add position
-  bumpMapConfig?: BumpMapConfig; // Add optional bump map config
+  position?: [number, number, number]; 
+  bumpMapConfig?: BumpMapConfig; // Uses the imported type now
 }
+// --- End Re-add ---
 
 export default function DesktopScene({
   cardArr,
@@ -151,9 +299,24 @@ export default function DesktopScene({
   const [isInspectMode, setIsInspectMode] = useState<boolean>(false);
   const [inspectedPartInfo, setInspectedPartInfo] = useState<object | string | null>(null);
 
+  // Add state for selected placed light ID
+  const [selectedLightId, setSelectedLightId] = useState<number | null>(null);
+
+  // Add state for TransformControls mode
+  const [transformMode, setTransformMode] = useState<'translate' | 'rotate'>('translate');
+
   // Update state for spawned GLTF objects
   const [spawnedObjects, setSpawnedObjects] = useState<SpawnedObject[]>([]);
   const nextSpawnedObjectId = useRef(1);
+
+  // Add state for bump map status feedback
+  const [bumpMapStatus, setBumpMapStatus] = useState<string>("Bump map not applied.");
+
+  // --- State for Mouse Light ---
+  const [isMouseLightActive, setIsMouseLightActive] = useState<boolean>(false);
+  const [mouseLightPosition, setMouseLightPosition] = useState<THREE.Vector3>(() => new THREE.Vector3(0, 2, 5)); 
+  const [mouseLightIntensity, setMouseLightIntensity] = useState<number>(1.5); // Add state for intensity
+  const [mouseLightColor, setMouseLightColor] = useState<string>("#ffffaa"); // Add state for color
 
   // --- Web Audio API State ---
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
@@ -300,14 +463,17 @@ export default function DesktopScene({
   
   // Track mouse position to determine if in arrow zone or for initial button interaction
   const handleMouseMove = (e: React.MouseEvent) => {
-    // Update cursor position state used by raycaster updater
+    // Update raw cursor position (used elsewhere, keep this)
     setCursorPosition({ x: e.clientX, y: e.clientY });
 
-    if (viewState === 'initial') {
-      // Normalize mouse coordinates for button interaction
+    // --- ALWAYS Update Normalized Position for Raycasting --- 
       const normX = (e.clientX / window.innerWidth) * 2 - 1;
       const normY = -(e.clientY / window.innerHeight) * 2 + 1; // Invert Y
       setNormalizedMousePosition({ x: normX, y: normY });
+    // --- END NORMALIZED UPDATE --- 
+
+    // Conditional logic based on view state
+    if (viewState === 'initial') {
       // Reset arrow/scroll related states if moving mouse in initial view
       setShowLeftArrow(false);
       setShowRightArrow(false);
@@ -315,7 +481,6 @@ export default function DesktopScene({
       setIsHoveringLeft(false);
       setIsHoveringRight(false);
       setHoverLocked(false);
-
     } else if (viewState === 'cardSelection' && isLoaded && active === null) {
       // Existing logic for card selection arrow zones
       const arrowZoneWidth = 180; 
@@ -346,7 +511,20 @@ export default function DesktopScene({
     
     if (containerRef) {
       const handleWheelEvent = (e: WheelEvent) => {
-        // Prevent default browser scroll behavior
+        // --- CHECK FOR DEBUG MENU SCROLL --- 
+        // Check if the event target or its parents are the debug menu
+        let targetElement = e.target as HTMLElement | null;
+        while (targetElement) {
+          if (targetElement.id === 'debug-menu-container') {
+            // Event originated inside the debug menu, allow default scroll
+            console.log("[Wheel Event] Allowing scroll for debug menu.");
+            return; 
+          }
+          targetElement = targetElement.parentElement;
+        }
+        // --- END DEBUG MENU CHECK ---
+
+        // If not scrolling the debug menu, prevent default page scroll
         e.preventDefault();
         
         // Guard: Only allow wheel events in card selection view
@@ -922,124 +1100,114 @@ export default function DesktopScene({
     };
   }, [viewState, setViewState]); // Re-run effect if viewState changes
 
-  // Function to initialize AudioContext (must be called after user interaction)
+  // Initialize Audio Context (only on client-side)
   const initAudioContext = useCallback(() => {
-    if (!audioContext) {
-      try {
-        const newContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    if (typeof window !== 'undefined' && !audioContext) {
+      const newContext = new window.AudioContext();
+      console.log("[Audio] Context created, state:", newContext.state);
         setAudioContext(newContext);
-        console.log("AudioContext created.");
-        return newContext; // Return the new context for immediate use
-      } catch (e) {
-        console.error("Web Audio API is not supported in this browser", e);
-        return null;
-      }
-    }
-    // If context exists but is suspended, resume it
-    if (audioContext.state === 'suspended') {
-        audioContext.resume().then(() => {
-            console.log("AudioContext resumed.");
-        }).catch(err => console.error("Failed to resume AudioContext:", err));
+      return newContext;
     }
     return audioContext;
   }, [audioContext]);
 
-  // Function to load audio data
-  const loadAudio = useCallback(async (context: AudioContext) => {
-    if (!context || audioBuffer || isAudioLoading || audioLoadCalled.current) return;
+  // Function to load audio file
+  const loadAudio = useCallback(async (context: AudioContext | null) => {
+    if (!context || audioBuffer || audioLoadCalled.current) return;
 
-    console.log("Starting audio load...");
+    audioLoadCalled.current = true; // Mark as load attempted
     setIsAudioLoading(true);
-    audioLoadCalled.current = true; // Mark as called
+    console.log("[Audio] Starting load...");
 
     try {
       const response = await fetch('/Deep in It.mp3');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
       const arrayBuffer = await response.arrayBuffer();
       const decodedBuffer = await context.decodeAudioData(arrayBuffer);
+      console.log("[Audio] Load successful!");
       setAudioBuffer(decodedBuffer);
-      console.log("Audio loaded and decoded successfully.");
     } catch (error) {
-      console.error('Error loading or decoding audio file:', error);
-      audioLoadCalled.current = false; // Allow retry if failed
+      console.error("[Audio] Error loading or decoding audio:", error);
+      audioLoadCalled.current = false; // Allow retry if load failed
     } finally {
       setIsAudioLoading(false);
     }
-  }, [audioBuffer, isAudioLoading]);
+  }, [audioBuffer]); // Dependencies: Only audioBuffer
 
-  // Effect to start/stop audio playback using Web Audio API
-  useEffect(() => {
-    if (!isMusicPlaying) {
-      // Stop playing
-      if (audioSourceNode) {
-        try {
-            audioSourceNode.stop();
-            console.log("Audio stopped.");
-        } catch (e) {
-            console.warn("Audio node likely already stopped:", e);
-        }
-        setAudioSourceNode(null);
-        setAudioStartTime(null); // Reset start time
-      }
+  // Toggle playback using Web Audio API
+  const togglePlayback = useCallback(() => {
+    if (!audioContext || !audioBuffer) {
+        console.warn("[Audio Toggle] Context or buffer not ready.");
       return;
     }
 
-    // --- Start playing ---
-    if (isMusicPlaying && audioContext && audioBuffer && !audioSourceNode) {
-      // Ensure context is running
       if (audioContext.state === 'suspended') {
-        console.log("Attempting to resume suspended AudioContext before playing...");
-        audioContext.resume().then(() => {
-          console.log("Resumed context, now playing...");
-          playAudio(audioContext, audioBuffer);
-        }).catch(err => console.error("Failed to resume AudioContext for playback:", err));
-        return; // Wait for resume before playing
-      }
-
-      // Context is running, play now
-      playAudio(audioContext, audioBuffer);
+        audioContext.resume(); // Attempt to resume if suspended
     }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMusicPlaying, audioContext, audioBuffer, audioSourceNode]); // Keep playAudio out of deps
+    if (isMusicPlaying) {
+        // Stop playback
+        if (audioSourceNode) {
+            console.log("[Audio Toggle] Stopping playback.");
+            audioSourceNode.stop();
+            setAudioSourceNode(null); // Clear the source node
+            setAudioStartTime(null); // Reset start time
+        }
+    } else {
+        // Start playback
+        console.log("[Audio Toggle] Starting playback.");
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+        const startTime = audioContext.currentTime;
+        source.start(startTime);
+        setAudioSourceNode(source);
+        setAudioStartTime(startTime); // Record start time
 
-  // Helper function to encapsulate playback logic
-  const playAudio = useCallback((context: AudioContext, buffer: AudioBuffer) => {
-    if (!context || !buffer) return;
-    console.log("playAudio called");
+        source.onended = () => {
+            console.log("[Audio Toggle] Playback ended.");
+            // Only reset if this specific source node finished naturally
+            setAudioSourceNode(currentSource => (currentSource === source ? null : currentSource));
+            setAudioStartTime(null);
+            setIsMusicPlaying(false); // Ensure state reflects ended playback
+        };
+    }
+  }, [audioContext, audioBuffer, isMusicPlaying, audioSourceNode]);
 
-    // Stop existing source if any (shouldn't happen with current logic, but safe)
-    if (audioSourceNode) {
-        try { audioSourceNode.stop(); } catch(e) {/* ignore */}
+  // Combined function to handle the toggle click (init, load, toggle)
+  const handleMusicToggleClick = useCallback(() => {
+    let currentContext = audioContext;
+    // 1. Initialize Context if needed
+    if (!currentContext) {
+      currentContext = initAudioContext(); // Initialize and get the context
+      if (!currentContext) return; // Exit if context creation failed (shouldn't happen)
     }
 
-    const source = context.createBufferSource();
-    source.buffer = buffer;
-    source.connect(context.destination);
-    source.loop = true;
+    // 2. Load Audio if needed (only if context exists and not already loaded/loading)
+    if (currentContext && !audioBuffer && !audioLoadCalled.current && !isAudioLoading) {
+      loadAudio(currentContext); // Start loading
+      // Don't proceed to toggle yet, wait for load
+      console.log("[Toggle Click] Audio not loaded, triggering load.")
+      return; // Let load complete first
+    }
 
-    // Record start time *immediately* before starting
-    const startTime = context.currentTime;
-    setAudioStartTime(startTime);
+    // 3. Resume Context if suspended (often needed after user interaction)
+    if (currentContext && currentContext.state === 'suspended') {
+      console.log("[Toggle Click] Resuming suspended context.");
+      currentContext.resume().catch(err => console.error("Resume failed on toggle:", err));
+      // It might take a moment to resume, but we can proceed optimistically
+    }
 
-    source.start(0); // Start immediately
-    setAudioSourceNode(source);
-    console.log(`Audio started at context time: ${startTime}`);
-
-    source.onended = () => {
-      // Clean up if stopped externally (e.g., by setting isMusicPlaying=false)
-      // Checking isMusicPlaying prevents state update if we *manually* stopped it
-      if (isMusicPlaying) {
-        console.log("Audio source ended unexpectedly (might be due to manual stop)");
-        setAudioSourceNode(null);
-        setAudioStartTime(null);
+    // 4. Toggle Playback State *after* potential loading/resuming
+    if (audioBuffer) { // Only toggle if buffer is actually loaded
+        console.log("[Toggle Click] Toggling playback state.");
+        togglePlayback(); // Call the playback logic
+        setIsMusicPlaying(prev => !prev); // Update the state AFTER calling toggle
+    } else if (isAudioLoading) {
+        console.log("[Toggle Click] Audio is still loading...");
+    } else {
+        console.warn("[Toggle Click] Cannot toggle: Audio buffer not available.");
       }
-    };
-  // Keep deps minimal, state setters don't need to be deps
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMusicPlaying]); // Only depend on isMusicPlaying to check state in onended
+  }, [audioContext, initAudioContext, audioBuffer, loadAudio, isAudioLoading, togglePlayback]);
 
   // Effect to link music state to beat state (no change needed here)
   useEffect(() => {
@@ -1067,14 +1235,37 @@ export default function DesktopScene({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only on unmount
 
-  // Function to add a placed light (passed down to GltfExploreButton)
-  const addPlacedLight = useCallback((localPosition: [number, number, number]) => {
-    setPlacedLights(prev => [
-      ...prev,
-      { id: nextLightId.current++, position: localPosition }
-    ]);
-    console.log("[Debug] Added light at local position:", localPosition);
-  }, []);
+  // Function to add a placed light (using current global settings as defaults)
+  const addPlacedLight = useCallback((worldPosition: [number, number, number]) => {
+    const newLight: PlacedLight = {
+      id: nextLightId.current++,
+      position: worldPosition,
+      type: 'point', // Default type
+      intensity: placedLightIntensity,
+      distance: placedLightDistance,
+      color: placedLightColor,
+      angle: Math.PI / 4, // Default angle (SpotLight)
+      penumbra: 0.1, // Default penumbra (SpotLight)
+    };
+    setPlacedLights(prev => [...prev, newLight]);
+    console.log("[Debug] Added light:", newLight);
+  }, [placedLightIntensity, placedLightDistance, placedLightColor]); 
+
+  // Function to spawn a test light at a fixed position (using defaults)
+  const spawnTestLight = useCallback(() => {
+      const newLight: PlacedLight = {
+          id: nextLightId.current++,
+          position: [2, 2, 2], 
+          type: 'point', // Default type
+          intensity: placedLightIntensity,
+          distance: placedLightDistance,
+          color: placedLightColor,
+          angle: Math.PI / 4, // Default angle
+          penumbra: 0.1, // Default penumbra
+      };
+      console.log(`[Debug] Spawning test light:`, newLight);
+      setPlacedLights((prevLights) => [...prevLights, newLight]);
+  }, [placedLightIntensity, placedLightDistance, placedLightColor]); 
 
   // Define GLTF button position for reference
   const gltfButtonPosition: [number, number, number] = [0, 10.26, -9.34];
@@ -1244,63 +1435,127 @@ export default function DesktopScene({
     setSpawnedObjects((prev) => [...prev, newObject]);
   };
 
-  // Function to apply bump map to the FIRST spawned iPhone 11
-  const applyBumpMapToFirstIphone = () => {
-    setSpawnedObjects((prevObjects) =>
-      prevObjects.map((obj) => {
-        // Find the first object matching the iPhone URL that doesn't already have the config
-        if (obj.url === '/iphone11.glb' && !obj.bumpMapConfig) {
-          console.log(`Applying bump map config to spawned object ID: ${obj.id}`);
-          return {
-            ...obj,
-            bumpMapConfig: {
-              textureUrl: '/scratch_mask.png', // Texture path in public folder
-              materialName: 'ScreenMaterial', // The name you set in Blender
-              bumpScale: 0.05, // Adjust bump intensity as needed
-            },
-          };
-        } // IMPORTANT: Check if it's the first one FOUND in this map iteration
-          // This needs correction - we should only modify the *first* one overall.
-        return obj; // Return unmodified objects
-      })
-    );
-    // Corrected logic: Find the first iPhone and update only that one.
+  // Function to TOGGLE bump map on the FIRST spawned iPhone 11
+  const toggleBumpMapOnFirstIphone = () => {
+    let targetId: number | null = null;
+    let didApply = false;
+    let didRemove = false;
+
     setSpawnedObjects(prevObjects => {
-      let updated = false;
-      return prevObjects.map(obj => {
+      let updated = false; // Flag to ensure we only update the first match
+      const newObjects = prevObjects.map(obj => {
         if (!updated && obj.url === '/iphone11.glb') {
-          updated = true; // Mark as updated so we only target the first
-          console.log(`Applying bump map config to spawned object ID: ${obj.id}`);
-          return {
-            ...obj,
-            bumpMapConfig: {
-              textureUrl: '/scratch_mask.png',
-              materialName: 'ScreenMaterial',
-              bumpScale: 0.05,
-            },
-          };
+          updated = true; 
+          targetId = obj.id;
+          
+          // Check if bump map is currently applied
+          if (obj.bumpMapConfig) {
+            // It's applied, so remove it
+            console.log(`Removing bump map config from spawned object ID: ${obj.id}`);
+            didRemove = true;
+            return {
+              ...obj,
+              bumpMapConfig: undefined, // Set to undefined to remove
+            };
+          } else {
+            // It's not applied, so add it
+            console.log(`Applying bump map config to spawned object ID: ${obj.id}`);
+            didApply = true;
+            return {
+              ...obj,
+              // Update the config here
+              bumpMapConfig: {
+                textureUrl: '/scratch_mask.png',
+                // materialName: 'UKcVVyjRJKyQpxF', // REMOVE or comment out
+                bumpScale: -0.02, // Use negative scale for concave scratches
+              },
+            };
+          }
         }
-        return obj;
+        return obj; // Return unmodified objects if not the target
       });
+
+      // --- Update Status Message --- 
+      if (targetId !== null) {
+        if (didApply) {
+            setBumpMapStatus(`Scratch map APPLIED to iPhone ID: ${targetId}`); // Update text
+        } else if (didRemove) {
+            setBumpMapStatus(`Scratch map REMOVED from iPhone ID: ${targetId}`); // Update text
+        }
+      } else if (prevObjects.some(o => o.url === '/iphone11.glb')) {
+         setBumpMapStatus("No iPhone found that needed toggling."); 
+      } else {
+         setBumpMapStatus("No iPhone spawned to toggle map on.");
+      }
+      // --- End Status Update --- 
+
+      return newObjects; // Return the potentially modified array
     });
+
+    // Fallback status update if no objects existed initially
+    if (spawnedObjects.length === 0) {
+        setBumpMapStatus("No objects spawned yet.");
+    }
   };
 
-  const handleMusicToggleClick = useCallback(() => {
-      // Initialize context and load audio ON FIRST CLICK if needed
-      let currentContext = audioContext;
-      if (!currentContext) {
-          currentContext = initAudioContext();
-      }
-      if (currentContext && !audioBuffer && !audioLoadCalled.current) {
-          loadAudio(currentContext);
-      } else if (currentContext && currentContext.state === 'suspended') {
-          // Attempt resume if suspended
-          currentContext.resume().catch(err => console.error("Resume failed on toggle:", err));
-      }
+  // Toggle function for Mouse Light
+  const toggleMouseLight = useCallback(() => {
+    setIsMouseLightActive(prev => !prev);
+  }, []);
 
-      // Toggle playing state
-      setIsMusicPlaying(prev => !prev);
-  }, [audioContext, initAudioContext, audioBuffer, loadAudio]);
+  // --- Mouse Light Controller Component (runs inside Canvas) ---
+  const MouseLightController = ({ isActive, setPosition }: { isActive: boolean; setPosition: Dispatch<SetStateAction<THREE.Vector3>> }) => {
+    const { raycaster, scene, camera, size } = useThree();
+    const plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []); // Ground plane at Y=0
+    const intersectionPoint = useMemo(() => new THREE.Vector3(), []);
+
+    useFrame(() => {
+      if (!isActive) return; 
+      
+      // COMMENT OUT continuous logs
+      // console.log("[MouseLightController] useFrame running..."); 
+
+      const mouseCoords = new THREE.Vector2(normalizedMousePosition.x, normalizedMousePosition.y);
+      // console.log("[MouseLightController] Mouse Coords:", mouseCoords); 
+      raycaster.setFromCamera(mouseCoords, camera);
+      
+      if (raycaster.ray.intersectPlane(plane, intersectionPoint)) {
+        intersectionPoint.y += 0.5; 
+        // console.log("[MouseLightController] Intersection Point:", intersectionPoint); 
+        setPosition(intersectionPoint.clone()); 
+      } else {
+        // console.log("[MouseLightController] No intersection with ground plane.");
+      }
+    });
+
+    // Keep the activation/deactivation log
+    // ... useEffect log ...
+
+    return null; 
+  };
+  // --- End Mouse Light Controller ---
+
+  // --- Function to update a specific light's position ---
+  const updateLightPosition = useCallback((id: number, newPosition: THREE.Vector3) => {
+      setPlacedLights(prevLights => 
+          prevLights.map(light => 
+              light.id === id ? { ...light, position: [newPosition.x, newPosition.y, newPosition.z] } : light
+          )
+      );
+  }, []);
+
+  // --- Function to update a specific light property (color, intensity, distance) ---
+  const updatePlacedLightProperty = useCallback((id: number, property: keyof PlacedLight, value: any) => {
+      setPlacedLights(prevLights => 
+          prevLights.map(light => {
+              if (light.id === id) {
+                  console.log(`[Debug] Updating light ${id}: setting ${property} to`, value);
+                  return { ...light, [property]: value };
+              }
+              return light;
+          })
+      );
+  }, []);
 
   return (
     <div className="relative w-full h-full">
@@ -1619,6 +1874,7 @@ export default function DesktopScene({
               // Pass audio timing info
               audioContext={audioContext}
               audioStartTime={audioStartTime}
+              selectedLightId={selectedLightId}
           />
           
           {/* Conditionally render Debug Wall */}
@@ -1673,6 +1929,9 @@ export default function DesktopScene({
               url={obj.url}
               position={obj.position}
               bumpMapConfig={obj.bumpMapConfig}
+              // Pass inspect mode state and the setter function
+              isInspectMode={isInspectMode} 
+              onInspect={setInspectedPartInfo} // Pass the state setter directly
             />
           ))}
 
@@ -1685,6 +1944,29 @@ export default function DesktopScene({
             penumbra={0.5} // Soft edges
             castShadow
             // target={/* optional: point to a specific object or position */}
+          />
+
+          {/* Add the MouseLightController component */}
+          <MouseLightController isActive={isMouseLightActive} setPosition={setMouseLightPosition} />
+
+          {/* Conditionally render the Mouse PointLight */}
+          {isMouseLightActive && (
+            <pointLight 
+              position={mouseLightPosition} 
+              intensity={mouseLightIntensity} // Use state variable
+              distance={10} 
+              color={mouseLightColor} // Use state variable
+              decay={2}
+            />
+          )}
+
+          {/* Render the EXTERNAL PlacedLightController */}
+          <PlacedLightController 
+             lights={placedLights}
+             selectedId={selectedLightId}
+             onLightMove={updateLightPosition}
+             // Pass transformMode down
+             transformMode={transformMode}
           />
 
         </Canvas>
@@ -1705,19 +1987,32 @@ export default function DesktopScene({
           isInspectMode={isInspectMode}
           setIsInspectMode={setIsInspectMode}
           placedLights={placedLights}
-          placedLightIntensity={placedLightIntensity}
-          setPlacedLightIntensity={setPlacedLightIntensity}
-          placedLightDistance={placedLightDistance}
-          setPlacedLightDistance={setPlacedLightDistance}
-          placedLightColor={placedLightColor}
-          setPlacedLightColor={setPlacedLightColor}
           removePlacedLight={removePlacedLight}
+          isMouseLightActive={isMouseLightActive}
+          toggleMouseLight={toggleMouseLight}
+          selectedLightId={selectedLightId}
+          setSelectedLightId={setSelectedLightId}
           spawnGltf={spawnGltf}
-          applyBumpMapToFirstIphone={applyBumpMapToFirstIphone}
+          toggleBumpMapOnFirstIphone={toggleBumpMapOnFirstIphone}
+          spawnTestLight={spawnTestLight} 
           isBeatAnimationEnabled={isBeatAnimationEnabled}
           setIsBeatAnimationEnabled={setIsBeatAnimationEnabled}
           isMusicPlaying={isMusicPlaying}
           toggleMusic={handleMusicToggleClick}
+          bumpMapStatus={bumpMapStatus}
+        />
+
+        {/* Render the Inspect Info Display OUTSIDE the Canvas */}
+        <InspectInfoDisplay inspectedInfo={inspectedPartInfo} />
+
+        {/* Render the Mouse Light Controls OUTSIDE the Canvas */}
+        <MouseLightControls 
+          isActive={isMouseLightActive}
+          lightPosition={mouseLightPosition}
+          lightIntensity={mouseLightIntensity}
+          setLightIntensity={setMouseLightIntensity}
+          lightColor={mouseLightColor}
+          setLightColor={setMouseLightColor}
         />
 
         {/* Container for UI Toggles in Top Left */} 
@@ -1747,6 +2042,16 @@ export default function DesktopScene({
             )}
           </AnimatePresence>
         </div>
+
+        {/* Render Selected Light Editor */} 
+        <SelectedLightEditor 
+          selectedLightId={selectedLightId}
+          placedLights={placedLights}
+          updateLightProperty={updatePlacedLightProperty} 
+          // Pass transform mode state and setter
+          transformMode={transformMode}
+          setTransformMode={setTransformMode}
+        />
 
       </div>
     </div>

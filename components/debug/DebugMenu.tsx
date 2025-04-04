@@ -21,15 +21,19 @@ interface DebugMenuProps {
   isInspectMode: boolean
   setIsInspectMode: Dispatch<SetStateAction<boolean>>
   placedLights: PlacedLight[]
-  placedLightIntensity: number
-  setPlacedLightIntensity: Dispatch<SetStateAction<number>>
-  placedLightDistance: number
-  setPlacedLightDistance: Dispatch<SetStateAction<number>>
-  placedLightColor: string
-  setPlacedLightColor: Dispatch<SetStateAction<string>>
   removePlacedLight: (id: number) => void
+  selectedLightId: number | null
+  setSelectedLightId: Dispatch<SetStateAction<number | null>>
   spawnGltf: (url: string) => void // Function to spawn a GLTF
-  applyBumpMapToFirstIphone: () => void // Function to apply bump map
+  toggleBumpMapOnFirstIphone: () => void // Add the renamed prop
+  isBeatAnimationEnabled: boolean
+  setIsBeatAnimationEnabled: Dispatch<SetStateAction<boolean>>
+  isMusicPlaying: boolean
+  toggleMusic: () => void
+  bumpMapStatus: string // Add the new status prop
+  isMouseLightActive: boolean
+  toggleMouseLight: () => void
+  spawnTestLight: () => void
 }
 
 // Simple styles for debug UI (can be replaced with Tailwind later)
@@ -139,20 +143,24 @@ export function DebugMenu({
   isInspectMode,
   setIsInspectMode,
   placedLights,
-  placedLightIntensity,
-  setPlacedLightIntensity,
-  placedLightDistance,
-  setPlacedLightDistance,
-  placedLightColor,
-  setPlacedLightColor,
   removePlacedLight,
-  spawnGltf, // Receive the spawn function
-  applyBumpMapToFirstIphone, // Receive the bump map function
+  selectedLightId,
+  setSelectedLightId,
+  spawnGltf,
+  toggleBumpMapOnFirstIphone,
+  isBeatAnimationEnabled,
+  setIsBeatAnimationEnabled,
+  isMusicPlaying,
+  toggleMusic,
+  bumpMapStatus,
+  isMouseLightActive,
+  toggleMouseLight,
+  spawnTestLight,
 }: DebugMenuProps): JSX.Element | null {
   if (!isDebugMode) return null
 
   return (
-    <div style={debugStyles.menuContainer}>
+    <div id="debug-menu-container" style={debugStyles.menuContainer}>
       {/* Camera Info & Controls Section */}
       <div style={debugStyles.section}>
         <div style={debugStyles.sectionTitle}>Camera</div>
@@ -208,6 +216,12 @@ export function DebugMenu({
       <div style={debugStyles.section}>
         <div style={debugStyles.sectionTitle}>Lighting (Point Lights)</div>
         <button
+          onClick={spawnTestLight}
+          style={{...debugStyles.button, backgroundColor: 'rgba(100, 100, 255, 0.7)'}}
+        >
+          Spawn Test Light at [2, 2, 2]
+        </button>
+        <button
           onClick={() => setIsLightPlacementMode(prev => !prev)}
           style={{
             ...debugStyles.button,
@@ -216,62 +230,42 @@ export function DebugMenu({
         >
           {isLightPlacementMode ? 'Exit' : 'Enter'} Placement Mode (R-Click GLTF)
         </button>
-
-        <label htmlFor="lightIntensity" style={debugStyles.inputLabel}>
-          Intensity: {placedLightIntensity.toFixed(1)}
-        </label>
-        <input
-          type="range"
-          id="lightIntensity"
-          min="0"
-          max="10"
-          step="0.1"
-          value={placedLightIntensity}
-          onChange={e => setPlacedLightIntensity(parseFloat(e.target.value))}
-          style={debugStyles.inputRange}
-        />
-
-        <label htmlFor="lightDistance" style={debugStyles.inputLabel}>
-          Distance: {placedLightDistance.toFixed(1)}
-        </label>
-        <input
-          type="range"
-          id="lightDistance"
-          min="0"
-          max="5"
-          step="0.1"
-          value={placedLightDistance}
-          onChange={e => setPlacedLightDistance(parseFloat(e.target.value))}
-          style={debugStyles.inputRange}
-        />
-
-        <label htmlFor="lightColor" style={debugStyles.inputLabel}>
-          Color:
-        </label>
-        <input
-          type="color"
-          id="lightColor"
-          value={placedLightColor}
-          onChange={e => setPlacedLightColor(e.target.value)}
-          style={debugStyles.inputColor}
-        />
-        <span>{placedLightColor}</span>
-
         <div style={{ marginTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.2)', paddingTop: '10px' }}>
           <strong>Placed Lights ({placedLights.length}):</strong>
           {placedLights.length === 0 && <div style={{ fontSize: '11px', opacity: 0.7 }}>None</div>}
           <ul>
-            {placedLights.map(light => (
-              <li key={light.id} style={debugStyles.listItem}>
+            {placedLights.map(light => {
+              const isSelected = light.id === selectedLightId;
+              return (
+                <li 
+                  key={light.id} 
+                  style={{
+                    ...debugStyles.listItem,
+                    cursor: 'pointer',
+                    backgroundColor: isSelected ? 'rgba(0, 255, 0, 0.2)' : 'transparent',
+                    padding: '5px',
+                    borderRadius: '3px',
+                    marginBottom: '2px',
+                  }}
+                  onClick={() => {
+                    setSelectedLightId(prevId => (prevId === light.id ? null : light.id));
+                    console.log(`Selected light ID: ${isSelected ? null : light.id}`);
+                  }}
+                >
                 <span>ID: {light.id} (Pos: {light.position.map((p: number) => p.toFixed(1)).join(', ')})</span>
                 <button
-                  onClick={() => removePlacedLight(light.id)}
+                    onClick={(e) => { 
+                      e.stopPropagation();
+                      removePlacedLight(light.id); 
+                      if (isSelected) setSelectedLightId(null);
+                    }}
                   style={debugStyles.removeButton}
                 >
                   X
                 </button>
               </li>
-            ))}
+              )
+            })}
           </ul>
         </div>
       </div>
@@ -280,19 +274,20 @@ export function DebugMenu({
       <div style={debugStyles.section}>
         <div style={debugStyles.sectionTitle}>Scene Objects</div>
         <button
-          onClick={() => spawnGltf('/iphone11.glb')} // Call spawn function with URL
+          onClick={() => spawnGltf('/iphone11.glb')}
           style={debugStyles.button}
         >
           Spawn iPhone 11
         </button>
         <button
-          onClick={applyBumpMapToFirstIphone} // Call the passed function
+          onClick={toggleBumpMapOnFirstIphone}
           style={debugStyles.button}
         >
-          Apply Scratch Bump to iPhone Screen
+          Toggle Scratch Bump on iPhone Screen
         </button>
-        {/* Add more spawn buttons here if needed */}
-        {/* Maybe add a list of spawned objects later */}
+        <div style={{ ...debugStyles.infoText, marginTop: '5px', fontSize: '11px', opacity: 0.8 }}>
+          Status: {bumpMapStatus}
+        </div>
       </div>
 
       {/* Toggles Section */}
@@ -315,6 +310,35 @@ export function DebugMenu({
           }}
         >
           {isInspectMode ? 'Exit' : 'Enter'} Inspect Mode (Click GLTF)
+        </button>
+        <button
+          onClick={toggleMusic}
+          style={{
+            ...debugStyles.button,
+            ...(isMusicPlaying ? debugStyles.buttonActive : {}),
+          }}
+        >
+          {isMusicPlaying ? 'Pause' : 'Play'} Music (Toggle)
+        </button>
+        <button
+          onClick={() => setIsBeatAnimationEnabled(prev => !prev)}
+          style={{
+            ...debugStyles.button,
+            ...(isBeatAnimationEnabled ? debugStyles.buttonActive : {}),
+            ...( !isMusicPlaying ? debugStyles.buttonDisabled : {}),
+          }}
+          disabled={!isMusicPlaying}
+        >
+          {isBeatAnimationEnabled ? 'Disable' : 'Enable'} Beat Animation
+        </button>
+        <button
+          onClick={toggleMouseLight}
+          style={{
+            ...debugStyles.button,
+            ...(isMouseLightActive ? debugStyles.buttonActive : {}),
+          }}
+        >
+          {isMouseLightActive ? 'Disable' : 'Enable'} Mouse Light
         </button>
       </div>
     </div>

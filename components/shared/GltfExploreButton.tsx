@@ -43,6 +43,7 @@ interface GltfExploreButtonProps {
   // Add Web Audio API props
   audioContext: AudioContext | null;
   audioStartTime: number | null;
+  selectedLightId: number | null; // Add selectedLightId prop
 }
 
 // Helper easing function
@@ -78,7 +79,8 @@ export default function GltfExploreButton({
   isBeatAnimationEnabled,
   // Destructure Web Audio props
   audioContext,
-  audioStartTime
+  audioStartTime,
+  selectedLightId, // Destructure selectedLightId
 }: GltfExploreButtonProps) {
   
   const { scene } = useGLTF('/object.gltf');
@@ -238,41 +240,96 @@ export default function GltfExploreButton({
 
   });
 
+  // Modified handleClick to handle Inspect Mode
   const handleClick = (event: ThreeEvent<MouseEvent>) => {
-    // Guard: Prevent click action if debug mode is active
-    if (isDebugMode) {
-      console.log("[GltfExploreButton] Click prevented in debug mode.");
-      event.stopPropagation();
-      return;
+    console.log("[GltfExploreButton] handleClick fired."); // Log entry
+    // Prevent default click action from bubbling up
+    event.stopPropagation(); 
+
+    // Log the state of modes
+    console.log(`[GltfExploreButton] Modes - isInspectMode: ${isInspectMode}, isLightPlacementMode: ${isLightPlacementMode}, isDebugMode: ${isDebugMode}`);
+
+    // --- Inspect Mode Logic --- 
+    if (isInspectMode) {
+      console.log("[Inspect Mode] Condition met. Processing click..."); // Log entering inspect logic
+      const clickedObject = event.object; // The specific mesh clicked
+      const intersection = event.intersections[0]; // Get the first intersection for more data
+
+      let info: object | string = `Clicked: ${clickedObject.name || 'Unnamed Object'}`;
+
+      // Check if it's a Mesh with a Standard Material
+      if (clickedObject instanceof THREE.Mesh && clickedObject.material instanceof THREE.MeshStandardMaterial) {
+        const material = clickedObject.material;
+        info = {
+          meshName: clickedObject.name || 'Unnamed Mesh',
+          materialName: material.name || 'Unnamed Material',
+          materialType: material.type,
+          color: `#${material.color.getHexString()}`,
+          metalness: material.metalness.toFixed(2),
+          roughness: material.roughness.toFixed(2),
+          // --- Check for Bump Map --- 
+          bumpMap: material.bumpMap 
+            ? `Applied (${material.bumpMap.name || material.bumpMap.source?.data?.src || 'Unknown Texture'})` 
+            : 'None',
+          bumpScale: material.bumpMap ? material.bumpScale.toFixed(2) : 'N/A',
+          // --- Add other relevant properties --- 
+          visible: clickedObject.visible,
+          position: `(${clickedObject.position.x.toFixed(2)}, ${clickedObject.position.y.toFixed(2)}, ${clickedObject.position.z.toFixed(2)})`,
+          // Add intersection point if available
+          intersectionPoint: intersection 
+            ? `(${intersection.point.x.toFixed(2)}, ${intersection.point.y.toFixed(2)}, ${intersection.point.z.toFixed(2)})`
+            : 'N/A',
+        };
+        console.log("[Inspect Mode] Inspected Part Info:", info);
+      } else {
+        // Basic info for non-standard meshes or groups
+        info = {
+            name: clickedObject.name || 'Unnamed Object',
+            type: clickedObject.type,
+            position: `(${clickedObject.position.x.toFixed(2)}, ${clickedObject.position.y.toFixed(2)}, ${clickedObject.position.z.toFixed(2)})`,
+        };
+      }
+
+      setInspectedPartInfo(info);
+      console.log("[Inspect Mode] setInspectedPartInfo called with:", info); // Log info being set
+      return; // Don't proceed to other click logic if inspecting
     }
-    // Prevent placement if just regular clicking
+
+    // --- Light Placement Mode Logic --- (Prevent normal click)
     if (isLightPlacementMode) {
-        event.stopPropagation(); 
+        console.log("[Light Placement] Click prevented, use Right-Click.");
         return; 
     }
-    event.stopPropagation(); 
-    console.log("GLTF Explore Button Clicked! Triggering state change.");
+
+    // --- Debug Mode Logic --- (Prevent normal click)
+    if (isDebugMode) {
+      console.log("[Debug Mode] Normal GLTF click prevented.");
+      return;
+    }
+
+    // --- Normal Click Logic (Transition View) --- 
+    console.log("[GltfExploreButton] Executing normal click logic (setViewState)..."); // Log normal action
     setViewState('cardSelection');
   };
 
   const handleContextMenu = (event: ThreeEvent<MouseEvent>) => {
+    console.log("[GltfExploreButton] handleContextMenu fired."); // Log entry
+    console.log("[GltfExploreButton] isLightPlacementMode:", isLightPlacementMode); // Log mode status
+
     if (isLightPlacementMode) {
       event.stopPropagation();
       event.nativeEvent.preventDefault(); // Use nativeEvent for preventDefault
       
       // Get the world intersection point
       const worldPoint = event.point;
+      console.log("[GltfExploreButton] World Intersection Point:", worldPoint);
       
-      // Get the inverse of the group's world matrix
-      const inverseWorldMatrix = groupRef.current.matrixWorld.clone().invert();
-      
-      // Transform the world point to local coordinates
-      const localPoint = worldPoint.clone().applyMatrix4(inverseWorldMatrix);
-      
-      // Call the function passed from parent to add the light
-      addPlacedLight([localPoint.x, localPoint.y, localPoint.z]);
+      // Call the function passed from parent to add the light using WORLD position
+      console.log("[GltfExploreButton] Calling addPlacedLight with world point...");
+      addPlacedLight([worldPoint.x, worldPoint.y, worldPoint.z]); // Pass world coordinates
     }
     // Do nothing if not in light placement mode (allow default context menu)
+    console.log("[GltfExploreButton] Context menu default allowed (not in placement mode or error).");
   };
 
   // We wrap the loaded scene in a group to easily apply position, scale, and onClick
@@ -285,23 +342,23 @@ export default function GltfExploreButton({
       // Event handlers remain on the outer group
       onClick={handleClick} 
       onContextMenu={handleContextMenu} // Add context menu handler
+      // Add onPointerMissed to clear inspection when clicking background (optional)
+      onPointerMissed={() => {
+          if (isInspectMode) {
+              console.log("[Inspect Mode] Clicked background, clearing info.");
+              setInspectedPartInfo(null); 
+          }
+      }}
     >
       {/* Inner group for animations */}
       <group ref={animationGroupRef}>
         <primitive object={scene} />
       </group>
       
-      {/* Dynamically render lights based on the placedLights prop */}
-      {placedLights.map(light => (
-        <pointLight
-          key={light.id} // Use unique ID for key
-          position={light.position} // Use position from the state
-          intensity={lightIntensity}         
-          distance={lightDistance}          
-          color={lightColor}     
-          decay={2}             
-        />
-      ))}
+      {/* REMOVE direct rendering of placed lights */}
+      {/* The PlacedLightController in DesktopScene now handles this */}
+      {/* {placedLights.map(light => (...))} */}
+
     </group>
   );
 } 
