@@ -170,7 +170,7 @@ export function SpawnedGltf({
   return (
     // Outer group only for positioning and containing TransformControls
     <group position={position} dispose={null}>
-      {/* TransformControls targets the modelRef group */}
+      {/* TransformControls targets the modelRef group */} 
       {enableTransform && modelRef.current && (
         <TransformControls object={modelRef.current} />
       )}
